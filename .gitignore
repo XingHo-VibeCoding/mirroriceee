@@ -8,9 +8,37 @@
 # 第 23 天才会写入真实内容，但规则必须现在就位
 # 原因：Git 记录的是全部历史，一旦上传过一次，删掉也还在历史里
 .env
-.env.local
-.env.*.local
-*.env.example.local
+.env.*
+!.env.example
+
+# 说明：.env.* 用通配符一次挡住 .env.production / .env.development / .env.test
+# 等所有"带环境后缀"的名字（逐个枚举一定会漏掉以后新增的）；
+# 上一行的 ! 是"例外语法"，把 .env.example（模板文件，本来就该提交给同学看）
+# 从黑名单里捞回来。
+
+# --- 证书与私钥（拿到就等于拿到钥匙）---
+*.pem
+*.key
+*.p12
+*.pfx
+id_rsa
+id_ed25519
+
+# --- 数据库文件与导出（含真实数据，体积也大）---
+*.db
+*.sqlite
+*.sqlite3
+*.sql
+*.dump
+
+# --- 云服务凭据与包管理器的私有配置 ---
+credentials.json
+service-account*.json
+.npmrc
+.yarnrc
+
+# --- 测试覆盖率报告（本地生成，随时可重跑）---
+coverage/
 
 # --- AI 协作工具的本地工作目录 ---
 # .workbuddy/ 装的是本机的协作笔记与记忆，属于"个人台面"
