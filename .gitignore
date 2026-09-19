@@ -12,6 +12,11 @@
 .env.*.local
 *.env.example.local
 
+# --- AI 协作工具的本地工作目录 ---
+# .workbuddy/ 装的是本机的协作笔记与记忆，属于"个人台面"
+# 它就在项目文件夹里，和 .env 一样靠这一行挡住，别让它进公开仓库
+.workbuddy/
+
 # --- 依赖包目录（体积巨大，且可由 package.json 还原）---
 node_modules/
 vendor/
