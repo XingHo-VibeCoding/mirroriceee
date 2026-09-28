@@ -344,9 +344,10 @@ main {
   background: var(--surface);
 }
 
-/* 播放/暂停：圆形图标键。
-   按钮里同时放着「播放」和「暂停」两个图标，按 aria-pressed 决定露哪一个 ——
-   这样点一下只是换个图标，不用重建按钮，也不会闪。 */
+/* 播放/停止：圆形图标键。
+   按钮里同时放着「播放」和「停止」两个图标，按 aria-pressed 决定露哪一个 ——
+   这样点一下只是换个图标，不用重建按钮，也不会闪。
+   ⚠️ 停止用方块 ■，不用暂停的两竖杠 ⏸ —— 这个键的行为是停止，图标得照实。 */
 .icon-btn {
   display: inline-flex;
   align-items: center;
@@ -361,11 +362,11 @@ main {
   cursor: pointer;
 }
 
-.icon-btn .ico-pause {
+.icon-btn .ico-stop {
   display: none;                       /* 默认没在播，只露三角形的播放图标 */
 }
 
-/* 正在播：按钮实心填绿，图标切成暂停 —— 一眼看得出「现在响着」 */
+/* 正在播：按钮实心填绿，图标切成停止方块 —— 一眼看得出「现在响着」 */
 .icon-btn[aria-pressed='true'] {
   background: var(--accent);
   color: var(--surface);
@@ -375,7 +376,7 @@ main {
   display: none;
 }
 
-.icon-btn[aria-pressed='true'] .ico-pause {
+.icon-btn[aria-pressed='true'] .ico-stop {
   display: block;
 }
 

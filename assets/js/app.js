@@ -114,7 +114,7 @@ function buildMaterialHTML(material, segments) {
     return attrs + head + '<p class="empty">这条素材还没有对齐数据</p></section>';
   }
 
-  /* 播放控制条：上面一条时间进度条，下面一排图标键（播放/暂停 ＋ 单句重复），
+  /* 播放控制条：上面一条时间进度条，下面一排图标键（播放/停止 ＋ 单句重复），
      跟音乐软件的排布一样。进度条上限先用「最后一句的终点」垫着，
      播放器拿到音频真实时长后会改成真实时长 */
   var lastEnd = segments[segments.length - 1].end;
@@ -123,15 +123,17 @@ function buildMaterialHTML(material, segments) {
                 'min="0" step="0.1" value="0" max="' + lastEnd + '" ' +
                 'aria-label="播放进度，拖动可跳到对应时间">' +
               '<div class="player-controls">' +
-                /* 播放/暂停：两个图标都放在这一个按钮里，靠 CSS 按 aria-pressed 决定露哪一个
-                   （这样点一下只是切图标，不用重建按钮） */
+                /* 播放/停止：两个图标都放在这一个按钮里，靠 CSS 按 aria-pressed 决定露哪一个
+                   （这样点一下只是切图标，不用重建按钮）。
+                   ⚠️ 第二个图标是「停止方块 ■」而不是「暂停两竖杠 ⏸」：
+                   这个键按下去的效果是停止（音频停 ＋ 播放头归位 ＋ 清高亮），图标必须照实。 */
                 '<button type="button" class="icon-btn" data-action="toggle-play" ' +
                   'aria-pressed="false" aria-label="播放">' +
                   '<svg class="ico ico-play" viewBox="0 0 24 24" aria-hidden="true" focusable="false">' +
                     '<path d="M8 5v14l11-7z"></path>' +
                   '</svg>' +
-                  '<svg class="ico ico-pause" viewBox="0 0 24 24" aria-hidden="true" focusable="false">' +
-                    '<path d="M6 5h4v14H6zM14 5h4v14h-4z"></path>' +
+                  '<svg class="ico ico-stop" viewBox="0 0 24 24" aria-hidden="true" focusable="false">' +
+                    '<path d="M6 6h12v12H6z"></path>' +
                   '</svg>' +
                 '</button>' +
                 /* 单句重复：图标 + 文字。文字单独放进一个 span，

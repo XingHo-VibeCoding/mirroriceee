@@ -173,8 +173,8 @@ var Player = (function () {
       var playing = !!(current && current.audio && !current.audio.paused &&
                        (!bar || current.bar === bar));
       btns[i].setAttribute('aria-pressed', playing ? 'true' : 'false');
-      /* 标签说「停止」而不是「暂停」：这个键按下去的效果是停止（音频停 ＋ 高亮清空），
-         照实说。⚠️ 但图标目前仍是暂停的两条竖杠 —— 两者不一致，等斌哥定要不要换成方块 */
+      /* 标签与图标都是「停止」（方块 ■）：这个键按下去的效果是停止
+         （音频停 ＋ 播放头归位 ＋ 高亮清空），照实说，不再存在图标与行为对不上的问题 */
       btns[i].setAttribute('aria-label', playing ? '停止' : '播放');
     }
   }
