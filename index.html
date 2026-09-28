@@ -3,100 +3,42 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>我的网站 · 建设中</title>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-
-    body {
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 24px;
-      background: #f7f7f5;
-      color: #2c2c2a;
-      font-family: system-ui, -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
-      line-height: 1.7;
-    }
-
-    .card {
-      width: 100%;
-      max-width: 560px;
-      padding: 40px 36px;
-      background: #ffffff;
-      border: 1px solid #e3e1da;
-      border-radius: 16px;
-    }
-
-    .badge {
-      display: inline-block;
-      padding: 4px 12px;
-      margin-bottom: 20px;
-      background: #e6f1fb;
-      color: #185fa5;
-      border-radius: 999px;
-      font-size: 13px;
-    }
-
-    h1 {
-      margin-bottom: 12px;
-      font-size: 26px;
-      font-weight: 600;
-      letter-spacing: -0.01em;
-    }
-
-    p {
-      margin-bottom: 12px;
-      font-size: 15px;
-      color: #5f5e5a;
-    }
-
-    .divider {
-      height: 1px;
-      margin: 28px 0;
-      background: #e3e1da;
-    }
-
-    .meta {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px 28px;
-      font-size: 13px;
-      color: #888780;
-    }
-
-    .meta b {
-      color: #444441;
-      font-weight: 500;
-    }
-
-    footer {
-      margin-top: 28px;
-      font-size: 13px;
-      color: #888780;
-    }
-  </style>
+  <title>英语学习工具 · 首页</title>
+  <link rel="stylesheet" href="assets/css/style.css">
 </head>
 <body>
-  <main class="card">
-    <span class="badge">占位页面 · 项目已启动</span>
+  <header class="site-header">
+    <h1>英语学习工具</h1>
+  </header>
 
-    <h1>网站正在建设中</h1>
+  <main>
+    <ul class="boards">
+      <li class="board">
+        <a class="board-link" href="reader.html">
+          <div class="board-head">
+            <h3>文本跟读</h3>
+            <span class="badge badge-ok">可用</span>
+          </div>
+        </a>
+      </li>
 
-    <p>这是项目的第一个页面,用来打通「本地代码 → GitHub 仓库」的完整链路。</p>
-    <p>真正的功能会在 Day 7 开始开发,现在你看到的是一个刻意的空壳。</p>
+      <li class="board">
+        <div class="board-head">
+          <h3>词汇速记</h3>
+          <span class="badge badge-todo">开发中</span>
+        </div>
+        <p class="board-hint">开发中 · 暂不可进入</p>
+      </li>
 
-    <div class="divider"></div>
+      <li class="board">
+        <div class="board-head">
+          <h3>作文模板</h3>
+          <span class="badge badge-todo">开发中</span>
+        </div>
+        <p class="board-hint">开发中 · 暂不可进入</p>
+      </li>
+    </ul>
 
-    <div class="meta">
-      <span><b>项目</b> my-website</span>
-      <span><b>创建于</b> Day 2</span>
-      <span><b>当前版本</b> v0.0.1 占位</span>
-    </div>
-
-    <footer>
-      能在这里看到这一行,说明文件已经从你的电脑一路走到了 GitHub。
-    </footer>
   </main>
 </body>
 </html>

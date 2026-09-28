@@ -1,0 +1,450 @@
+/* ============================================
+   style.css —— 英语学习工具 全站样式
+   目标：手机优先，375px / 390px 宽不出现横向滚动
+   约定：内容与代码分离，样式集中在这一份文件里，页面不写内联样式
+   配色：B · 冷白工具感（Day 7 作者拍板）
+         选它的理由：复读机页面是「一堆能点的句子 + 几个按钮」，
+         冷白底 + 正文近黑能让「当前在播哪一句」的高亮看得最清楚
+   ============================================ */
+
+:root {
+  /* 颜色 */
+  --bg: #f4f5f7;            /* 页面底色：冷白 */
+  --surface: #ffffff;       /* 卡片底色：纯白 */
+  --border: #dfe1e6;        /* 分隔线与卡片描边 */
+  --text: #16181d;          /* 正文：接近纯黑，阅读对比度最高 */
+  --text-muted: #56606b;    /* 次要正文（首页暂时用不到，留给跟读页的课文正文） */
+  --text-faint: #64707c;    /* 说明、页脚 */
+  --accent: #0f6e56;        /* 强调色：深绿，按钮与高亮都用它 */
+  --ok-bg: #e1f5ee;         /* 「可用」标签底色 */
+  --ok-text: #0f6e56;       /* 「可用」标签文字 */
+  --todo-bg: #eceef1;       /* 「开发中」标签底色 */
+  --todo-text: #5f6b76;     /* 「开发中」标签文字 */
+
+  /* 尺寸 */
+  --radius-card: 16px;
+  --radius-pill: 999px;
+  --content-width: 720px;
+
+  /* 触控目标：F2-6 / R9 要求点击区域不小于 44x44 像素 */
+  --tap-size: 44px;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  min-height: 100vh;
+  padding: 24px 16px 40px;          /* 左右 16px 内边距，375px 宽下仍有余量 */
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+  line-height: 1.7;
+  -webkit-text-size-adjust: 100%;   /* 手机上不许浏览器自作主张放大字号 */
+}
+
+h1,
+h2,
+h3 {
+  font-weight: 500;                 /* 只用 400 / 500 两档字重 */
+  letter-spacing: -0.01em;
+}
+
+/* ---- 页头 ---- */
+
+.site-header {
+  max-width: var(--content-width);
+  margin: 0 auto 24px;
+}
+
+.site-header h1 {
+  margin-bottom: 4px;
+  font-size: 24px;
+}
+
+/* ---- 主体 ---- */
+
+main {
+  max-width: var(--content-width);
+  margin: 0 auto;
+}
+
+/* ---- 板块入口列表 ---- */
+
+.boards {
+  display: grid;
+  grid-template-columns: 1fr;       /* 手机：单列 */
+  gap: 12px;
+  list-style: none;
+}
+
+.board {
+  padding: 18px 20px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+}
+
+.board-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+
+.board-head h3 {
+  font-size: 17px;
+}
+
+.board-hint {
+  margin-top: 10px;
+  font-size: 13px;
+  color: var(--text-faint);
+}
+
+/* ---- 状态标签：F3-2 每个入口都必须标明可用 / 开发中 ---- */
+
+.badge {
+  display: inline-block;
+  min-height: 24px;
+  padding: 2px 10px;
+  border-radius: var(--radius-pill);
+  font-size: 12px;
+  line-height: 20px;
+  white-space: nowrap;              /* 标签文字不许换行撑破卡片 */
+}
+
+.badge-ok {
+  background: var(--ok-bg);
+  color: var(--ok-text);
+}
+
+.badge-todo {
+  background: var(--todo-bg);
+  color: var(--todo-text);
+}
+
+/* ---- 可进入的入口：F3-2 的「可用」状态，整张卡片都是点击区域 ---- */
+
+.board-link {
+  display: block;
+  min-height: var(--tap-size);      /* 44px：手指点得准，不要求点中那行小字 */
+  color: inherit;                   /* 链接不改文字颜色，卡片保持原样 */
+  text-decoration: none;            /* 去掉下划线 */
+}
+
+.board-link:active {
+  opacity: 0.7;                     /* 手机上没 hover，用 :active 给点击反馈 */
+}
+
+/* ---- 内页：返回首页与内容面板 ---- */
+
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--tap-size);      /* R9：点击区域不小于 44x44 像素 */
+  margin-bottom: 4px;
+  color: var(--accent);
+  font-size: 15px;
+  text-decoration: none;
+}
+
+.back-link:active {
+  opacity: 0.6;
+}
+
+.panel {
+  padding: 18px 20px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+}
+
+.empty {
+  font-size: 15px;
+  color: var(--text-faint);
+}
+
+/* ---- 跟读页：素材标题与句子列表（Day 7 第 3 步） ---- */
+
+.mat-title {
+  font-size: 18px;
+  margin-bottom: 4px;
+  overflow-wrap: break-word;            /* 超长英文单词宁可断行，也不撑宽页面（G1） */
+}
+
+.mat-meta {
+  margin-bottom: 8px;
+  font-size: 12px;
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;   /* 秒数等宽，上下行对得齐 */
+}
+
+/* ---- 坏路径 B2：这条素材的音频读不到 ---- */
+
+/* 弱化它的句子列表，让人一眼看出「这条现在不能点」，
+   而不是点下去没反应、还以为是页面卡了 */
+.material.is-unavailable .seg-list {
+  opacity: 0.5;
+  pointer-events: none;                 /* 播不了就别让人白点（代码里另有一道拦截，双保险） */
+}
+
+.material.is-unavailable .icon-btn {
+  opacity: 0.4;
+}
+
+.seg-list {
+  list-style: none;                     /* 去掉 <ol> 自带的数字，句号用自己那列显示 */
+}
+
+.seg {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+  min-height: var(--tap-size);          /* R9：每句将来都要能点，先按 44px 留够高度 */
+  cursor: pointer;                      /* 可点：手指/鼠标知道这里能按 */
+}
+
+.seg:last-child {
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.seg-idx {
+  flex: none;
+  width: 20px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.seg-body {
+  display: block;
+  flex: 1 1 auto;
+  min-width: 0;                         /* 长句允许换行，不把手机撑出横向滚动 */
+}
+
+.seg-text {
+  display: block;
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--text-muted);
+  overflow-wrap: break-word;            /* 同上：超长单词不许撑破卡片（G1） */
+}
+
+.seg-time {
+  display: block;
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- 正在播的那一句（Day 7 拍的「绿系高亮」）---- */
+
+.seg.is-playing {
+  margin: 0 -10px;                      /* 负边距把高亮块往两侧撑开一点，面板内边距是 20px，不会溢出 */
+  padding-right: 10px;
+  padding-left: 10px;
+  background: var(--ok-bg);
+  border-color: transparent;
+  border-radius: 10px;
+}
+
+.seg.is-playing .seg-text,
+.seg.is-playing .seg-idx {
+  color: var(--accent);
+}
+
+/* ---- 播放控制条：上面一条时间进度条，下面一排图标键（播放/暂停 ＋ 单句重复） ---- */
+
+.player {
+  margin: 12px 0 4px;
+}
+
+/* 图标键那一排：三列网格 —— 空的左列 / 播放键 / 右列。
+   左右两列都用 minmax(0,1fr)，宽度必然相等，播放键就正好落在整行的正中间；
+   重复键放第三列靠右。
+   （试过 flex 的 justify-content:center，那是"两个键作为一组居中"，播放键会偏左。） */
+.player-controls {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  margin-top: 2px;
+}
+
+.player-controls .icon-btn {
+  grid-column: 2;
+  justify-self: center;
+}
+
+.player-controls .btn {
+  grid-column: 3;
+  justify-self: end;
+}
+
+/* 图标统一尺寸；fill 用 currentColor，颜色跟着按钮自己走，不用重复写颜色 */
+.ico {
+  display: block;
+  width: 20px;
+  height: 20px;
+  fill: currentColor;
+}
+
+/* 进度条：整行 44px 高都算可点区域，手指才点得准（R9） */
+.progress {
+  display: block;
+  width: 100%;                         /* 独占一整行，下面才留得出位置给图标键 */
+  height: var(--tap-size);
+  margin: 0;
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+/* 轨道：那条灰线 */
+.progress::-webkit-slider-runnable-track {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--todo-bg);
+}
+
+.progress::-moz-range-track {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--todo-bg);
+}
+
+/* 滑块：可拖的圆点，24px 够大，手指按得住 */
+.progress::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 24px;
+  height: 24px;
+  margin-top: -9px;                    /* 让圆点居中压在 6px 的轨道上 */
+  border: 2px solid var(--accent);
+  border-radius: 50%;
+  background: var(--surface);
+}
+
+.progress::-moz-range-thumb {
+  width: 24px;
+  height: 24px;
+  border: 2px solid var(--accent);
+  border-radius: 50%;
+  background: var(--surface);
+}
+
+/* 播放/暂停：圆形图标键。
+   按钮里同时放着「播放」和「暂停」两个图标，按 aria-pressed 决定露哪一个 ——
+   这样点一下只是换个图标，不用重建按钮，也不会闪。 */
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--tap-size);              /* R9：点击区域不小于 44x44 */
+  height: var(--tap-size);
+  padding: 0;
+  border: 1px solid var(--accent);
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--accent);
+  cursor: pointer;
+}
+
+.icon-btn .ico-pause {
+  display: none;                       /* 默认没在播，只露三角形的播放图标 */
+}
+
+/* 正在播：按钮实心填绿，图标切成暂停 —— 一眼看得出「现在响着」 */
+.icon-btn[aria-pressed='true'] {
+  background: var(--accent);
+  color: var(--surface);
+}
+
+.icon-btn[aria-pressed='true'] .ico-play {
+  display: none;
+}
+
+.icon-btn[aria-pressed='true'] .ico-pause {
+  display: block;
+}
+
+.icon-btn:active {
+  opacity: 0.7;                        /* 手机没有 hover，用 :active 给点击反馈 */
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;                            /* 图标与文字留一点缝 */
+  min-width: var(--tap-size);           /* R9：点击区域不小于 44x44 像素 */
+  min-height: var(--tap-size);
+  padding: 0 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  color: var(--text);
+  font-family: inherit;                 /* 按钮不继承字体，必须自己接回来 */
+  font-size: 14px;
+  white-space: nowrap;                  /* 「单句重复 · 开」不许折行撑破按钮 */
+  cursor: pointer;
+}
+
+.btn:active {
+  opacity: 0.7;                         /* 手机没有 hover，用 :active 给点击反馈 */
+}
+
+/* 单句重复开着的时候，按钮自己亮起来（R5） */
+.btn[aria-pressed='true'] {
+  border-color: var(--accent);
+  background: var(--ok-bg);
+  color: var(--accent);
+}
+
+/* 窄屏（手机）：单句重复键只留图标，文字收起来。
+   为什么必须收 —— 375px 手机上这一排可用宽度只有 303px：
+     播放键 44px 严格居中 → 占 129.5 ~ 173.5px
+     「单句重复 · 开」约 153px 贴右边 → 占 150 ~ 303px
+     两者重叠约 24px，放不下。
+   收成图标键后宽度 44px，位置和宽度都宽裕；宽屏（≥600px）再把文字显出来。
+   文字藏起来会导致读屏软件没名字，所以按钮自带 aria-label 兜底。 */
+@media (max-width: 599px) {
+  .player-controls .btn {
+    width: var(--tap-size);            /* 44x44，配合 radius-pill 就是个正圆 */
+    padding: 0;
+    justify-content: center;
+  }
+
+  .player-controls .btn [data-role='repeat-label'] {
+    display: none;
+  }
+}
+
+/* 播放异常提示：没话说的时候整段收起，不留一块空白 */
+.player-status {
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--text-faint);
+}
+
+.player-status:empty {
+  display: none;
+}
+
+/* ---- 平板 / 桌面：两列 ---- */
+
+@media (min-width: 600px) {
+  .boards {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

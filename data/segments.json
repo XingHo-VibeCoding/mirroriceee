@@ -1,0 +1,23 @@
+[
+  {
+    "materialId": "oh-im-really-sorry",
+    "segments": [
+      { "idx": 0,  "start": 0.0,  "end": 6.0,  "text": "Oh, I'm really sorry, are you okay?" },
+      { "idx": 1,  "start": 6.0,  "end": 10.0, "text": "I'm fine, but I'm not very good at this." },
+      { "idx": 2,  "start": 10.0, "end": 11.0, "text": "Neither am I." },
+      { "idx": 3,  "start": 11.0, "end": 13.0, "text": "Say, are you from South America?" },
+      { "idx": 4,  "start": 13.0, "end": 14.0, "text": "Yes, I am originally." },
+      { "idx": 5,  "start": 14.0, "end": 16.0, "text": "I was born in Argentina." },
+      { "idx": 6,  "start": 16.0, "end": 18.0, "text": "Did you grow up there?" },
+      { "idx": 7,  "start": 18.0, "end": 23.0, "text": "Yes, I did, but my family moved here eight years ago when I was in high school." },
+      { "idx": 8,  "start": 23.0, "end": 25.0, "text": "And where did you learn to rollerblade?" },
+      { "idx": 9,  "start": 25.0, "end": 26.0, "text": "Here in the park." },
+      { "idx": 10, "start": 26.0, "end": 28.0, "text": "This is only my second time." },
+      { "idx": 11, "start": 29.0, "end": 31.0, "text": "Well, that's my first time." },
+      { "idx": 12, "start": 31.0, "end": 33.0, "text": "Can you give me some lessons?" },
+      { "idx": 13, "start": 33.0, "end": 35.0, "text": "Sure, just follow me." },
+      { "idx": 14, "start": 35.0, "end": 37.0, "text": "By the way, my name is Ted." },
+      { "idx": 15, "start": 37.0, "end": 39.0, "text": "And I'm Anna, nice to meet you." }
+    ]
+  }
+]
