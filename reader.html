@@ -6,7 +6,7 @@
   <title>文本跟读 · 英语学习工具</title>
   <link rel="stylesheet" href="assets/css/style.css">
 </head>
-<body>
+<body class="page-reader">
   <header class="site-header">
     <a class="back-link" href="index.html">&larr; 返回首页</a>
     <h1>文本跟读</h1>
@@ -17,6 +17,12 @@
          这一坨按钮由 app.js 按 data/materials.json 里的 levels 渲染，页面上不写死 ——
          以后加 L4、改名，都只改 JSON，不动这个文件 -->
     <nav class="levels" id="levels" aria-label="等级目录"></nav>
+
+    <!-- 文件列表（Day 8 新增的第二层）：选中等级下的音频文件，一条一行。
+         这一层【必须点开具体某个文件】，下面的音频与文本才出现 ——
+         以前是"选中等级就出音频"，等于少了一级目录。
+         和等级目录一样，内容全部由 app.js 按 data/materials.json 渲染，这里只留空壳 -->
+    <nav class="files" id="files" aria-label="文件列表"></nav>
 
     <div id="reader" class="panel">
       <p class="empty">正在加载素材…</p>

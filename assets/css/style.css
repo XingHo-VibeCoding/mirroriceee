@@ -19,10 +19,15 @@
   --todo-bg: #eceef1;       /* 「开发中」标签底色 */
   --todo-text: #5f6b76;     /* 「开发中」标签文字 */
 
-  /* ---- 品牌色（新增）：取自「星禾双语」logo 的实测像素 ---- */
-  --brand-navy: #0d2136;      /* logo 的深海军蓝 */
-  --brand-brick: #973f3b;     /* logo 的砖红 */
-  --brand-navy-lift: #2a5580; /* 品牌名的渐变起点（同色系提亮） */
+  /* ---- 品牌色（Day 8 换新 logo 后，按新图重新实测）----
+     来源：assets/img/logo.png（四瓣风车）。像素统计显示琥珀橙与深蓝
+     几乎各占一半（2663 : 2646），这两个色就是品牌的两根柱子。
+     ⚠️ 旧值 #0d2136（深海军蓝）/#973f3b（砖红）属于上一版「星禾双语」logo，
+        已作废。砖红那个变量原本全项目无人使用，就地改造成琥珀橙。 */
+  --brand-navy: #1a2c73;       /* logo 的深蓝（新图实测主色） */
+  --brand-amber: #edaf32;      /* logo 的琥珀橙（新图实测主色）—— 悬停时四个字吃到这个色 */
+  --brand-navy-lift: #2943a6;  /* 品牌名渐变起点：深蓝同色系提亮一档（HLS 算出来的） */
+  --brand-navy-deep: #152254;  /* 品牌名渐变终点：深蓝同色系压深一档（HLS 算出来的） */
 
   /* 悬停时用的最深一档阴影（新增） */
   --shadow-lg: 0 10px 22px -8px rgba(16, 24, 40, .16),
@@ -74,6 +79,38 @@
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+}
+
+/* ⚠️ 竖向滚动条【常驻】（2026-09-30 修「点开音频后整列平移」）
+
+   症状（量出来的，不是感觉）：
+     窗口 1170px 宽时，点开音频前居中列左边缘 = 225.00px；
+     点开后 = 217.50px —— 整列**左移了 7.5px**。
+     窄窗口（504px）下不左移，但内容宽度从 472px 掉到 457px，右侧整块缩窄 15px。
+
+   根因：
+     main { max-width: 720px; margin: 0 auto } 是在「可用宽度」里居中的。
+     一点开音频，16 句铺出来 → 页面变高 → 竖向滚动条冒出来占 15px
+     → 可用宽度少 15px → 居中列跟着挪半条滚动条（15 ÷ 2 = 7.5px）。
+
+   修法：
+     让滚动条【一直存在】，可用宽度就恒定，居中列也就钉死不动。
+     滚动条本身是跟随内容自动禁用的（页面短的时候滑块满格且不可拖），
+     但它占的那 15px 位置一直在 —— 恰恰是我们要的。
+
+   代价（这是有意识的取舍，不是没看见）：
+     页面很短、根本不需要滚动时，右边也会挂着一条滚动条轨道。
+     这是为了换取「点进去不跳」付出的代价。
+
+   为什么没用 scrollbar-gutter: stable：
+     那个更"现代"、页短时不留轨道，但它是 Chrome 94 / Firefox 97 才有的；
+     且 safari 支持更晚。斌哥选了 overflow-y: scroll，兼容性最好、行为最可预期。
+
+   ⚠️ 必须写在 html（根元素）上，不能写 body：
+     根元素上的 overflow 会传播到视口，才管得住整页的滚动条。
+     写到 body 上在某些情况下会被浏览器忽略掉这条传播规则。 */
+html {
+  overflow-y: scroll;
 }
 
 body {
@@ -158,41 +195,92 @@ h3 {
   }
 }
 
-/* 站名：艺术粗体。
-   说明：这里没有外挂字体文件 —— 先按「华文琥珀/华文新魏」这类系统里
-   自带设计感的中文字体去找，找不到就退回系统黑体的最粗字重（800）。
-   再用三招把字"做实"：
-     ① -webkit-text-stroke 给笔画补一圈同色描边 —— 相当于人工加粗
-        （系统黑体的 Bold 对中文标题来说还是偏瘦，描边能补上这一档）
-     ② 深海军蓝渐变填充，上浅下深，像漆面反光
-     ③ 极淡的深色投影托一下，让字从底色上"站"起来
-     ⚠️ 试过白色投影做浮雕，在浅色底上反而让笔画边缘发虚，已弃用。
-   ⚠️ 字重 800 是有意打破「全站只用 400/500」这条约定的 ——
-      品牌名需要比正文更重，这是设计上的例外，不是漏改。 */
+/* 站名：不用系统字体，改用【原创 logo 图里取出来的字形】本身。
+   为什么这么干：
+     ① 图里那种「方块几何黑」系统里没有。随便找个近似的替代 = 把品牌字改掉了；
+     ② 这是公开站点 —— 系统字体只在本机有效，别人的设备没装就掉回默认字体。
+   于是把字形做成 assets/img/wordmark.png（白底键成 alpha 的蒙版图），用 CSS 蒙版显示：
+   形状由蒙版锁死，颜色交给 CSS 的 background-color —— 形状不变，颜色却能平滑过渡。
+   ⚠️ 蒙版图只用 alpha 通道，颜色由 CSS 给。所以同一张图能是深蓝，也能是琥珀橙。
+   ⚠️ 这是同一天里第二次改这里：上一版是「系统字体 + 渐变裁字」
+      （-webkit-background-clip: text），因为字体跟原图对不上，已废弃。 */
 .brand-name {
-  font-family: "STHupo", "华文琥珀", "STXinwei", "华文新魏",
-               "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
-  font-size: 20px;
-  font-weight: 800;
-  letter-spacing: .04em;
-  line-height: 1.15;
-  background: linear-gradient(168deg, var(--brand-navy-lift) 0%,
-              var(--brand-navy) 55%, #08192b 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  -webkit-text-fill-color: transparent;
-  -webkit-text-stroke: .5px var(--brand-navy);
-  filter: drop-shadow(0 1px 1px rgba(13, 33, 54, .14));
+  --wm-h: 20px;                 /* 字形显示高度；随断点放大，见下方媒体查询 */
+  display: inline-flex;         /* flex 会吃掉 span 之间的空白，四个字不会裂缝 */
+  align-items: center;
+  /* 极淡的深色投影托一下，让字从底色上"站"起来（色取自新 logo 的深蓝） */
+  filter: drop-shadow(0 1px 1px rgba(26, 44, 115, .18));
+}
+
+/* 四个字的「窗」。
+   四扇窗共用同一张字形图：每扇窗只有约 1/4 宽，靠 mask-position 把整行字
+   平移到窗后面，每扇窗就只露出属于自己那个字的一段。
+   ⚠️ 为什么开窗、而不是把图切成四块：开窗时四个字共享同一张图，
+      笔画在接缝处天然连续；切成四块的话，接缝处会露茬。
+   ⚠️ 尺寸用 calc 按 --wm-h 等比换算。字形原图 84 宽 × 20 高（已按墨迹收紧，
+      上下左右不留多余空白），所以整行宽 = 高度 × (84/20)，窗宽与偏移同理。 */
+.brand-char {
+  display: block;               /* 必须是块级：transform 对 inline 元素不生效 */
+  height: var(--wm-h);
+  background-color: var(--brand-navy);
+  -webkit-mask-image: url("../img/wordmark.png");
+          mask-image: url("../img/wordmark.png");
+  -webkit-mask-repeat: no-repeat;
+          mask-repeat: no-repeat;
+  -webkit-mask-size: calc(var(--wm-h) * 84 / 20) var(--wm-h);
+          mask-size: calc(var(--wm-h) * 84 / 20) var(--wm-h);
+  transition: transform .32s var(--ease-out),
+              background-color .32s var(--ease-out);
+}
+
+/* 开窗边界 19 / 41 / 62 是量出来的：那三列的像素密度为 0，是真空隙，
+   所以「抬起」时绝不会把一个字的笔画拦腰截断。
+   ⚠️ 每扇窗把自己的那格空隙也算进去，四格首尾相接正好拼回整行，间距与原图一致。 */
+.brand-char:nth-child(1) {
+  width: calc(var(--wm-h) * 19 / 20);
+  -webkit-mask-position: 0 0;
+          mask-position: 0 0;
+  transition-delay: 0s;
+}
+.brand-char:nth-child(2) {
+  width: calc(var(--wm-h) * 22 / 20);
+  -webkit-mask-position: calc(var(--wm-h) * -19 / 20) 0;
+          mask-position: calc(var(--wm-h) * -19 / 20) 0;
+  transition-delay: .07s;
+}
+.brand-char:nth-child(3) {
+  width: calc(var(--wm-h) * 21 / 20);
+  -webkit-mask-position: calc(var(--wm-h) * -41 / 20) 0;
+          mask-position: calc(var(--wm-h) * -41 / 20) 0;
+  transition-delay: .14s;
+}
+.brand-char:nth-child(4) {
+  width: calc(var(--wm-h) * 22 / 20);
+  -webkit-mask-position: calc(var(--wm-h) * -62 / 20) 0;
+          mask-position: calc(var(--wm-h) * -62 / 20) 0;
+  transition-delay: .21s;
+}
+
+/* ---- 逐字互动 ----
+   鼠标移到品牌区时，四个字从「星」到「穗」依次变成 logo 的琥珀橙，各自抬起 2px。
+   不设延迟的话四个字齐刷刷一起变，很生硬；依次扫过去才合得上风车转的节奏。
+   ⚠️ 延迟写在上面各条基础规则里，不能写在 :hover 里 ——
+      写在 :hover 里的话，鼠标一移开延迟立刻失效，四个字会一起弹回去，白做。
+   ⚠️ 这里能用 transform 了（元素是块级）；上一版因为要保持 inline 只能用 top。 */
+@media (hover: hover) {
+  .brand:hover .brand-char {
+    transform: translateY(-2px);
+    background-color: var(--brand-amber);
+  }
 }
 
 @media (min-width: 600px) {
-  .brand-name { font-size: 22px; }
+  .brand-name { --wm-h: 22px; }
 }
 
 @media (min-width: 900px) {
   .brand-logo { width: 46px; height: 46px; }
-  .brand-name { font-size: 24px; }
+  .brand-name { --wm-h: 24px; }
 }
 
 /* ---- 主体 ---- */
@@ -414,21 +502,65 @@ main {
   align-items: center;
   min-height: var(--tap-size);
   margin-bottom: 4px;
+  /* 新增：给自己留出左右内边距 —— 悬停那圈光得有地方长出来。
+     不留的话光环会紧贴文字，看着像给字加描边，而不是"这个按钮被点亮了"。
+     ⚠️ 为什么是 8px 而不是更宽松的 12px —— 见下面 :hover 那段的说明，这是个硬预算 */
+  padding: 0 8px;
+  /* 新增：把留出来的 8px 抵消掉，让「←」的左边缘仍然和下面的大标题对齐。
+     不减这一下，整行字会右移 8px，页头看着就歪了 */
+  margin-left: -8px;
+  border-radius: var(--radius-pill);
   color: var(--accent);
   font-size: var(--text-base);
   text-decoration: none;
-  transition: opacity var(--duration-fast) var(--ease-out);
+  transition: background-color var(--duration-fast) var(--ease-out),
+              box-shadow var(--duration-fast) var(--ease-out),
+              transform var(--duration-fast) var(--ease-out);
 }
 
 .back-link:active {
   opacity: .6;
 }
 
+/* ⚠️ 悬停反馈从「加下划线」换成「点亮一圈光」（2026-09-30 斌哥要求）。
+   两层 box-shadow 而不是一层：
+     只给外面那圈柔光 → 浅色底上边界发虚，看不出这个"东西"的边界在哪；
+     只给 1px 实心描边 → 太硬，不像"发光"，像被选中。
+     1px 实心描边托住形状 ＋ 外面 5px 柔光负责"亮" —— 两个一起才对。
+
+   ⚠️⚠️ 这里有一个【硬预算 16px】，改数字前先看这段：
+     页面左右留白来自 body 的 padding: 24px 16px（style.css 第 86 行），
+     而且窄屏媒体查询【没有】再缩小它 → 左边到底只有 16px 可用空间。
+     光环是往盒子【外面】扩的，所以必须满足：
+          左右内边距 + 光圈外扩 ≤ 16
+     一开始写的是 12 + 6 = 18，超了 2px —— 量图发现光环最左像素落在 x = -2，
+     也就是左半边被视口边缘【切平了】，看着像没渲染完。
+     现在 8 + 5 = 13，光环最左落在 x = 3，不切。
+     要更宽松的内边距，就得同时收窄光圈，或者把 body 的左右留白加大 ——
+     但加大留白会连标题和卡片一起动，那是另一个决定，别顺手改。
+
+   ⚠️ 为什么保留 @media (hover: hover)：
+     触屏设备上点一下会留下"粘住的悬停态"，一圈光赖在那儿不走，很脏；
+     触屏本来也没有"光标浮在上面"这回事。
+     键盘用户的反馈改由下面的 :focus-visible 负责（同一圈光），不能只照顾鼠标。
+
+   ⚠️ translateY(-1px) 不影响入场动画：入场动的是父元素 .site-header，
+     这里动的是它自己，各管各的（和 .board 那个 transform/translate 的坑不是一回事）。 */
 @media (hover: hover) {
   .back-link:hover {
-    text-decoration: underline;           /* 新增：桌面端给个明确反馈 */
-    text-underline-offset: 4px;
+    background: var(--ok-bg);
+    box-shadow: 0 0 0 1px var(--accent), 0 0 0 5px rgba(15, 110, 86, .14);
+    transform: translateY(-1px);
   }
+}
+
+/* 键盘 Tab 走到这里，给同一圈光 —— 不能只有鼠标用户看得见反馈。
+   额外留 outline 是因为光晕在「高对比度模式」下会被系统抹掉，outline 不会。 */
+.back-link:focus-visible {
+  background: var(--ok-bg);
+  box-shadow: 0 0 0 1px var(--accent), 0 0 0 5px rgba(15, 110, 86, .14);
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
 }
 
 .panel {
@@ -460,6 +592,93 @@ main {
 .level-btn {
   min-width: 64px;
   justify-content: center;
+}
+
+/* ---- 跟读页第二层的文件列表（Day 8 新增）：每条音频一行 ----
+   ⚠️ 为什么 .file-btn 不套 .btn 那个类：
+      .btn 是「药丸形小按钮」（圆角 999px、white-space: nowrap、inline-flex、左右 16px 内边距），
+      而这里要的是「整宽的一条列表行」（能换行、上下两行字、随面板宽度撑满）。
+      把 .btn 的 8 条属性挨个覆盖回来，比直接写清楚更难读，还容易漏一条就串味。
+      所以这里自成一套；颜色和选中态刻意跟 .btn 对齐，两层看起来才是一家的。 */
+
+.files {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+/* 和 .levels 一样：没内容就不占位置（app.js 在清单空时会塞一句提示，那种不算空） */
+.files:empty {
+  display: none;
+}
+
+.file-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  width: 100%;
+  min-height: var(--tap-size);
+  padding: 12px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+  color: var(--text);
+  font-family: inherit;
+  font-size: var(--text-md);
+  text-align: left;
+  cursor: pointer;
+  box-shadow: var(--shadow-xs);
+  transition: border-color var(--duration-fast) var(--ease-out),
+              background-color var(--duration-fast) var(--ease-out),
+              color var(--duration-fast) var(--ease-out),
+              transform var(--duration-fast) var(--ease-out);
+}
+
+/* 当前正打开的那一条。跟 .btn[aria-pressed='true'] 用同一组颜色，
+   但语义不同：等级按钮是「被按下的开关」→ aria-pressed；
+   文件是「当前打开的是它」→ aria-current。两回事，别合并 */
+.file-btn[aria-current='true'] {
+  border-color: var(--accent);
+  background: var(--ok-bg);
+}
+
+.file-btn[aria-current='true'] .file-name {
+  color: var(--accent);
+}
+
+.file-btn:active {
+  opacity: .7;
+}
+
+@media (hover: hover) {
+  .file-btn[aria-current='true']:hover {
+    border-color: var(--accent);
+  }
+
+  .file-btn:not([aria-current='true']):hover {
+    border-color: var(--border-strong);
+    transform: translateY(-1px);
+  }
+}
+
+.file-name {
+  font-weight: 500;
+  overflow-wrap: break-word;
+}
+
+/* 第二行小字：共几句、多长。tabular-nums 让秒数的数字等宽，上下两行不会跳 */
+.file-meta {
+  font-size: var(--text-xs);
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 音频区在【没打开任何文件】时是空的（见 app.js 的 renderMaterialView）——
+   整块白面板连同阴影一起收掉，只留下文件列表，别在页面上挂一块空卡片 */
+#reader:empty {
+  display: none;
 }
 
 /* ---- 跟读页：素材标题与句子列表 ---- */
@@ -812,6 +1031,58 @@ main {
 .board:nth-child(2) { animation-delay: .13s; }
 .board:nth-child(3) { animation-delay: .20s; }
 
+/* ---- 跟读页：四块依次上浮（Day 8 追加；Day 8 后又把第三、四块拆开）----
+   主界面那套动效的「翻译版」：主界面动的是品牌区 ＋ 三张卡片；
+   跟读页没有品牌区，就对应到它自己的四块 —— 页头 / 等级目录 / 文件列表 / 音频文本区。
+   ⚠️ 为什么要 .page-reader 限定：.site-header 两个页面都有。
+      不限定的话主界面会被动两次（外层页头动一回、里面的品牌区再动一回），
+      而且第二回是套在第一回里的，看着像卡了一下。
+   ⚠️ 为什么动 #reader > * 而不是只动 .material：
+      素材区有三种状态 —— 素材卡片 / 该级无素材的 .empty / 整个清单读不到。
+      写死 .material 的话，空状态和加载中那个「正在加载素材…」都不会动，
+      切换等级时就会出现"卡片浮入、空状态硬闪"的不一致。
+      同理文件列表也要动 —— 它的空状态（「L2 暂无素材」）同样在这层里。
+   ⚠️ 四块的延迟依次 0 → .08 → .16 → .24，每档差 80ms：
+      比主界面三卡片的 60/70ms 略慢，因为这里块数更多、每块内容更重，
+      差太密看着像一起弹出来，就白排了。
+   ⚠️ 切换等级时，只有【文件列表和素材区】会重播：
+      renderFiles / renderMaterialView 重建了它们的 innerHTML，新节点自然重跑动画。
+      .levels 那排按钮【不重播】—— pickLevel 只改 aria-pressed、不重铺按钮
+      （为了不丢键盘焦点），所以它稳住不动，正好合意。
+   ⚠️ 依旧用 riseIn（translate），不用 transform，理由见本节开头的取舍说明。 */
+.page-reader .site-header { animation: riseIn .45s var(--ease-out) both; }
+.page-reader .levels      { animation: riseIn .45s var(--ease-out) both; animation-delay: .08s; }
+.page-reader .files       { animation: riseIn .45s var(--ease-out) both; animation-delay: .16s; }
+.page-reader #reader > *  { animation: riseIn .5s  var(--ease-out) both; animation-delay: .24s; }
+
+/* ---- 素材卡：换成「一句一句独立浮现」（Day 8 追加）----
+   斌哥要的效果：音频文本这一页不再整块浮入，改成一句一句自己出现。
+   ⚠️ 为什么必须把素材卡整块的 riseIn 关掉：
+      .seg 是卡的子元素。整块淡入（.24s 起，.5s 长）＋ 每句各自淡入，
+      两层 opacity 相乘，前面的句子会"半透明地浮两遍"，看着发糊、也看不出先后。
+      所以卡【不整块动】，让里面每一句自己动 —— 这是这次改动的关键一步。
+   ⚠️ 卡上的标题 / 统计 / 播放条还是轻轻浮一下，而且【不带延迟】：
+      让"框架先就位、句子再填进来"。不然句子在动、框架却"啪"地硬闪出来，像两套东西。
+      .player-status 也要带上，否则播放报错那行字会孤立地硬闪。
+   ⚠️ 用 --i（第几句，写在元素的 style 里）算延迟，不用 nth-child：
+      nth-child 要写死条数，素材多一句就漏一句；--i 则多少句都成立。
+      min(--i, 15) 封顶 → 最长的素材也就等到 0.6s，不会越往下等越久（16 句的素材
+      不等封顶的话最后一句要等到 .64s 之后，长素材更是等不完）。 */
+.page-reader #reader > .material { animation: none; }
+
+.page-reader #reader > .material > .mat-title,
+.page-reader #reader > .material > .mat-meta,
+.page-reader #reader > .material > .player,
+.page-reader #reader > .material > .player-status {
+  animation: riseIn .35s var(--ease-out) both;
+}
+
+.seg {
+  animation: riseIn .4s var(--ease-out) both;
+  animation-delay: calc(min(var(--i), 15) * .04s);
+}
+
+
 /* 「可用」标签的小绿点缓缓呼吸 —— 提醒"这里能进"。
    压到 2.6s 一个循环，几乎不打扰，只是让静态页面有一点活气。 */
 @keyframes dotPulse {
@@ -835,6 +1106,13 @@ main {
   *::after {
     transition-duration: .01ms !important;
     animation-duration: .01ms !important;
+    /* ⚠️ 这一行是必需的，别删：入场动画的 fill-mode 是 both，
+       意思是在「延迟期间」元素就已经停在动画起点 —— 也就是 opacity: 0。
+       只压 duration 不压 delay 的话，内容仍会一个一个蹦出来白等，
+       跟「减弱动效」的本意正好相反。
+       Day 8 之前主界面只有 3 张卡、延迟最多 0.2s，看不出来；
+       给跟读页加上多块依次入场后才暴露。 */
+    animation-delay: 0s !important;
   }
 
   .board:has(.board-link):hover {

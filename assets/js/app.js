@@ -1,6 +1,7 @@
 /* ============================================
-   app.js —— 跟读页的「显示」逻辑（Day 7 第 3 步；Day 8 加等级目录）
-   职责：把 data/ 里的两个 JSON 读出来，铺等级目录（L1/L2/L3）与当前等级的素材
+   app.js —— 跟读页的「显示」逻辑（Day 7 第 3 步；Day 8 加等级目录 ＋ 文件列表）
+   职责：把 data/ 里的两个 JSON 读出来，铺三层 ——
+        等级目录（L1/L2/L3）→ 当前等级下的文件列表 → 打开某个文件才铺音频与文本
    不管播放：点句子出声是 player.js 的事
    ============================================ */
 
@@ -11,15 +12,19 @@
 var MATERIALS_URL = 'data/materials.json';  /* 素材清单：一共有哪些音频、各属于哪个等级 */
 var SEGMENTS_URL = 'data/segments.json';    /* 对齐数据：每句从第几秒到第几秒 */
 
-/* ---- 等级目录的状态（Day 8 新增）----
-   levelList    清单里声明的等级，按声明顺序渲染成 L1 / L2 / L3 三个按钮
-   allMaterials 全部素材（未筛选）；切等级时从这里挑
-   allSegments  全部对齐数据；渲染每条素材时按 materialId 配对
-   activeLevel  当前选中的等级；空字符串＝清单没声明等级，见 renderMaterials 的兜底 */
+/* ---- 三层视图的状态 ----
+   levelList     清单里声明的等级，按声明顺序渲染成 L1 / L2 / L3 三个按钮
+   allMaterials  全部素材（未筛选）；切等级时从这里挑
+   allSegments   全部对齐数据；渲染每条素材时按 materialId 配对
+   activeLevel   当前选中的等级；空字符串＝清单没声明等级
+   activeFileId  当前【打开】的文件（素材 id）。空字符串＝还没打开任何一个 ——
+                 ⚠️ 这是 Day 8 新加的一层：以前选中等级就直接把音频铺出来；
+                    现在中间多了一层文件列表，必须点开具体文件才出音频与文本 */
 var levelList = [];
 var allMaterials = [];
 var allSegments = [];
 var activeLevel = '';
+var activeFileId = '';
 
 /* 秒数 → mm:ss，方便人一眼核对（6 → "00:06"） */
 function formatClock(seconds) {
@@ -79,6 +84,25 @@ function escapeHTML(str) {
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;');
+}
+
+/* ---- 两条取数捷径：筛选逻辑只写一处，免得以后改了这处漏了那处 ---- */
+
+/* 当前等级下的素材。兜底：清单里没声明 levels（或声明为空）时不过滤，
+   把素材全铺出来 —— 宁可显示得朴素一点，也不要因为少一个字段就整页空白 */
+function materialsOfActiveLevel() {
+  if (!activeLevel) return allMaterials;
+  return allMaterials.filter(function (material) {
+    return material.level === activeLevel;
+  });
+}
+
+/* 某条素材的对齐数据；没配到就返回空数组，交给调用方决定怎么提示 */
+function segmentsOf(materialId) {
+  var hit = allSegments.filter(function (item) {
+    return item.materialId === materialId;
+  })[0];
+  return hit ? hit.segments : [];
 }
 
 /* ---- 坏路径 B2：某条素材的音频不见时，主动发现并标出来 ---- */
@@ -159,8 +183,13 @@ function buildMaterialHTML(material, segments) {
               '</div>' +
             '</div>';
 
-  var rows = segments.map(function (seg) {
-    return '<li class="seg" data-start="' + seg.start + '" data-end="' + seg.end + '">' +
+  /* 每句带一个 --i（第几句），给 CSS 用来做「一句一句依次浮现」的延迟。
+     ⚠️ 为什么把序号塞进 style 而不是在 CSS 里写 nth-child(1..16)：
+        nth-child 要写死条数，素材多一句就漏一句；用 --i 则不管多少句都成立。
+     ⚠️ CSS 那边会用 min(--i, 15) 封顶，所以长素材不会越等越久。 */
+  var rows = segments.map(function (seg, i) {
+    return '<li class="seg" style="--i:' + i + '" ' +
+             'data-start="' + seg.start + '" data-end="' + seg.end + '">' +
              '<span class="seg-idx">' + (seg.idx + 1) + '</span>' +
              '<span class="seg-body">' +
                '<span class="seg-text">' + escapeHTML(seg.text) + '</span>' +
@@ -180,7 +209,7 @@ function buildMaterialHTML(material, segments) {
          '</section>';
 }
 
-/* 主流程：读数据 → 铺等级目录 → 铺当前等级的素材 */
+/* 主流程：读数据 → 铺等级目录 → 铺文件列表 → 铺音频文本区 */
 function render() {
   var box = document.getElementById('reader');
   if (!box) return;
@@ -188,6 +217,7 @@ function render() {
   /* R6：加载中要有状态提示。重试时也先回到这一句，用户才知道点下去有反应了 */
   box.innerHTML = '<p class="empty">正在加载素材…</p>';
   setLevelsHTML('');                       /* 重试时先收掉旧目录，免得新旧按钮混在一起 */
+  setFilesHTML('');
 
   Promise.all([loadJSON(MATERIALS_URL), loadJSON(SEGMENTS_URL)])
     .then(function (result) {
@@ -195,15 +225,20 @@ function render() {
       allMaterials = result[0].materials || [];
       allSegments = result[1];
 
-      /* 默认落在第一个等级上（清单没声明等级时留空字符串，见 renderMaterials 的兜底） */
+      /* 默认落在第一个等级上，但【不自动打开任何文件】——
+         「点开文件才出音频」是这一层的意义所在，自动打开就等于把这一层跳过了。
+         清单没声明等级时 activeLevel 留空字符串，走 materialsOfActiveLevel 的兜底 */
       activeLevel = levelList.length ? levelList[0] : '';
+      activeFileId = '';
 
       renderLevels();
-      renderMaterials();
+      renderFiles();
+      renderMaterialView();
     })
     .catch(function (err) {
       /* 坏路径：读不到数据也要给人话 ＋ 重试入口，不能白屏（B1 / R6） */
       setLevelsHTML('');
+      setFilesHTML('');
       box.innerHTML = failureHTML(err);
       console.error(err);
     });
@@ -228,43 +263,82 @@ function setLevelsHTML(html) {
   if (nav) nav.innerHTML = html;
 }
 
-/* 铺当前等级的素材。三种显示状态都在这里收口：
-     有素材   → 逐条渲染
+function setFilesHTML(html) {
+  var nav = document.getElementById('files');
+  if (nav) nav.innerHTML = html;
+}
+
+/* 铺「文件列表」—— 当前等级下的音频文件，一条一行。
+   三种显示状态都在这里收口（以前收在素材区，现在收在这一层，因为
+   「这个等级没有文件」属于目录的事，不该让下面那块空白面板去说）：
+     有文件   → 逐条铺
      该级为空 → 空状态（L2 / L3 现在没人放素材，点进去看到的就是这一种）
-     整个清单空 → 另一种空状态（分开写，因为给用户的信息不一样）*/
-function renderMaterials() {
+     整个清单空 → 另一种空状态（分开写，因为给用户的信息不一样）
+   ⚠️ 打开态用 aria-current 而不是 aria-pressed：
+      aria-pressed 念的是「这个按钮被按下了」，而这里要说的是
+      「当前正打开的是这一个文件」—— 那是 aria-current 的语义。
+      等级的 L1/L2/L3 用 aria-pressed 是对的（它们是互斥的开关），两者不一样。 */
+function renderFiles() {
+  var nav = document.getElementById('files');
+  if (!nav) return;
+
+  if (!allMaterials.length) {
+    nav.innerHTML = '<p class="empty">暂无素材</p>';
+    return;
+  }
+
+  var list = materialsOfActiveLevel();
+  if (!list.length) {
+    /* 空状态：说清「是这个等级没有」，而不是让人以为整站挂了 */
+    nav.innerHTML = '<p class="empty">' + escapeHTML(activeLevel) + ' 暂无素材</p>';
+    return;
+  }
+
+  nav.innerHTML = list.map(function (material) {
+    var segs = segmentsOf(material.id);
+    var meta = segs.length
+      ? '共 ' + segs.length + ' 句 · ' +
+        formatClock(segs[0].start) + ' – ' + formatClock(segs[segs.length - 1].end)
+      : '还没有对齐数据';
+    return '<button type="button" class="file-btn" data-action="pick-file" ' +
+             'data-file="' + escapeHTML(material.id) + '" ' +
+             'aria-current="' + (material.id === activeFileId ? 'true' : 'false') + '">' +
+             '<span class="file-name">' + escapeHTML(material.title) + '</span>' +
+             '<span class="file-meta">' + escapeHTML(meta) + '</span>' +
+           '</button>';
+  }).join('');
+}
+
+/* 铺「音频文本区」—— 只有打开了文件才铺。
+   三种状态：
+     等级下没有文件 → 整块留空（空状态已经在文件列表那边说过了，这里再说一遍就是重复）
+     还没打开文件   → 给一句提示，说清「要先点上面」，而不是让人以为坏了
+     打开了文件     → 铺素材卡片（音频 ＋ 文本）
+   ⚠️ 留空的写法是 innerHTML = ''，CSS 里 #reader:empty 会让整块白面板收起来，
+      免得页面上挂着一块空卡片还占位置 */
+function renderMaterialView() {
   var box = document.getElementById('reader');
   if (!box) return;
 
-  /* 兜底：清单里没声明 levels（或声明为空）时不过滤，把素材全铺出来 ——
-     宁可显示得朴素一点，也不要因为少一个字段就整页空白 */
-  var list = activeLevel
-    ? allMaterials.filter(function (material) { return material.level === activeLevel; })
-    : allMaterials;
-
-  if (!allMaterials.length) {
-    box.innerHTML = '<p class="empty">暂无素材</p>';
+  if (!allMaterials.length || !materialsOfActiveLevel().length) {
+    box.innerHTML = '';
     return;
   }
 
-  if (!list.length) {
-    /* 空状态：说清「是这个等级没有」，而不是让人以为整站挂了 */
-    box.innerHTML = '<p class="empty">' + escapeHTML(activeLevel) + ' 暂无素材</p>';
+  var material = allMaterials.filter(function (item) {
+    return item.id === activeFileId;
+  })[0];
+
+  if (!material) {
+    box.innerHTML = '<p class="empty">请从上面的列表里点开一个文件，音频和文本才会出现。</p>';
     return;
   }
 
-  box.innerHTML = list.map(function (material) {
-    /* 按 materialId 从对齐数据里挑出属于这条素材的那一份 */
-    var matched = allSegments.filter(function (item) {
-      return item.materialId === material.id;
-    })[0];
-    return buildMaterialHTML(material, matched ? matched.segments : []);
-  }).join('');
-
+  box.innerHTML = buildMaterialHTML(material, segmentsOf(material.id));
   probeAllAudio(box);
 }
 
-/* 渲染完顺手探一遍每条素材的音频在不在（B2：不用等用户点下去才发现缺失）。
+/* 渲染完顺手探一遍音频在不在（B2：不用等用户点下去才发现缺失）。
    先确认 box 真的有 querySelectorAll —— 测试用的假页面没有这个方法，别把测试搞崩 */
 function probeAllAudio(box) {
   if (!box.querySelectorAll) return;
@@ -275,7 +349,7 @@ function probeAllAudio(box) {
   }
 }
 
-/* 切等级：先停播，再换列表。
+/* 切等级：先停播，再换文件列表。
    ⚠️ 那行 stop() 不能省 —— player.js 把 Audio 对象按路径缓存着，
    只换 innerHTML 只会把播放控件从画面上抹掉，声音还在响，
    变成「看不见的播放器」：页面上一片安静，后台一直有人在读课文。 */
@@ -284,6 +358,7 @@ function pickLevel(level) {
   if (window.Player && window.Player.stop) window.Player.stop();
 
   activeLevel = level;
+  activeFileId = '';                 /* 换了等级，原来打开的文件要合上 */
 
   /* 只改 aria-pressed，不重铺整排按钮 —— 重铺会把用户刚点的那个按钮换掉，
      键盘焦点会丢，读屏软件也会重新念一遍整排 */
@@ -293,11 +368,29 @@ function pickLevel(level) {
       btns[i].getAttribute('data-level') === level ? 'true' : 'false');
   }
 
-  renderMaterials();
+  renderFiles();
+  renderMaterialView();
 }
 
-/* 点「重试」→ 整页重来一遍；点等级按钮 → 切到那个等级。
-   两个都用事件代理挂在 document 上，不依赖按钮何时被渲染出来 */
+/* 打开一个文件（素材）。这才是「音频出现」的那一下 —— Day 8 新增的一层。
+   和 pickLevel 一样：只改 aria-current、不重铺整列，免得刚点的那个按钮被换掉、键盘焦点丢掉。 */
+function pickFile(id) {
+  if (!id || id === activeFileId) return;
+  if (window.Player && window.Player.stop) window.Player.stop();
+
+  activeFileId = id;
+
+  var btns = document.querySelectorAll('[data-action="pick-file"]');
+  for (var i = 0; i < btns.length; i++) {
+    btns[i].setAttribute('aria-current',
+      btns[i].getAttribute('data-file') === id ? 'true' : 'false');
+  }
+
+  renderMaterialView();
+}
+
+/* 点「重试」→ 整页重来一遍；点等级按钮 → 切到那个等级；点文件 → 打开它。
+   三个都用事件代理挂在 document 上，不依赖按钮何时被渲染出来 */
 document.addEventListener('click', function (e) {
   var el = e.target;
   if (!el || !el.closest) return;
@@ -308,7 +401,13 @@ document.addEventListener('click', function (e) {
   }
 
   var pick = el.closest('[data-action="pick-level"]');
-  if (pick) pickLevel(pick.getAttribute('data-level'));
+  if (pick) {
+    pickLevel(pick.getAttribute('data-level'));
+    return;
+  }
+
+  var file = el.closest('[data-action="pick-file"]');
+  if (file) pickFile(file.getAttribute('data-file'));
 });
 
 document.addEventListener('DOMContentLoaded', render);

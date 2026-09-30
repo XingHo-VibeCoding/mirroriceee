@@ -10,11 +10,23 @@
   <!-- 顶部标题 = 站名；下面三张卡片就是「三个子标题」，桌面三栏并排、窄屏纵向堆叠 -->
   <header class="site-header">
     <!-- 品牌区：logo + 站名。
-         logo 是装饰性图片 —— 右边紧挨着的文字已经把品牌名说清楚了，
-         所以 alt 留空，免得读屏软件把「星禾双语」连着念两遍 -->
+         ⚠️ 这四个字用的**不是系统字体**，而是【从原创 logo 图里取出来的字形本身】。
+            理由：图里那种「方块几何黑」系统里根本没有；就算找个近似的替代，
+            也等于把品牌字改掉了，而且这是个公开站点 —— 别人的设备上没装那字体，
+            会掉回默认字体，等于白设。所以直接拿字形图来用，任何设备上长得都一样。
+         实现：四个空 span，各自拿同一张字形图当蒙版（mask）开了四扇「窗」。
+            为什么要开窗而不是把图切成四块：开窗时四个字共享同一张图，
+            笔画天然连续、绝不会在接缝处断开，但每扇窗又能各自单独做动效。
+         无障碍：外层 role="img" ＋ aria-label 提供名称，
+            四个空 span 不参与朗读（它们本来就没文字）。 -->
     <div class="brand">
       <img class="brand-logo" src="assets/img/logo.png" alt="" width="40" height="40">
-      <span class="brand-name">星禾双语</span>
+      <span class="brand-name" role="img" aria-label="星禾星穗">
+        <span class="brand-char" aria-hidden="true"></span>
+        <span class="brand-char" aria-hidden="true"></span>
+        <span class="brand-char" aria-hidden="true"></span>
+        <span class="brand-char" aria-hidden="true"></span>
+      </span>
     </div>
     <h1>英语学习工具</h1>
   </header>
