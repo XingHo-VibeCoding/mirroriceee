@@ -13,6 +13,11 @@
   </header>
 
   <main>
+    <!-- 等级目录（Day 8 新增）：L1 / L2 / L3。
+         这一坨按钮由 app.js 按 data/materials.json 里的 levels 渲染，页面上不写死 ——
+         以后加 L4、改名，都只改 JSON，不动这个文件 -->
+    <nav class="levels" id="levels" aria-label="等级目录"></nav>
+
     <div id="reader" class="panel">
       <p class="empty">正在加载素材…</p>
     </div>

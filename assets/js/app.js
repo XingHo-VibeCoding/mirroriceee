@@ -1,15 +1,25 @@
 /* ============================================
-   app.js —— 跟读页的「显示」逻辑（Day 7 第 3 步）
-   职责：把 data/ 里的两个 JSON 读出来，铺到页面上
-   不管播放：点句子出声是第 4 步 player.js 的事
+   app.js —— 跟读页的「显示」逻辑（Day 7 第 3 步；Day 8 加等级目录）
+   职责：把 data/ 里的两个 JSON 读出来，铺等级目录（L1/L2/L3）与当前等级的素材
+   不管播放：点句子出声是 player.js 的事
    ============================================ */
 
 /* 术语备注：
    fetch —— 浏览器自带的「取文件」函数，从本页往下去找 data 目录下的 JSON
    JSON  —— 一种纯文本数据格式，人和机器都能读，用来存素材清单与句子秒数 */
 
-var MATERIALS_URL = 'data/materials.json';  /* 素材清单：一共有哪些音频 */
+var MATERIALS_URL = 'data/materials.json';  /* 素材清单：一共有哪些音频、各属于哪个等级 */
 var SEGMENTS_URL = 'data/segments.json';    /* 对齐数据：每句从第几秒到第几秒 */
+
+/* ---- 等级目录的状态（Day 8 新增）----
+   levelList    清单里声明的等级，按声明顺序渲染成 L1 / L2 / L3 三个按钮
+   allMaterials 全部素材（未筛选）；切等级时从这里挑
+   allSegments  全部对齐数据；渲染每条素材时按 materialId 配对
+   activeLevel  当前选中的等级；空字符串＝清单没声明等级，见 renderMaterials 的兜底 */
+var levelList = [];
+var allMaterials = [];
+var allSegments = [];
+var activeLevel = '';
 
 /* 秒数 → mm:ss，方便人一眼核对（6 → "00:06"） */
 function formatClock(seconds) {
@@ -170,55 +180,135 @@ function buildMaterialHTML(material, segments) {
          '</section>';
 }
 
-/* 主流程：读数据 → 按 materialId 配对 → 铺到页面上 */
+/* 主流程：读数据 → 铺等级目录 → 铺当前等级的素材 */
 function render() {
   var box = document.getElementById('reader');
   if (!box) return;
 
   /* R6：加载中要有状态提示。重试时也先回到这一句，用户才知道点下去有反应了 */
   box.innerHTML = '<p class="empty">正在加载素材…</p>';
+  setLevelsHTML('');                       /* 重试时先收掉旧目录，免得新旧按钮混在一起 */
 
   Promise.all([loadJSON(MATERIALS_URL), loadJSON(SEGMENTS_URL)])
     .then(function (result) {
-      var materials = result[0].materials || [];
-      var allSegments = result[1];
+      levelList = result[0].levels || [];
+      allMaterials = result[0].materials || [];
+      allSegments = result[1];
 
-      /* 素材清单是空的：这是正常状态，不是错误 —— 显示空状态就好 */
-      if (!materials.length) {
-        box.innerHTML = '<p class="empty">暂无素材</p>';
-        return;
-      }
+      /* 默认落在第一个等级上（清单没声明等级时留空字符串，见 renderMaterials 的兜底） */
+      activeLevel = levelList.length ? levelList[0] : '';
 
-      box.innerHTML = materials.map(function (material) {
-        /* 按 materialId 从对齐数据里挑出属于这条素材的那一份 */
-        var matched = allSegments.filter(function (item) {
-          return item.materialId === material.id;
-        })[0];
-        return buildMaterialHTML(material, matched ? matched.segments : []);
-      }).join('');
-
-      /* 渲染完顺手探一遍每条素材的音频在不在（B2：不用等用户点下去才发现缺失）。
-         先确认 box 真的有 querySelectorAll —— 测试用的假页面没有这个方法，别把测试搞崩 */
-      if (box.querySelectorAll) {
-        var sections = box.querySelectorAll('.material');
-        for (var i = 0; i < sections.length; i++) {
-          var audioPath = sections[i].getAttribute('data-audio');
-          if (audioPath) probeAudio(sections[i], audioPath);
-        }
-      }
+      renderLevels();
+      renderMaterials();
     })
     .catch(function (err) {
       /* 坏路径：读不到数据也要给人话 ＋ 重试入口，不能白屏（B1 / R6） */
+      setLevelsHTML('');
       box.innerHTML = failureHTML(err);
       console.error(err);
     });
 }
 
-/* 点「重试」→ 整页重来一遍。用事件代理挂在 document 上，不依赖按钮何时被渲染出来 */
+/* 把等级目录铺成一行按钮（L1 / L2 / L3）。
+   为什么用 <button> 而不是 <a>：这是「切换当前视图」，地址栏不会变；
+   用链接会被读屏软件念成「跳转到另一个页面」，误导不该给。
+   选中态交给 aria-pressed —— CSS 里 .btn[aria-pressed='true'] 已经有现成的高亮样式 */
+function renderLevels() {
+  setLevelsHTML(levelList.map(function (level) {
+    return '<button type="button" class="btn level-btn" data-action="pick-level" ' +
+             'data-level="' + escapeHTML(level) + '" ' +
+             'aria-pressed="' + (level === activeLevel ? 'true' : 'false') + '">' +
+             escapeHTML(level) +
+           '</button>';
+  }).join(''));
+}
+
+function setLevelsHTML(html) {
+  var nav = document.getElementById('levels');
+  if (nav) nav.innerHTML = html;
+}
+
+/* 铺当前等级的素材。三种显示状态都在这里收口：
+     有素材   → 逐条渲染
+     该级为空 → 空状态（L2 / L3 现在没人放素材，点进去看到的就是这一种）
+     整个清单空 → 另一种空状态（分开写，因为给用户的信息不一样）*/
+function renderMaterials() {
+  var box = document.getElementById('reader');
+  if (!box) return;
+
+  /* 兜底：清单里没声明 levels（或声明为空）时不过滤，把素材全铺出来 ——
+     宁可显示得朴素一点，也不要因为少一个字段就整页空白 */
+  var list = activeLevel
+    ? allMaterials.filter(function (material) { return material.level === activeLevel; })
+    : allMaterials;
+
+  if (!allMaterials.length) {
+    box.innerHTML = '<p class="empty">暂无素材</p>';
+    return;
+  }
+
+  if (!list.length) {
+    /* 空状态：说清「是这个等级没有」，而不是让人以为整站挂了 */
+    box.innerHTML = '<p class="empty">' + escapeHTML(activeLevel) + ' 暂无素材</p>';
+    return;
+  }
+
+  box.innerHTML = list.map(function (material) {
+    /* 按 materialId 从对齐数据里挑出属于这条素材的那一份 */
+    var matched = allSegments.filter(function (item) {
+      return item.materialId === material.id;
+    })[0];
+    return buildMaterialHTML(material, matched ? matched.segments : []);
+  }).join('');
+
+  probeAllAudio(box);
+}
+
+/* 渲染完顺手探一遍每条素材的音频在不在（B2：不用等用户点下去才发现缺失）。
+   先确认 box 真的有 querySelectorAll —— 测试用的假页面没有这个方法，别把测试搞崩 */
+function probeAllAudio(box) {
+  if (!box.querySelectorAll) return;
+  var sections = box.querySelectorAll('.material');
+  for (var i = 0; i < sections.length; i++) {
+    var audioPath = sections[i].getAttribute('data-audio');
+    if (audioPath) probeAudio(sections[i], audioPath);
+  }
+}
+
+/* 切等级：先停播，再换列表。
+   ⚠️ 那行 stop() 不能省 —— player.js 把 Audio 对象按路径缓存着，
+   只换 innerHTML 只会把播放控件从画面上抹掉，声音还在响，
+   变成「看不见的播放器」：页面上一片安静，后台一直有人在读课文。 */
+function pickLevel(level) {
+  if (!level || level === activeLevel) return;
+  if (window.Player && window.Player.stop) window.Player.stop();
+
+  activeLevel = level;
+
+  /* 只改 aria-pressed，不重铺整排按钮 —— 重铺会把用户刚点的那个按钮换掉，
+     键盘焦点会丢，读屏软件也会重新念一遍整排 */
+  var btns = document.querySelectorAll('[data-action="pick-level"]');
+  for (var i = 0; i < btns.length; i++) {
+    btns[i].setAttribute('aria-pressed',
+      btns[i].getAttribute('data-level') === level ? 'true' : 'false');
+  }
+
+  renderMaterials();
+}
+
+/* 点「重试」→ 整页重来一遍；点等级按钮 → 切到那个等级。
+   两个都用事件代理挂在 document 上，不依赖按钮何时被渲染出来 */
 document.addEventListener('click', function (e) {
   var el = e.target;
   if (!el || !el.closest) return;
-  if (el.closest('[data-action="retry-load"]')) render();
+
+  if (el.closest('[data-action="retry-load"]')) {
+    render();
+    return;
+  }
+
+  var pick = el.closest('[data-action="pick-level"]');
+  if (pick) pickLevel(pick.getAttribute('data-level'));
 });
 
 document.addEventListener('DOMContentLoaded', render);

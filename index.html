@@ -7,38 +7,30 @@
   <link rel="stylesheet" href="assets/css/style.css">
 </head>
 <body>
+  <!-- 顶部标题 = 站名；下面三张卡片就是「三个子标题」，桌面三栏并排、窄屏纵向堆叠 -->
   <header class="site-header">
+    <!-- 品牌区：logo + 站名。
+         logo 是装饰性图片 —— 右边紧挨着的文字已经把品牌名说清楚了，
+         所以 alt 留空，免得读屏软件把「星禾双语」连着念两遍 -->
+    <div class="brand">
+      <img class="brand-logo" src="assets/img/logo.png" alt="" width="40" height="40">
+      <span class="brand-name">星禾双语</span>
+    </div>
     <h1>英语学习工具</h1>
   </header>
 
   <main>
-    <ul class="boards">
-      <li class="board">
-        <a class="board-link" href="reader.html">
-          <div class="board-head">
-            <h3>文本跟读</h3>
-            <span class="badge badge-ok">可用</span>
-          </div>
-        </a>
-      </li>
+    <!-- 状态位：加载中 / 暂无板块 / 读取失败＋重试，都写在这一个地方。
+         role="status" 是给读屏软件的：内容一变它就会念出来，不用用户自己去发现。
+         正常有数据时它是空的，不占版面 -->
+    <div id="boards-status" role="status"></div>
 
-      <li class="board">
-        <div class="board-head">
-          <h3>词汇速记</h3>
-          <span class="badge badge-todo">开发中</span>
-        </div>
-        <p class="board-hint">开发中 · 暂不可进入</p>
-      </li>
-
-      <li class="board">
-        <div class="board-head">
-          <h3>作文模板</h3>
-          <span class="badge badge-todo">开发中</span>
-        </div>
-        <p class="board-hint">开发中 · 暂不可进入</p>
-      </li>
-    </ul>
-
+    <!-- 板块卡片由 assets/js/home.js 读 data/boards.json 渲染。
+         Day 8 之前这三张卡是【写死在这个文件里】的，现在改成数据驱动：
+         改标题、改说明、加第四个板块，都只改 JSON，这个文件不用动 -->
+    <ul class="boards" id="boards"></ul>
   </main>
+
+  <script src="assets/js/home.js"></script>
 </body>
 </html>

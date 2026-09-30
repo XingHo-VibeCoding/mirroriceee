@@ -1,7 +1,9 @@
 {
+  "levels": ["L1", "L2", "L3"],
   "materials": [
     {
       "id": "oh-im-really-sorry",
+      "level": "L1",
       "title": "Oh, I'm really sorry",
       "audio": "assets/audio/oh-im-really-sorry.mp3"
     }
