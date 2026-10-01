@@ -67,7 +67,7 @@ function failureHTML(err) {
     text = '板块列表加载失败：' + err.message;
   }
   return '<p class="empty">' + escapeHTML(text) + '</p>' +
-         '<button type="button" class="btn" data-action="retry-boards">重试</button>';
+         '<button type="button" class="btn item" data-action="retry-boards">重试</button>';
 }
 
 /* 文本里的 & < > 要转义，否则数据文件里一个尖括号就能把页面结构冲乱 */
@@ -95,13 +95,13 @@ function buildBoardHTML(board) {
 
   if (board.status === 'available' && board.href) {
     /* 整张卡片就是一个链接，点哪儿都能进（点击区域靠 .board-link 撑满） */
-    return '<li class="board">' +
+    return '<li class="board item">' +
              '<a class="board-link" href="' + escapeHTML(board.href) + '">' +
                head + desc +
              '</a>' +
            '</li>';
   }
-  return '<li class="board">' + head + desc + hint + '</li>';
+  return '<li class="board item">' + head + desc + hint + '</li>';
 }
 
 function setStatus(box, html) {

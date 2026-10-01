@@ -75,7 +75,7 @@ function failureHTML(err) {
   }
   return '<p class="empty">' + escapeHTML(text) + '</p>' +
          /* R6 明确要求：加载失败要给「重试入口」，不能只有一句话 */
-         '<button type="button" class="btn" data-action="retry-load">重试</button>';
+         '<button type="button" class="btn item" data-action="retry-load">重试</button>';
 }
 
 /* 文本里的 & < > 要转义，否则会把页面结构冲乱 */
@@ -173,7 +173,7 @@ function buildMaterialHTML(material, segments) {
                 /* 单句重复：图标 + 文字。文字单独放进一个 span，
                    因为播放器切开关时要改的是这几个字，不能把图标一起冲掉。
                    aria-label 是兜底：窄屏会把文字藏起来，读屏软件得靠它念出名字 */
-                '<button type="button" class="btn" data-action="toggle-repeat" ' +
+                '<button type="button" class="btn item" data-action="toggle-repeat" ' +
                   'aria-pressed="false" aria-label="单句重复">' +
                   '<svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false">' +
                     '<path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z"></path>' +
@@ -250,7 +250,7 @@ function render() {
    选中态交给 aria-pressed —— CSS 里 .btn[aria-pressed='true'] 已经有现成的高亮样式 */
 function renderLevels() {
   setLevelsHTML(levelList.map(function (level) {
-    return '<button type="button" class="btn level-btn" data-action="pick-level" ' +
+    return '<button type="button" class="btn item level-btn" data-action="pick-level" ' +
              'data-level="' + escapeHTML(level) + '" ' +
              'aria-pressed="' + (level === activeLevel ? 'true' : 'false') + '">' +
              escapeHTML(level) +
@@ -300,7 +300,7 @@ function renderFiles() {
       ? '共 ' + segs.length + ' 句 · ' +
         formatClock(segs[0].start) + ' – ' + formatClock(segs[segs.length - 1].end)
       : '还没有对齐数据';
-    return '<button type="button" class="file-btn" data-action="pick-file" ' +
+    return '<button type="button" class="file-btn item" data-action="pick-file" ' +
              'data-file="' + escapeHTML(material.id) + '" ' +
              'aria-current="' + (material.id === activeFileId ? 'true' : 'false') + '">' +
              '<span class="file-name">' + escapeHTML(material.title) + '</span>' +

@@ -30,6 +30,8 @@ node dev-server.js 8001
 - **电脑**：浏览器访问 `http://localhost:8000/`
   - 首页点「文本跟读」即可进入跟读页
   - 跟读页直达：`http://localhost:8000/reader.html`
+  - 跟读页里要**一层层点进去**，共三层：等级目录（L1 / L2 / L3）→ 文件列表 → 音频与逐句文本
+    - 只点了等级、没点具体文件时，下面**什么都不出现**，这是设计如此，**不是坏了**
 - **手机（真机验收用 —— 本期暂缓）**：本期以 PC 端验收为准（见 `PRD.md` §2.3）。若日后要手机验证：手机与电脑连同一个 Wi-Fi，访问启动时打印的那条局域网地址
 - **停止**：在跑服务器的那个终端窗口按 `Ctrl + C`
 
@@ -68,13 +70,25 @@ vibe-coding-30days/
 ├─ index.html          首页（三个板块入口；当前只有「文本跟读」可进入）
 ├─ reader.html         跟读页
 ├─ dev-server.js       本地服务器（支持 Range）
-├─ RUN.md              本文件
+├─ AGENTS.md           项目规则（AI 协作的行为边界，先读这份）
+├─ PRD.md              产品需求（做什么、不做什么）
+├─ TECH_DESIGN.md      技术方案（怎么实现）
+├─ research.md         需求研究（为什么这么定）
+├─ user-story.md       用户故事（复读机 / 分段点播）
+├─ RUN.md              本文件（怎么跑起来、怎么自验）
 ├─ data/
-│   ├─ materials.json  素材清单
+│   ├─ boards.json     首页三个板块的卡片数据（标题 / 说明 / 状态 / 链接）
+│   ├─ materials.json  素材清单（含等级 L1 / L2 / L3 与其下的文件）
 │   └─ segments.json   每一句的起止秒数与文本
 └─ assets/
     ├─ css/style.css   样式；配色变量集中在文件顶部 :root
-    ├─ js/app.js       读取数据、渲染素材与句子、加载失败提示
+    ├─ img/
+    │   ├─ logo.png        站点图标（由 <img> 引用）
+    │   └─ wordmark.png    站名字形图（由 style.css 以 mask 引用，不是 <img>）
+    ├─ js/home.js      首页：读 boards.json 渲染板块卡片；含加载 / 空 / 读取失败三态
+    ├─ js/app.js       跟读页：渲染等级目录与文件列表、读素材与逐句文本、加载失败提示
     ├─ js/player.js    播放控制（点句播放 / 进度条跳播 / 单句重复）
     └─ audio/          音频素材
 ```
+
+> 说明：本机项 `.env` 与 `.workbuddy/` 已被 `.gitignore` 挡在仓库之外，不列入上面的目录树。

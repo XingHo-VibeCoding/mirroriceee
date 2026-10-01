@@ -290,6 +290,55 @@ main {
   margin: 0 auto;
 }
 
+/* ============================================
+   可复用组件：点击条目（.item）（Day 8 余力加练）
+   ------------------------------------------------------------
+   给元素加一个 class="item"，它就拿到「一个点得动的方框」该有的那身皮。
+   目前两个消费者：
+     .board     首页的板块卡片（<li>，网格里的一格）
+     .file-btn  跟读页的文件行（<button>，面板里的一条）
+   以后新页面要做"可点的卡片 / 列表行"，加这个类就行，不必把那几行再抄一遍。
+
+   ★ 它【负责】什么（改这里一处，两个消费者一起变）：
+       ① 皮：底色 / 描边 / 圆角 / 那层浅浅的浮起阴影
+       ② 过渡：上面这些属性和位移怎么变过去
+       ③ 选中态：被选中时长什么样
+
+   ★ 它【不负责】什么（各家自己写，是故意不合并的）：
+       ① 尺寸与排布（padding、宽度、一行还是两行）
+       ② 悬停手感 —— 卡片是「抬 3px ＋ 描边染色 ＋ 阴影加深」，
+          文件行只是「描边变深 ＋ 抬 1px」，这两者力度本来就不同
+       ③ 按下手感 —— 卡片是「往下压 ＋ 微微收缩」，文件行只是「变淡」
+     为什么②③不塞进来：一是特异性会打架（基类的 :not() 反而会盖掉卡片自己的悬停），
+     二是会出实打实的视觉 bug —— 卡片按下时，.board-link 自己淡到 .78，
+     基类再淡到 .7，一叠就是 .55，比现在明显更暗。
+     所以基类只管「静止时什么样」和「选中时什么样」，动起来各家自己演。
+
+   过渡时长的取舍：颜色类用 fast（150ms，跟手），位移和阴影用 normal
+   （220ms）—— 位移幅度大一点，慢一点才显得稳，不会"啪"地跳过去。 */
+.item {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-xs);
+  transition: border-color var(--duration-fast) var(--ease-out),
+              background-color var(--duration-fast) var(--ease-out),
+              color var(--duration-fast) var(--ease-out),
+              box-shadow var(--duration-normal) var(--ease-out),
+              transform var(--duration-normal) var(--ease-out);
+}
+
+/* 选中态。⚠️ 视觉只有一套，语义仍是两个，别混为一谈：
+     aria-pressed="true" —— 互斥开关被按下了（等级 L1/L2/L3 那种）
+     aria-current="true" —— 当前打开的就是它（文件列表那种）
+   两个属性读屏软件念出来的话不一样，含义不同；但"看起来被选中"的样子
+   确实一模一样，所以这一层皮可以共用。 */
+.item[aria-pressed='true'],
+.item[aria-current='true'] {
+  border-color: var(--accent);
+  background: var(--ok-bg);
+}
+
 /* ---- 板块入口列表 ---- */
 
 .boards {
@@ -299,17 +348,12 @@ main {
   list-style: none;
 }
 
+/* 皮（底色 / 描边 / 圆角 / 浮起阴影 / 过渡）全部来自上一节的 .item ——
+   页面上每张卡片都带 class="board item"（由 home.js 生成）。
+   这里只留「卡片自己的尺寸与排布」，不再重复那五行 */
 .board {
-  position: relative;                     /* 新增：给左侧强调条定位 */
+  position: relative;                     /* 给左侧强调条定位 */
   padding: 18px 20px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-card);
-  box-shadow: var(--shadow-xs);           /* 新增：卡片浮起一点点 */
-  transition: transform var(--duration-normal) var(--ease-out),
-              box-shadow var(--duration-normal) var(--ease-out),
-              border-color var(--duration-fast) var(--ease-out),
-              background-color var(--duration-fast) var(--ease-out);
 }
 
 /* 新增：左侧强调条 —— 可进入的卡片才长这根绿条 */
@@ -599,7 +643,9 @@ main {
       .btn 是「药丸形小按钮」（圆角 999px、white-space: nowrap、inline-flex、左右 16px 内边距），
       而这里要的是「整宽的一条列表行」（能换行、上下两行字、随面板宽度撑满）。
       把 .btn 的 8 条属性挨个覆盖回来，比直接写清楚更难读，还容易漏一条就串味。
-      所以这里自成一套；颜色和选中态刻意跟 .btn 对齐，两层看起来才是一家的。 */
+      所以这里自成一套。至于底色、描边、圆角那一层"长得像"的部分，
+      现在由共用组件 .item 统一保证（.btn 和 .file-btn 都挂着它），
+      不再靠"刻意跟 .btn 对齐"来维持 —— 靠人记着的对齐，迟早会走样。 */
 
 .files {
   display: flex;
@@ -613,6 +659,9 @@ main {
   display: none;
 }
 
+/* 皮（描边 / 圆角 / 底色 / 浮起阴影 / 过渡）全部来自 .item ——
+   页面上每一行都带 class="file-btn item"（由 app.js 生成）。
+   这里只留「这一行自己的尺寸与排布」 */
 .file-btn {
   display: flex;
   flex-direction: column;
@@ -621,29 +670,18 @@ main {
   width: 100%;
   min-height: var(--tap-size);
   padding: 12px 16px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-card);
-  background: var(--surface);
   color: var(--text);
   font-family: inherit;
   font-size: var(--text-md);
   text-align: left;
   cursor: pointer;
-  box-shadow: var(--shadow-xs);
-  transition: border-color var(--duration-fast) var(--ease-out),
-              background-color var(--duration-fast) var(--ease-out),
-              color var(--duration-fast) var(--ease-out),
-              transform var(--duration-fast) var(--ease-out);
 }
 
-/* 当前正打开的那一条。跟 .btn[aria-pressed='true'] 用同一组颜色，
-   但语义不同：等级按钮是「被按下的开关」→ aria-pressed；
-   文件是「当前打开的是它」→ aria-current。两回事，别合并 */
-.file-btn[aria-current='true'] {
-  border-color: var(--accent);
-  background: var(--ok-bg);
-}
-
+/* 当前正打开的那一条。描边与底色已由 .item[aria-current='true'] 统一给出，
+   这一节只管「文件名染色」这一点是文件行独有的。
+   ⚠️ 语义提醒：等级按钮是「被按下的开关」→ aria-pressed；
+   文件是「当前打开的是它」→ aria-current。两者语义不同、不能互换，
+   共用的只是"看起来被选中"的那张皮（见上面 .item 那一节）。 */
 .file-btn[aria-current='true'] .file-name {
   color: var(--accent);
 }
@@ -653,10 +691,10 @@ main {
 }
 
 @media (hover: hover) {
-  .file-btn[aria-current='true']:hover {
-    border-color: var(--accent);
-  }
-
+  /* 悬停：【还没打开的】那一行才抬 1px ＋ 描边变深。
+     已经打开的那条不给位移反馈 —— 它已经是"当前"了，再动反而晃。
+     （原来这里还有一条 .file-btn[aria-current='true']:hover 把描边染回
+       accent，那是重复的：.item[aria-current='true'] 已经把它染好了） */
   .file-btn:not([aria-current='true']):hover {
     border-color: var(--border-strong);
     transform: translateY(-1px);
@@ -915,6 +953,13 @@ main {
   }
 }
 
+/* 皮（描边 / 底色 / 浮起阴影 / 过渡）来自 .item —— 页面上每个按钮都带 class="btn item"
+   （等级 L1/L2/L3、加载失败的重试、播放器的单句重复，四处都由 JS 生成）。
+   ⚠️ 圆角必须留在这一节，不能指望基类：
+      .item 给的是 --radius-card（16px 方角卡），而按钮是药丸形 --radius-pill（999px）。
+      两者特异性相同 (0,1,0)，只能靠"谁写在后面"取胜 —— 所以 .btn 必须排在 .item 之后。
+      以后谁要把 .btn 这段往前挪，按钮就会集体变成方角，先看这条注释。
+   这里只留「按钮自己的形状与排布」 */
 .btn {
   display: inline-flex;
   align-items: center;
@@ -922,28 +967,21 @@ main {
   min-width: var(--tap-size);
   min-height: var(--tap-size);
   padding: 0 16px;
-  border: 1px solid var(--border);
   border-radius: var(--radius-pill);
-  background: var(--surface);
   color: var(--text);
   font-family: inherit;
   font-size: 14px;
   white-space: nowrap;
   cursor: pointer;
-  box-shadow: var(--shadow-xs);           /* 新增 */
-  transition: background-color var(--duration-fast) var(--ease-out),
-              border-color var(--duration-fast) var(--ease-out),
-              color var(--duration-fast) var(--ease-out),
-              transform var(--duration-fast) var(--ease-out);
 }
 
 .btn:active {
   opacity: .7;
 }
 
+/* 描边与底色已由 .item[aria-pressed='true'] 统一给出。
+   这里只剩按钮比卡片多出来的一点点：被按下时连文字也一起染成主色 */
 .btn[aria-pressed='true'] {
-  border-color: var(--accent);
-  background: var(--ok-bg);
   color: var(--accent);
 }
 
