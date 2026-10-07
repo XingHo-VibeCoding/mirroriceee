@@ -972,6 +972,26 @@ main {
   border-radius: 50%;
   background: var(--surface);
   box-shadow: var(--shadow-xs);
+  /* Day 9：上面 -webkit 那条写了 transition: transform，Firefox 这条却漏了 ——
+     补上，否则下面新加的"拖住放大"在 Firefox 里是硬跳、没有过渡。 */
+  transition: transform var(--duration-fast) var(--ease-out);
+}
+
+/* Day 9：和 .icon-btn 同一类毛病 —— -webkit-slider-thumb 上写着
+   transition: transform，但全站没有任何规则【设置】滑块的 transform，
+   所以那条过渡一次都不会发生（死的）。
+   而且 .progress 本体一个 :hover / :active 都没有：实测「静置」与「悬停」
+   两张截图【逐字节相同】（都是 1102 字节）—— 拖住滑块时手上毫无反馈。
+   这里补上"被抓住"的缩放，那条声明了却没生效的过渡立刻变成活的。
+   ⚠️ 只做 :active（拖住）不做 :hover：滑块本来就跟着指针走，
+      再加悬停放大就是多余的视觉动静（今日要求：不加不需要的视觉元素）。
+   ⚠️ 两个内核都写，表现才一致。 */
+.progress:active::-webkit-slider-thumb {
+  transform: scale(1.15);
+}
+
+.progress:active::-moz-range-thumb {
+  transform: scale(1.15);
 }
 
 .icon-btn {
@@ -1011,8 +1031,18 @@ main {
   display: block;
 }
 
+/* Day 9：这里原来只有一条 opacity: .7。
+   而上面对 .icon-btn 声明的 transition 里写着 transform —— 全站却没有任何规则
+   给它设过 transform。实测四个状态（默认 / 悬停 / 按住 / 播放中）transform 全程
+   都是 none，那条过渡永远是【死的】，一次都不会发生。
+   作者本意显然是「按下时缩一下」，只写了一半。这里把另一半补上。
+   ⚠️ 并进这条 :active 而不是另开一条：少一条规则，也保证按下时
+      「变淡」和「缩小」是同一下、同时发生。
+   ⚠️ 不必担心 .seg 那种坑（riseIn 动画 fill-mode: both 把属性锁死）——
+      .icon-btn 身上没有任何 animation，transform 没人跟它抢。 */
 .icon-btn:active {
   opacity: .7;
+  transform: scale(.94);
 }
 
 @media (hover: hover) {
@@ -1023,6 +1053,28 @@ main {
   .icon-btn[aria-pressed='true']:hover {
     background: var(--accent-strong);
   }
+}
+
+/* ---- 禁用态（坏路径 B2）----
+   Day 9：音频读不到时 JS 会给播放键加 disabled（app.js 的 markAudioMissing
+   与 player.js 的 markUnavailable，各一处）。CSS 这边【已经】把整块降到
+   40% 透明度（.material.is-unavailable .icon-btn）—— 禁用「外观」本来是对的。
+   但漏了一点：:hover 照常触发。实测被禁用的播放键，鼠标一悬停
+   底色仍从 rgb(255,255,255) 变成 rgb(225,245,238)，光标也仍是 pointer。
+   于是一个点不动的按钮，长得跟能点的一模一样，还给你"可以点"的手势 ——
+   用户点下去毫无反应，会以为页面卡了。这两条把它按住。
+   ⚠️ 必须写在上面那条 @media (hover: hover) 之后：
+      .icon-btn[disabled]:hover 的特异性 (0,3,0) 本来就压得过 .icon-btn:hover (0,2,0)，
+      但 .icon-btn[disabled] 与它同为 (0,2,0)，只能靠顺序取胜。
+   ⚠️ 底色写 --surface（= 未悬停时的原色），不是"再叠一层灰" ——
+      目标是让禁用键对外界刺激【完全没反应】，而不是造一个新的hover态。 */
+.icon-btn[disabled] {
+  background: var(--surface);
+  cursor: default;
+}
+
+.icon-btn[disabled]:hover {
+  background: var(--surface);
 }
 
 /* 皮（描边 / 底色 / 浮起阴影 / 过渡）来自 .item —— 页面上每个按钮都带 class="btn item"

@@ -497,6 +497,24 @@ var Player = (function () {
     else if (action === 'toggle-repeat') toggleRepeat();
   });
 
+  /* Day 9：句子行现在能 Tab 到了（见 app.js 里给它补的 tabindex / role），
+     但能聚焦只是"走得到"，还得"按得动"。这里补上按键：
+     Enter 和空格都当作"点了这一句"，和鼠标点击走同一条路（playSegment）。
+     ⚠️ 空格必须 preventDefault：浏览器默认拿空格翻页，
+        不挡掉的话按一下空格会「页面往下跳 + 开始播放」两个动作打架。
+     ⚠️ 和上面那条 click 一样挂在 document 上、用 closest('.seg') 认目标 ——
+        不为 16 个句子各绑一个监听器。
+     ⚠️ 只认 .seg，别的键、别的地方一律放行：进度条要能继续用方向键调。 */
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== 'Enter' && e.key !== ' ' && e.key !== 'Spacebar') return;
+    var el = e.target;
+    if (!el || !el.closest) return;
+    var seg = el.closest('.seg');
+    if (!seg) return;
+    e.preventDefault();
+    playSegment(seg);
+  });
+
   /* 对外暴露，给验证脚本用 */
   return {
     playSegment: playSegment,

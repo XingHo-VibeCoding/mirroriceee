@@ -187,8 +187,19 @@ function buildMaterialHTML(material, segments) {
      ⚠️ 为什么把序号塞进 style 而不是在 CSS 里写 nth-child(1..16)：
         nth-child 要写死条数，素材多一句就漏一句；用 --i 则不管多少句都成立。
      ⚠️ CSS 那边会用 min(--i, 15) 封顶，所以长素材不会越等越久。 */
+  /* Day 9：给每句补上「可聚焦」与「它是按键」两件事 ——
+     这一句是跟读页的主操作（点它 = 播这一句），但它是个 <li>：
+     没有 tabindex、没有 role，键盘用户【完全够不着】（实测 Tab 连按 30 次，
+     能停下的 6 类元素里没有它；程序调 .focus() 也拿不到焦点）。
+     补上之后不需要写任何新 CSS —— 全站那条 :focus-visible 会自动给它画上焦点环
+     （实测：真实 Tab 键走过去得到 2px solid 主色环 + 3px 偏移，圆角仍是 .seg 自己的 10px）。
+     ⚠️ 键盘「按下」的处理在 player.js 里（Enter / 空格），两个文件分工：
+        这里只负责让它能被走到，那边负责按下去做什么。
+     ⚠️ 不加 aria-label：这个按键的可访问名字就取内容本身，也就是那句英文原文 ——
+        比另写一句"播放第 N 句"更有用（学生听到的就是要学的那句话）。 */
   var rows = segments.map(function (seg, i) {
     return '<li class="seg" style="--i:' + i + '" ' +
+             'tabindex="0" role="button" ' +
              'data-start="' + seg.start + '" data-end="' + seg.end + '">' +
              '<span class="seg-idx">' + (seg.idx + 1) + '</span>' +
              '<span class="seg-body">' +

@@ -18,7 +18,17 @@ const path = require('path');
 const os = require('os');
 
 const ROOT = __dirname;                          /* 以本文件所在目录为网站根目录 */
-const PORT = Number(process.argv[2]) || 8000;
+
+/* Day 9：这里加了一级 process.env.PORT。
+   起因：线上发布走静态托管时不给 Range，跳播坏掉（详见 server.js 的说明）。
+   改成按 Node 应用发布后，平台是通过【环境变量 PORT】告诉服务该听哪个端口的，
+   命令行参数只有本地手动跑才会给。
+   顺序刻意写成 argv → PORT → 8000：
+     本地 `node dev-server.js 8001` 仍以 8001 为准 —— 显式参数优先，本地行为一点没变；
+     线上沙箱注入 PORT，直接生效。
+   ⚠️ 少这一级的话，按 node 方式发布会在 8000 上"起不来"：
+      平台等不到监听就判定启动失败，页面会直接打不开。 */
+const PORT = Number(process.argv[2]) || Number(process.env.PORT) || 8000;
 
 /* 类型写错浏览器会拒绝播放，所以 mp3 必须写对 */
 const MIME = {
@@ -120,7 +130,12 @@ const server = http.createServer((req, res) => {
   fs.createReadStream(filePath).pipe(res);
 });
 
-server.listen(PORT, () => {
+/* Day 9：显式绑 0.0.0.0。
+   线上平台是把外部请求经反向代理转进来的，服务必须监听所有网卡；
+   只绑 127.0.0.1 的话代理连不进去（本地测试反而看不出问题）。
+   ⚠️ 这一行也顺带让手机真机调试更稳 —— 之前靠默认行为，
+      不同 Node 版本/系统下默认绑定可能不同，写明更靠谱。 */
+server.listen(PORT, '0.0.0.0', () => {
   console.log('本地服务器已启动：http://localhost:' + PORT + '/');
   console.log('网站根目录：' + ROOT);
   console.log('已开启 Range（音频可跳播）＋ 已关闭浏览器缓存。按 Ctrl + C 停止。');
