@@ -11,8 +11,18 @@
   --surface: #ffffff;       /* 卡片底色：纯白 */
   --border: #dfe1e6;        /* 分隔线与卡片描边 */
   --text: #16181d;          /* 正文：接近纯黑 */
-  --text-muted: #56606b;    /* 次要正文 */
-  --text-faint: #64707c;    /* 说明、页脚 */
+  /* Day 9：这三档是「信息层级」的骨架。
+     原来 muted(#56606b) 与 faint(#64707c) 在白底上只差 1.26×（6.40 vs 5.06），
+     肉眼几乎读不出主次 —— 等于两档并成了一档。
+     字重只有 400/500（作者约定），字号阶梯前面已经修过，所以层级唯一的抓手就是颜色。
+     改后白底 17.76 / 7.67 / 5.37，两段比值 2.31× 与 1.43×，三档各站得住。
+     ⚠️ faint 一并从 #64707c 提到 #606c77，不是为了好看 —— 是因为它在绿底
+        --ok-bg(#e1f5ee) 上原本只有 4.46:1，**低于 AA**；提到 4.73:1 才达标。
+        这一步顺带解掉了「当前行 12px 小字压过 16px 标题」的倒挂，
+        所以下面 .file-btn[aria-current] .file-meta 与 .seg.is-playing .seg-time
+        那两条补救规则已删除。 */
+  --text-muted: #4c545e;    /* 次要正文（原 #56606b） */
+  --text-faint: #606c77;    /* 说明、页脚（原 #64707c，为绿底达标而加深） */
   --accent: #0f6e56;        /* 强调色：深绿 */
   --ok-bg: #e1f5ee;         /* 「可用」标签底色 */
   --ok-text: #0f6e56;       /* 「可用」标签文字 */
@@ -55,14 +65,21 @@
   --space-6: 24px;
   --space-8: 32px;
 
-  /* ---- 字号层级（新增，保留原有 px 数值，只是给了名字）---- */
+  /* ---- 字号层级 ----
+     Day 9：原来这里是 12 / 13 / 15 / 16 / 17 / 18 —— 每档只差 1px。
+     1px 的差别肉眼分辨不出来，"标题"和"正文"看着一样大，层级等于白排。
+     现在对齐设计规则的 1.25 字阶（Major Third）：12 / 14 / 16 / 18 / 20，
+     相邻至少差 2px，层级才读得出来。
+     ⚠️ 顺手删掉了 --text-md：规则里 16px 这一档就叫 --text-base（正文），
+        没有 md 这一档。而项目里 base 却是 15px —— 名字和值对不上，
+        以后照规则写 var(--text-base) 期待 16px，实际会拿到 15px，是个隐患。
+     ⚠️ 原来用 --text-md 的两处（.file-name / .seg-text）已改回 --text-base，值不变。 */
   --text-xs: 12px;
-  --text-sm: 13px;
-  --text-base: 15px;
-  --text-md: 16px;
-  --text-lg: 17px;
-  --text-xl: 18px;
-  --text-2xl: 28px;                       /* 页头标题：24 → 28，撑起首屏 */
+  --text-sm: 14px;
+  --text-base: 16px;
+  --text-lg: 18px;
+  --text-xl: 20px;
+  --text-2xl: 28px;                       /* ⚠️ 有意偏离规则（规则 2xl=24）：页头标题撑首屏，Day 7 定的，保留 */
 
   /* ---- 阴影：冷灰调、低透明度（新增）---- */
   --shadow-xs: 0 1px 2px rgba(16, 24, 40, .04);
@@ -111,6 +128,15 @@
      写到 body 上在某些情况下会被浏览器忽略掉这条传播规则。 */
 html {
   overflow-y: scroll;
+  /* Day 9：删掉手机端点按链接/按钮时浏览器自带的那层蓝色高亮。
+     它默认是 rgba(51,181,229,.4)，是浏览器合成器直接画的覆盖层 ——
+     全站 CSS 里搜不到它、也改不了它的颜色，只能整个关掉。
+     ⚠️ 必须写在 html（根元素）上：这条属性是可以继承的，
+        写在根上，所有后代元素一次性生效，不用逐个元素补。
+     代价（这是有意识的取舍）：关掉后所有元素都没了这层默认反馈。
+     全站另外 5 处（.board-link / .back-link / .file-btn / .icon-btn /
+     .btn）都写了自己的 :active，只有句子行 .seg 漏着 —— 所以下面补了一条。 */
+  -webkit-tap-highlight-color: transparent;
 }
 
 body {
@@ -136,6 +162,19 @@ h2,
 h3 {
   font-weight: 500;                       /* 保持作者约定：只用 400 / 500 */
   letter-spacing: -0.01em;
+}
+
+/* Day 9：规则要求【标题行高 1.2–1.4、正文 1.6–1.8】—— 两套值，不能共用。
+   但 body 上那条 line-height: 1.7 会被所有后代继承，标题也在继承它，
+   等于把标题当正文排了。实测 h1 在 32px 下是 32 × 1.7 = 54.4px 行高，排得发散。
+   这里只把标题收回来；正文继续用 body 的 1.7（在规则区间内）。
+   ⚠️ 没并进上面那条 font-weight 规则：那条带 letter-spacing: -0.01em，
+      合并会把标题字间距也一起改掉，那是另一件事，不该顺手做。
+   ⚠️ 素材卡标题 .mat-title 就是个 <h2>（见 app.js 第 143 行），已被覆盖，不必单列。 */
+h1,
+h2,
+h3 {
+  line-height: 1.3;
 }
 
 /* 新增：统一键盘焦点可视化 —— 只对键盘用户显示，鼠标点击不冒圈 */
@@ -176,8 +215,8 @@ h3 {
 .brand {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 10px;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
 }
 
 .brand-logo {
@@ -353,7 +392,9 @@ main {
    这里只留「卡片自己的尺寸与排布」，不再重复那五行 */
 .board {
   position: relative;                     /* 给左侧强调条定位 */
-  padding: 18px 20px;
+  /* Day 9：原来是 18px 20px —— 同一个盒子上下 18、左右 20，自己就不一致。
+     统一成 20（--space-5），回到 4px 网格。大屏同理，见文末媒体查询。 */
+  padding: var(--space-5);
 }
 
 /* 新增：左侧强调条 —— 可进入的卡片才长这根绿条 */
@@ -408,7 +449,7 @@ main {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 6px;
+  margin-bottom: var(--space-2);
 }
 
 .board-head h2 {
@@ -417,7 +458,7 @@ main {
 
 /* 卡片里的一句说明 */
 .board-desc {
-  margin-top: 6px;
+  margin-top: var(--space-2);
   font-size: var(--text-sm);
   line-height: 1.5;
   color: var(--text-muted);
@@ -439,9 +480,11 @@ main {
 .badge {
   display: inline-flex;                   /* 改 flex：为圆点留位 */
   align-items: center;
-  gap: 5px;
+  gap: var(--space-1);
   min-height: 24px;
-  padding: 2px 10px;
+  /* Day 9：垂直 2px 保留 —— 它是 (min-height 24 − line-height 20) / 2 算出来的，
+     不是随手写在网格外的数。只把水平 10px 收进网格。 */
+  padding: 2px var(--space-2);
   border-radius: var(--radius-pill);
   font-size: var(--text-xs);
   font-weight: 500;
@@ -608,7 +651,7 @@ main {
 }
 
 .panel {
-  padding: 18px 20px;
+  padding: var(--space-5);
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-card);
@@ -672,7 +715,7 @@ main {
   padding: 12px 16px;
   color: var(--text);
   font-family: inherit;
-  font-size: var(--text-md);
+  font-size: var(--text-base);            /* Day 9：原 --text-md，16px 这档规则里叫 base，值不变 */
   text-align: left;
   cursor: pointer;
 }
@@ -685,6 +728,11 @@ main {
 .file-btn[aria-current='true'] .file-name {
   color: var(--accent);
 }
+
+/* Day 9：这里原本有一条「把当前行小字提到 --text-muted」的规则，是为了过 AA。
+   后来把 --text-faint 本身提到 #606c77（绿底 4.46 → 4.73，已达标）之后，这条就多余了，
+   而且它会让 12px 的小字比同一行 16px 的标题还深（标题是 --accent，绿底 5.46）。
+   现已删除 —— .file-meta 回到自己的默认色 --text-faint，层级关系恢复正常。 */
 
 .file-btn:active {
   opacity: .7;
@@ -753,7 +801,7 @@ main {
 .seg {
   display: flex;
   align-items: flex-start;
-  gap: 10px;
+  gap: var(--space-2);
   padding: 12px 0;
   border-bottom: 1px solid var(--border);
   min-height: var(--tap-size);
@@ -791,9 +839,13 @@ main {
 
 .seg-text {
   display: block;
-  font-size: var(--text-md);
+  font-size: var(--text-base);            /* Day 9：原 --text-md，值不变，只把名字收回规则里有的那一档 */
   line-height: 1.6;
-  color: var(--text-muted);
+  /* Day 9：正文改用主色。规则 5.1 写的是「正文用深色，辅助信息用灰色」——
+     而这一页学生就是来看这些句子的，之前却排在「次要正文」档上（6.40:1），看着发灰。
+     ⚠️ 播放中那一句不受影响（仍是 --accent）：下面 .seg.is-playing .seg-text
+        特异性更高（0,2,0 > 0,1,0），会赢过这里。"绿色 = 正在读"这个信号是刻意保留的。 */
+  color: var(--text);
   overflow-wrap: break-word;
 }
 
@@ -822,8 +874,28 @@ main {
   color: var(--accent);
 }
 
+/* Day 9：同理，这里原本有一条「把播放行时间小字提到 --text-muted」的规则。
+   --text-faint 达标后已删除 —— 小字回到辅助档（绿底 4.73），不再压过同一行的正文。
+   （播放行的正文是 --accent，绿底 5.46，仍高于小字，层级不倒挂。） */
+
 .seg.is-playing .seg-idx {
   font-weight: 500;                       /* 新增：序号跟上，视线先落在序号上 */
+}
+
+/* Day 9：上面关掉浏览器自带的蓝色点按高亮后，
+   .seg 就成了全站唯一「能点、按下时却毫无反馈」的元素。
+   手机点一下屏幕毫无变化，会让人怀疑"到底点没点上"。
+   这里补一条自己的按下底色，把原来那层刺眼的蓝，换成本句微微变灰底。
+   ⚠️ 位置故意放在 .seg.is-playing 之后：
+      .seg:active 与 .seg.is-playing 的特异性相同（都是 0,2,0），
+      谁写在后面谁生效。放后面 = 连「正在播的那一句」也能看到按下反馈；
+      左侧那条绿色实心条是 box-shadow，不受影响，播放位置不会丢。
+   ⚠️ 底色用 --todo-bg(#eceef1)，比 hover 的 #f7f8fa 更深一档，
+      所以"按下"读起来比"悬停"更重，两者不会糊在一起。
+   ⚠️ .seg 本身已有 background-color 150ms 过渡，这条会自然淡入淡出。
+   ⚠️ 不加 @media (hover: hover) 包裹：按下反馈在触屏上才最需要。 */
+.seg:active {
+  background: var(--todo-bg);
 }
 
 /* ---- 播放控制条 ---- */
@@ -963,14 +1035,14 @@ main {
 .btn {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-2);
   min-width: var(--tap-size);
   min-height: var(--tap-size);
   padding: 0 16px;
   border-radius: var(--radius-pill);
   color: var(--text);
   font-family: inherit;
-  font-size: 14px;
+  font-size: var(--text-sm);              /* Day 9：原硬编码 14px，值不变 —— 全站唯一不走 token 的字号，收回 */
   white-space: nowrap;
   cursor: pointer;
 }
@@ -1033,7 +1105,7 @@ main {
 
   .board,
   .panel {
-    padding: 22px 24px;
+    padding: var(--space-6);
   }
 
   .boards {
