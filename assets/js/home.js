@@ -131,11 +131,154 @@ function render() {
 
     setStatus(status, '');
     list.innerHTML = boards.map(buildBoardHTML).join('');
+    wireCards();                          /* Day 11：卡片刚铺好，立刻接上浮圆与扩散 */
   }).catch(function (err) {
     /* 读不到数据也要给人话 ＋ 重试入口，不能白屏 */
     setStatus(status, failureHTML(err));
     console.error(err);
   });
+}
+
+/* ============================================
+   Day 11：卡片光标处的「透视窗」＋ 点击溶解
+   视觉全在 CSS（.board::after 那层"皮"上的 mask 挖洞），这里只干三件事：
+     ① 把交互点（鼠标的、手指的，同一套算法）写进 CSS 变量 —— 圆才知道从哪儿冒出来
+     ② 来回切圆的半径：藏起来(0) → 悬停/点按(110) → 盖满整卡
+     ③ 按时机加/摘那一个开关 class：is-dissolving（溶解中）
+        圆从哪儿冒出来 = 人刚在哪儿动的手，鼠标和手机一致。
+   ============================================ */
+
+var LIGHT_RADIUS = 110;     /* 悬停时那个圆的半径（px）—— 够大看得见，够小不糊住整张卡 */
+
+/* 点击之后的节奏。CSS 里的 --duration-dissolve 必须和 DISSOLVE_MS 对上：
+   CSS 管"每次变化用多久"，这里管"什么时候跳走"。 */
+var DISSOLVE_MS = 200;      /* 圆从光标处扩到盖满整卡、文字同时淡出 —— 两者同一时刻结束 */
+var NAV_WAIT = 260;         /* 可进入的卡片：从点击到真的跳走（溶解 200 走完再留一点余量） */
+var REVERT_WAIT = 380;      /* 「开发中」卡片：溶解完停一下，再整体还原回去 */
+
+/* 圆要多大才能盖住整张卡 —— 取对角线长度，保证四个角都吃到 */
+function coverRadius(card) {
+  var r = card.getBoundingClientRect();
+  return Math.ceil(Math.sqrt(r.width * r.width + r.height * r.height));
+}
+
+/* 系统开了「减少动态效果」吗 —— 开了就不演，直接办事。
+   为什么要在这里判、而不是只靠 CSS 把时长压成 0：
+   压成 0 之后文字会"啪"地消失、卡片空在那里等 NAV_WAIT 才跳走，反而更难受。 */
+function prefersReducedMotion() {
+  return !!(window.matchMedia &&
+            window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+}
+
+/* 交互点在卡片内的坐标 → 写进 CSS 变量，圆就从那儿冒出来。
+   ⚠️ 鼠标和触屏【走的是同一套】：都拿事件的 clientX / clientY 减去卡片左上角。
+      触屏的 pointerenter 在个别浏览器上给的是上一次的旧坐标，
+      所以下面 pointerdown 会再写一次 —— 手指点哪儿，圆就长在哪儿。 */
+function moveLight(card, e) {
+  var r = card.getBoundingClientRect();
+  card.style.setProperty('--mx', (e.clientX - r.left) + 'px');
+  card.style.setProperty('--my', (e.clientY - r.top) + 'px');
+}
+
+function setRadius(card, px) {
+  card.style.setProperty('--r', px + 'px');
+}
+
+/* 溶解：圆从光标处扩大、直到盖满整卡（卡片的白底被身后的背景替代），
+   文字同时淡出 —— 两边都交给 CSS 的 --duration-dissolve，同一时刻结束。 */
+function dissolve(card) {
+  card.classList.add('is-dissolving');
+  setRadius(card, coverRadius(card));
+}
+
+/* 还原：「开发中」卡片那次溶解演完之后的收场 ——
+   把圆收回去、文字淡回来。跟进来时是同一套，只是方向相反。 */
+function restore(card) {
+  card.classList.remove('is-dissolving');
+  /* 鼠标还停在卡上就是退回悬停那个小圆；不然干脆全收掉。
+     触屏上一般 matches(':hover') 是 false，圆就整个消失了。 */
+  setRadius(card, card.matches(':hover') ? LIGHT_RADIUS : 0);
+}
+
+/* 给卡片接上"透视窗 / 溶解"。渲染完才能调用 —— 卡片那会儿才存在。
+   为什么不用事件代理：pointerenter / pointerleave 这两个事件【不冒泡】，
+   代理挂不上；首屏就三张卡，直接绑更省心。 */
+function wireCards() {
+  var cards = document.querySelectorAll('.board');
+
+  for (var i = 0; i < cards.length; i++) {
+    (function (card) {
+      var link = card.querySelector('.board-link');
+
+      card.addEventListener('pointerenter', function (e) {
+        if (card.classList.contains('is-dissolving')) return;   /* 正在溶解，别打断 */
+        /* 动效敏感的用户：圆根本不出现。
+           ⚠️ 为什么必须在这里拦：CSS 那边只把过渡时长压成了 0（@media reduced-motion），
+              半径要是照写，圆还是会"瞬时冒出来"—— 不补间 ≠ 不出现。 */
+        if (prefersReducedMotion()) return;
+        /* 先定坐标、再给半径，顺序不能反 —— 反了会看见圆从角落里蹦出来再滑过去 */
+        moveLight(card, e);
+        setRadius(card, LIGHT_RADIUS);
+      });
+
+      card.addEventListener('pointermove', function (e) {
+        moveLight(card, e);
+      });
+
+      /* 手指 / 笔尖落下的那一刻，把圆挪到【真正点到的地方】再让它长出来。
+         鼠标上这一下是多余的（pointerenter 已经定好位），但值一样，重复写没代价；
+         触屏上它是主力 —— 手指点哪儿，圆就长在哪儿，跟电脑完全一致。 */
+      card.addEventListener('pointerdown', function (e) {
+        if (card.classList.contains('is-dissolving')) return;   /* 正在溶解，别打断 */
+        if (prefersReducedMotion()) return;                     /* 同上：圆不出现 */
+        moveLight(card, e);
+        setRadius(card, LIGHT_RADIUS);
+      });
+
+      card.addEventListener('pointerleave', function () {
+        if (card.classList.contains('is-dissolving')) return;  /* 溶解中，留着别收 */
+        setRadius(card, 0);
+      });
+
+      if (link) {
+        /* 可进入的卡片：点下去先把溶解演完，再真的跳走。
+           不拦的话浏览器当场就换页了，那个溶解动画等于没做。
+           ⚠️ 跳走这一步之后，接手的是【跨页过渡】（style.css 里 @keyframes vtLeave/vtEnter）：
+              首页整体上移 + 消散，跟读页从下方上移 + 显现。 */
+        link.addEventListener('click', function (e) {
+          /* 中键 / Ctrl+点 / Shift+点 = 用户想开新标签，那是浏览器的活儿，一律放行 */
+          if (e.defaultPrevented || e.button !== 0 ||
+              e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+
+          e.preventDefault();
+
+          /* 动效敏感的用户：不演，也不白等那 260ms，直接跳 */
+          if (prefersReducedMotion()) {
+            window.location.href = link.getAttribute('href');
+            return;
+          }
+
+          dissolve(card);
+          setTimeout(function () {
+            window.location.href = link.getAttribute('href');
+          }, NAV_WAIT);
+        });
+      } else {
+        /* 「开发中」的卡片：没有可去的地方，溶解一下就【弹回来】——
+           当作"收到了，但进不去"，而不是点完毫无反应。 */
+        card.addEventListener('click', function () {
+          if (card.classList.contains('is-dissolving')) return;
+
+          if (prefersReducedMotion()) return;   /* 不演 */
+
+          dissolve(card);
+          setTimeout(function () {
+            restore(card);
+          }, REVERT_WAIT);
+        });
+      }
+    })(cards[i]);
+  }
 }
 
 /* 点「重试」→ 重来一遍。事件代理挂在 document 上，不依赖按钮何时被渲染出来 */

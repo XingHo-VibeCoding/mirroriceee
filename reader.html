@@ -2,6 +2,9 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
+  <!-- ⚠️ 跨页过渡的 opt-in，【必须】留在这里 —— 首页（index.html）里有一份同样的，
+       两页都声明才生效。为什么不能挪进 style.css：见该文件里的同名注释。 -->
+  <style>@view-transition { navigation: auto; }</style>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>文本跟读 · 英语学习工具</title>
   <link rel="stylesheet" href="assets/css/style.css">

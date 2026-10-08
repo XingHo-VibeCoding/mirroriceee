@@ -93,7 +93,24 @@
   /* ---- 动效（新增）---- */
   --duration-fast: 150ms;
   --duration-normal: 220ms;
+  /* Day 11：首页卡片那套"圆"专用的两档。
+     ⚠️ duration-dissolve 要和 home.js 里的 DISSOLVE_MS 对上 ——
+        CSS 只管每次变化【用多久】，"什么时候跳走"由 JS 定时。 */
+  --duration-slow: 280ms;      /* 光标处那个「透视窗」：浮出 / 收回 */
+  --duration-dissolve: 200ms;  /* 点击后卡片溶解：圆扩大盖满 + 文字淡出（他说要"快一点"） */
   --ease-out: cubic-bezier(0, 0, .2, 1);
+}
+
+/* ⚠️ Day 11：--r 必须【注册】成 <length>，那个圆形空洞才能平滑开合。
+   为什么：圆的使用者是 .board::after，它靠 mask-image 里的 radial-gradient 挖洞，
+   而渐变本身【不可插值】—— --r 一变，mask 直接跳到新值，看着就是"啪"一下糊上去。
+   注册成真正的时间/长度型属性之后，浏览器才把它当可动画的值来补间，
+   每一帧算出一张新渐变 —— 视觉上就是圆在慢慢长开（实测能取到 50 多个中间帧）。
+   inherits: true 是必须的：--r 写在 .board 上，用它的是它的 ::after。 */
+@property --r {
+  syntax: "<length>";
+  inherits: true;
+  initial-value: 0px;
 }
 
 * {
@@ -395,7 +412,36 @@ main {
   position: relative;                     /* 给左侧强调条定位 */
   /* Day 9：原来是 18px 20px —— 同一个盒子上下 18、左右 20，自己就不一致。
      统一成 20（--space-5），回到 4px 网格。大屏同理，见文末媒体查询。 */
-  padding: var(--space-5);
+  /* Day 11：内边距从这一层【搬到了 .board-link 身上】，这里只留一个变量。
+     起因：卡片的内边距区一直是【点击死区】—— 链接层只盖住内容，
+     那圈 padding（手机 20px / 大屏 32px）点上去毫无反应。
+     让链接自己带内边距，它就从"内容区"长成了"整张卡片"，热区自然铺满。
+     ⚠️ 大屏那档（≥1000px）在文末改的是这个【变量】，不是 padding 属性 ——
+        以后谁要调卡片内边距，改这一处、以及文末那一处，改的是同一个词。 */
+  --board-pad: var(--space-5);
+  /* Day 11：卡片的「皮」（白底 + 描边）搬走了 —— 搬到了下面的 .board::after 身上。
+     起因：他要求"圆里的颜色不外加，而是直接透出背景原来的颜色"，
+     也就是要在皮上【挖一个洞】。而一个元素没法只挖掉自己背景的一块，
+     只能把皮单独画在一层上，再去挖那一层（手段见 .board::after 那段）。
+     所以这里把 .item 给的那两样就地抹成透明。
+     ⚠️ 只改颜色、不改宽度：描边那 1px 仍然占位，卡片尺寸与改动前【一模一样】。 */
+  background: transparent;
+  border-color: transparent;
+  /* 卡片仍是【独立的堆叠上下文】—— 这里现在是【必需】的，有两个原因：
+     ① 给下面 .board::after 的 z-index: -1 一个落脚点。皮要压在卡片自己的背景之上、
+        又要垫在左侧绿条和内容之下，只能靠负 z-index；这层堆叠上下文一撤，
+        负层会一路掉到页面背景那边去（"皮不见了"或"盖住别的东西"）。
+     ② 给 .board > * 的 z-index: 1 一个稳定的参照系：
+        卡片悬停时有 transform、入场时有 translate，本来就会临时形成堆叠上下文 ——
+        显式声明，是为了让"有没有 hover"不改变这层内容的上下关系。 */
+  isolation: isolate;
+}
+
+/* 没有链接层的那两张「开发中」卡片：内容直接长在 .board 里，
+   内边距必须自己留着，否则会顶到卡片边缘。
+   外观与改动之前【完全一致】—— 值、位置都没动，只是换了主人。 */
+.board:not(:has(.board-link)) {
+  padding: var(--board-pad);
 }
 
 /* 新增：左侧强调条 —— 可进入的卡片才长这根绿条 */
@@ -416,8 +462,13 @@ main {
 @media (hover: hover) {
   .board:has(.board-link):hover {
     transform: translateY(-3px);
-    border-color: var(--accent);
     box-shadow: var(--shadow-lg);
+  }
+
+  /* 描边染色落在【皮】上 —— 皮现在长在 ::after 身上，改 .board 自己的没用
+     （那一条已经是 transparent）。 */
+  .board:has(.board-link):hover::after {
+    border-color: var(--accent);
   }
 
   /* 左侧绿条悬停时"长出来"：上下各收 10px → 撑满，像一条进度条被点亮 */
@@ -434,11 +485,16 @@ main {
 }
 
 /* 新增：「开发中」的卡片整体降权 —— 虚线描边 + 下沉底色 + 灰化，
-   一眼就能看出"这张现在不能进"，不必去读那行小字（呼应 PRD 6.3 H2） */
+   一眼就能看出"这张现在不能进"，不必去读那行小字（呼应 PRD 6.3 H2）。
+   ⚠️ Day 11：底色与虚线描边这两样也要跟着皮走，落到 ::after 上 —— 
+      留在 .board 自己身上的话，圆内就挖不掉它们了（那圈虚线会一直在）。 */
 .board:has(.board-hint) {
+  box-shadow: none;
+}
+
+.board:has(.board-hint)::after {
   background: var(--surface-sunken);
   border-style: dashed;
-  box-shadow: none;
 }
 
 .board:has(.board-hint) .board-head h2 {
@@ -526,14 +582,21 @@ main {
 
 .board-link {
   display: block;
+  /* Day 11：内边距落在【链接自己】身上，而不是父级卡片上 ——
+     这正是"整张卡片都能点"的关键：链接带内边距，它的盒子就等于整张卡，
+     热区跟着铺满（原先那圈 padding 是死区，点卡片边缘不跳转）。
+     ⚠️ 为什么箭头不用跟着挪：绝对定位的包含块是【内边距盒】，
+        padding box 的位置和大小前后一致，所以 ::after 的 right / top 一个数都不用改。 */
+  padding: var(--board-pad);
   min-height: var(--tap-size);
   color: inherit;
   text-decoration: none;
   position: relative;                     /* 新增：给箭头定位 */
 }
-/* 注：这里刻意不给 .board-link 加 padding-right ——
-   那会把右上角的状态标签往里推 20px，标签就悬在半空、贴不到右边缘。
-   要让位的只是最下面那句说明文字，见下面的 .board-desc 规则。 */
+/* ⚠️ 这里【不给单独的 padding-right】—— 那会在整层内边距之外再推一段，
+   右上角的状态标签就被推得贴不到右边缘。
+   （原来写这条时内边距还在父级 .board 上，道理一样：额外加的一层会叠成两倍。）
+   要让位的只有最下面那句说明文字，见下面的 .board-desc 规则。 */
 
 /* 新增：右侧箭头 —— 纯装饰，明确告诉人"这里点得进去"。
    top 往下偏 5px：让它落在说明文字那一行的右侧，不要跟右上角的状态标签挤在一起。 */
@@ -572,8 +635,11 @@ main {
    放在这条 hover 规则之后，是为了让"按下"能盖过"悬停"（同特异性看顺序）。 */
 .board:has(.board-link):active {
   transform: translateY(-1px) scale(.988);
-  border-color: var(--accent);
   box-shadow: var(--shadow-sm);
+}
+
+.board:has(.board-link):active::after {
+  border-color: var(--accent);
 }
 
 .board-head h2,
@@ -581,6 +647,112 @@ main {
   transition: color var(--duration-fast) var(--ease-out),
               opacity var(--duration-normal) var(--ease-out),
               right var(--duration-normal) var(--ease-out);
+}
+
+/* ---- Day 11：光标处的「透视窗」＋ 点击溶解 ---- */
+
+/* 这一层就是卡片的【皮】：白底 + 1px 描边 —— 原先这两样长在 .board 自己身上（.item 给的）。
+   为什么搬来这里：他要求"圆里的颜色不外加，而是直接透出背景原来的颜色"，
+   等于要在皮上挖一个洞；而元素没法只挖掉自己背景的一块，只能把皮画在单独一层再挖。
+
+   挖洞的手段是 mask-image 里的 radial-gradient：
+   圆心 (--mx, --my)、半径 --r 的那块【不画皮】（transparent），
+   于是那一块直接露出背后那层 —— html 底色 + 四块缓缓漂移的彩色光斑。
+   这就是他说的"直接透视到背景后对应地方的颜色"。
+   ⚠️ 只有真的透出来、而不是"填一个近似的背景色"，它才会跟着光斑一起动 ——
+      背景是四块 20s 漂移的径向渐变，位置随时间变，没有哪个固定颜色能假装得出来。
+
+   ⚠️ 为什么不用 mix-blend-mode: destination-out（这版之前就是这么写的，是错的）：
+      destination-out 是 Canvas 2D 的 globalCompositeOperation 取值，
+      **不是 mix-blend-mode 的合法值**（那边只有 normal / multiply / screen / … / luminosity 那一组）。
+      CSS 解析器遇到非法值会把整条声明丢掉 → 实际回退成 normal
+      → 这层就变成"一块不透明纯色的圆"，圆里是 #000 而不是背景。
+      最坑的是它【不报任何错】，只静静地不干活：
+      实测 getComputedStyle(el, '::after').mixBlendMode 返回的是 normal。
+
+   ⚠️ inset: -1px 而不是 0 —— 绝对定位的包含块是【内边距盒】，
+      inset:0 只到内边距盒边界，那 1px 描边正好在它外面一圈，圆内会留一圈细线。
+      （同时这也让 --mx/--my 的坐标系与 JS 量的 border box 完全对齐。）
+   ⚠️ pointer-events: none 是【必须】的：这层压在整张卡上面，
+      不关掉指针事件它会把所有点击都吃掉，链接就永远点不到了。
+   ⚠️ 圆心为什么写成 var(--mx, 50%) 而不是 var(--mx)：给个兜底 ——
+      万一 JS 还没写过（触屏点按那一刻），圆就落在卡片正中。
+      没兜底的话整个 radial-gradient 会失效，皮会整块消失。 */
+.board::after {
+  content: "";
+  position: absolute;
+  inset: -1px;                            /* 盖住描边那一圈，见上 */
+  border-radius: var(--radius-card);      /* 跟着卡片的圆角走，四角不会露出直角 */
+  background: var(--surface);             /* ★ 卡片的皮：白底 */
+  border: 1px solid var(--border);        /* ★ 卡片的皮：描边 */
+  /* ⚠️ 皮必须垫在【左侧那根绿条（.board::before）和内容】的下面。
+     原因是绘制顺序：::before 和 ::after 都按"第一个/最后一个子元素"参与排序，
+     ::after 排在 ::before 之后 —— 而皮是一块【不透明】的白，
+     不给它一个负 z-index 的话，悬停时长出来的那根绿条会被它整个盖住。
+     （这版之前皮是"橡皮擦"，圆外是透明的，所以撞不上这个问题 —— 是这次改动的连带项。） */
+  z-index: -1;
+  pointer-events: none;
+  /* 圆内不画皮，圆外照画 —— 半径跟着 --r 走 */
+  -webkit-mask-image: radial-gradient(circle at var(--mx, 50%) var(--my, 50%),
+                        transparent var(--r, 0px), #000 calc(var(--r, 0px) + .5px));
+          mask-image: radial-gradient(circle at var(--mx, 50%) var(--my, 50%),
+                        transparent var(--r, 0px), #000 calc(var(--r, 0px) + .5px));
+  /* 过渡的是 --r 本身，不是 mask-image ——
+     mask-image 里的渐变不可插值，只有 --r 被注册成 <length>（见文件顶部 @property）
+     才能逐帧补间，圆才是"渐开"而不是"啪地糊上去"。 */
+  transition: --r var(--duration-slow) var(--ease-out),
+              border-color var(--duration-fast) var(--ease-out);
+}
+
+/* 卡片里的内容要浮在【皮】上面 —— 否则皮会把文字盖住。
+   ::after 在绘制顺序里排在最后，默认就是它盖住内容 —— 得把内容提起来一层。
+   （.board-link 本来就是 position: relative，加 z-index 不改变它的布局。）
+   ⚠️ 内容【不】参与挖洞：圆里透出的是背景，文字照旧留在原地 ——
+      这正是他要的"白色被背景替代，文字同时在慢慢淡掉"。 */
+.board > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* ---- 点击 → 溶解 ----
+   圆从光标处扩大、直到盖满整张卡（白色被背后的背景替代）；
+   同时文字整体淡出；两者【同一时间结束】—— 他说"颜色和文字同时消失"。
+   圆的半径由 JS 写成"盖满整卡"的值，这里不用管大小，只管速度。 */
+
+/* 溶解这一步要【快一点】：用 200ms（--duration-dissolve），
+   而不是悬停那档 280ms。他原话是"这个消失的过程快一点更好"。
+   ⚠️ 必须单独写一条：.board::after 那条默认挂的是 --duration-slow。 */
+.board.is-dissolving::after {
+  transition: --r var(--duration-dissolve) var(--ease-out),
+              border-color var(--duration-dissolve) var(--ease-out);
+}
+
+/* 文字与状态标签一起淡出。
+   ⚠️ 用 .board > * 一层就够：可进入的卡片内容全包在 .board-link 里（一个子元素），
+      「开发中」卡片是 head / desc / hint 三个直接子元素 —— 两种结构都覆盖到。 */
+.board.is-dissolving > * {
+  opacity: 0;
+  transition: opacity var(--duration-dissolve) var(--ease-out);
+}
+
+/* ⚠️ 投影画在皮的【外面】，mask 管不到它 —— 它只能【整体】淡出。
+   所以这里换成同等形状但全透明的阴影，让它跟着卡片一起消失。
+   ⚠️ 选择器要压过悬停那条（特异性 0,3,0），否则鼠标还停在卡上时
+      悬停的 --shadow-lg 会把这条盖掉，投影会留在原地不散。 */
+.board.is-dissolving,
+.board:has(.board-link):hover.is-dissolving {
+  box-shadow: 0 0 0 0 rgba(0, 0, 0, 0);
+  transition: box-shadow var(--duration-dissolve) var(--ease-out);
+}
+
+/* 动效敏感的用户：圆不开合（不做补间），皮一直完整。
+   ⚠️ 这里【千万不能】写 display: none —— ::after 现在是卡片的皮本身，
+      藏掉它整张卡就空了。JS 那边也不写 --r，半径停在初始值 0，于是没有洞。
+   （跳转也不等那 260ms，由 JS 处理。） */
+@media (prefers-reduced-motion: reduce) {
+  .board::after {
+    transition: none;
+  }
 }
 
 /* ---- 内页：返回首页与内容面板 ---- */
@@ -1302,7 +1474,10 @@ main {
     display: flex;
     flex-direction: column;
     min-height: 180px;
-    padding: var(--space-8);              /* 24 → 32（设计规则卡片内边距的上限） */
+    /* Day 11：这一行原本写的是 padding: var(--space-8)。
+       内边距搬到 .board-link 之后，这里改成【只更新那个变量】——
+       32px 会自动同时传到链接层和那两张「开发中」的卡片上，一处改两处生效。 */
+    --board-pad: var(--space-8);          /* 24 → 32（设计规则卡片内边距的上限） */
   }
 
   /* ⚠️ 内容【顶齐】，不居中 —— 这一条是量出来的，不是我偏好：
@@ -1669,4 +1844,65 @@ body::after {
         全局改等于顺手扩大范围。 */
 body:has(.boards) .empty {
   color: var(--text);
+}
+
+/* ============================================================
+   Day 11 · 跨页过渡（View Transitions）
+   首页点卡片 → 跟读页，原来是一瞬间的硬切。这里让它连成一段上移：
+     旧页（首页）    向上移、同时逐渐消散  ← 正好接住卡片"扩散铺满"那一下
+     新页（跟读页）  从下方上移归位、同时逐渐显现
+
+   为什么两页都【往上】走，而不是一左一右：
+     同向的上移才读得出「同一叠纸往上翻了一层」；
+     一左一右会读成两件互不相干的事，衔接感反而没了。
+
+   ⚠️ 渐进增强，刻意【不写 JS 兜底】：
+      认不出 @view-transition 的浏览器（Chrome 126 以下、部分 Safari）
+      直接忽略这几条规则，点卡片照旧是一次普通跳转 ——
+      功能一个不少，只是没有过场。为这个去写一段 JS 兜底不划算。
+   ⚠️ 跨文档过渡要求【进出两个文档都声明】。但那条 opt-in【不在本文件里】，
+      而是分别写在 index.html 与 reader.html 的 <head> 里 —— 为什么，见下面那段注释。
+   ============================================================ */
+
+/* ⚠️⚠️ 【这里故意没有 @view-transition { navigation: auto }】—— 别好心把它加回来。
+   这条 opt-in 挪去了【每个页面 <head> 里、紧跟 charset 的 <style>】。原因是实测出来的：
+
+   · 规范说这个检查应该和 pagereveal 一起、在首次渲染前做，理当等外部样式表；
+     但 Chrome【不保证】等，它可能在 style.css 还没解析到时就去查这条规则。
+   · 放在这份 1800 行样式表的【末尾】时，实测 6 次导航只有 1~2 次生效 ——
+     "有时行有时不行"，最坏的那种 bug。查了很久才定位到这一条。
+   · 挪进 <head> 之后：同一套真实页面，6/6 全部生效（另有两组变体也是 6/6）。
+
+   ⇒ 以后要改这条规则，改的是 index.html 和 reader.html 的 <head>，不是这里。
+      这里保留 keyframes 与 ::view-transition-* —— 它们是动画本身，放在共用样式表里没问题。 */
+
+/* 旧页：向上移 + 消散 */
+@keyframes vtLeave {
+  to { transform: translateY(-24px); opacity: 0; }
+}
+
+/* 新页：从下方上移归位 + 显现 */
+@keyframes vtEnter {
+  from { transform: translateY(24px); opacity: 0; }
+}
+
+/* ⚠️ 这里【不覆盖】UA 自带的 mix-blend-mode: plus-lighter ——
+   它正是为了让"淡出 + 淡入"叠在一起时不露出页面背后的底色。
+   自己改成 normal 反而会在中途漏出一层灰。 */
+::view-transition-old(root) {
+  animation: vtLeave var(--duration-slow) var(--ease-out) both;
+}
+
+::view-transition-new(root) {
+  animation: vtEnter var(--duration-slow) var(--ease-out) both;
+}
+
+/* 系统开了「减少动态效果」→ 过场整个不做，退回一次干脆的跳转。
+   ⚠️ 要把两组动画都清掉，不能只清一组：只清旧页的话，新页仍会
+      从下方滑上来，等于"轻描淡写地又动了一次"，与本意相反。 */
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none;
+  }
 }

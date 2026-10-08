@@ -2,6 +2,12 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
+  <!-- ⚠️ 跨页过渡的 opt-in，【必须】留在这里，不要挪进 assets/css/style.css：
+       Chrome 做这项检查时不保证等外部样式表解析完，而这条规则原先在 style.css
+       的 1800 行之后 —— 实测 6 次跳转只有 1~2 次生效，时好时坏。
+       挪到 <head> 靠前的位置之后 6/6 稳定。详见 style.css 里同名注释。
+       跟读页（reader.html）里有一份同样的，两页都声明才生效。 -->
+  <style>@view-transition { navigation: auto; }</style>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>英语学习工具 · 首页</title>
   <link rel="stylesheet" href="assets/css/style.css">
