@@ -288,4 +288,33 @@ document.addEventListener('click', function (e) {
   if (el.closest('[data-action="retry-boards"]')) render();
 });
 
+/* ---- 从 bfcache 回来时的收尾（Day 11）----
+   浏览器前进/后退时，可能把这一页【原样冻住】再原样吐回来（bfcache 这个概念）。
+   "原样"里就包括点卡片那一刻 JS 写下的东西：
+   --r 已经被撑到 429px（盖满整卡）、卡片上还挂着 is-dissolving、文字 opacity 被压到 0 ——
+   而那次跳转其实没真的完成（页面是被冻住，不是被销毁）。
+   于是回到这一页，屏幕上就是【一张没有皮、没有字的空卡】。
+
+   修法：bfcache 恢复的那一刻，浏览器一定会在 window 上派发 pageshow，且 e.persisted 为 true。
+   借这个信号把三样东西擦干净，回到初始样。
+
+   ⚠️ 为什么只在 persisted 为真时才动手：
+      首次加载和普通刷新也会派发 pageshow，但那两种情况是全新页面、本来就没有残留。
+      多清一次虽然无害，却会白跑一遍 DOM，也容易让以后读代码的人误解触发条件。
+   ⚠️ 为什么用 removeProperty 而不是写 0：
+      写 0 会留下一个"内联的 0px"，那和"从没被碰过"是两种状态（以后想判断
+      --r 有没有被写过就不准了）。直接删掉，才真的回到"这张卡还没被悬停过"的样子。
+   ⚠️ 挂在顶层而不是 DOMContentLoaded 里：它只用到 window，不用等 DOM，
+      而且脚本只执行一次，不会重复注册。 */
+window.addEventListener('pageshow', function (e) {
+  if (!e.persisted) return;
+  var cards = document.querySelectorAll('.board');
+  for (var i = 0; i < cards.length; i++) {
+    cards[i].classList.remove('is-dissolving');
+    cards[i].style.removeProperty('--r');
+    cards[i].style.removeProperty('--mx');
+    cards[i].style.removeProperty('--my');
+  }
+});
+
 document.addEventListener('DOMContentLoaded', render);
