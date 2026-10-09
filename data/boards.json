@@ -11,13 +11,15 @@
       "id": "vocab",
       "title": "词汇速记",
       "desc": "课程范围内的固定词表",
-      "status": "wip"
+      "status": "available",
+      "href": "vocab.html"
     },
     {
       "id": "writing",
       "title": "作文模板",
       "desc": "课程范围内的模板列表",
-      "status": "wip"
+      "status": "available",
+      "href": "writing.html"
     }
   ]
 }

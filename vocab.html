@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <!-- ⚠️ 跨页过渡的 opt-in，【必须】留在这里 —— 站内每个页面各声明一份才生效。
+       为什么不能挪进 style.css：见 index.html 里的同名注释。 -->
+  <style>@view-transition { navigation: auto; }</style>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>词汇速记 · 英语学习工具</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body class="page-list">
+  <header class="site-header">
+    <a class="back-link" href="index.html">&larr; 返回首页</a>
+    <h1>词汇速记</h1>
+  </header>
+
+  <main>
+    <!-- 视图间平级切换（Day 13）：三个内页互相直达，不必先绕回首页。
+         每一项都挂 class="btn item" —— 药丸形与那身皮直接复用现成组件。
+         自己是当前页，所以这一项带 aria-current="page" -->
+    <nav class="view-nav" aria-label="视图切换">
+      <a class="btn item" href="reader.html">文本跟读</a>
+      <a class="btn item" href="vocab.html" aria-current="page">词汇速记</a>
+      <a class="btn item" href="writing.html">作文模板</a>
+    </nav>
+
+    <!-- 状态位：加载中 / 没有结果 / 读取失败＋重试，都写在这一个地方。
+         role="status" 是给读屏软件的：内容一变它就会念出来，不用用户自己去发现。
+         加载成功时它是空的，不占版面 -->
+    <div id="list-status" role="status"></div>
+
+    <!-- 列表由 assets/js/list-page.js 按下面三个 data-* 渲染。
+         以后再添一个列表页，照抄这一个 <ul>、改三个属性即可 -->
+    <ul class="list" id="list"
+        data-list-url="data/words.json"
+        data-list-key="words"
+        data-list-name="词表"></ul>
+  </main>
+
+  <script src="assets/js/common.js"></script>
+  <script src="assets/js/list-page.js"></script>
+</body>
+</html>

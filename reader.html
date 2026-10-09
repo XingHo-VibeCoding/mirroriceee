@@ -16,6 +16,15 @@
   </header>
 
   <main>
+    <!-- 视图间平级切换（Day 13）：和词汇速记 / 作文模板两页共用同一条导航。
+         三个内页互相直达，不必先绕回首页再点进来。
+         每一项都挂 class="btn item" —— 药丸形与那身皮复用现成组件，不另写一套 -->
+    <nav class="view-nav" aria-label="视图切换">
+      <a class="btn item" href="reader.html" aria-current="page">文本跟读</a>
+      <a class="btn item" href="vocab.html">词汇速记</a>
+      <a class="btn item" href="writing.html">作文模板</a>
+    </nav>
+
     <!-- 等级目录（Day 8 新增）：L1 / L2 / L3。
          这一坨按钮由 app.js 按 data/materials.json 里的 levels 渲染，页面上不写死 ——
          以后加 L4、改名，都只改 JSON，不动这个文件 -->

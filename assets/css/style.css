@@ -1906,3 +1906,100 @@ body:has(.boards) .empty {
     animation: none;
   }
 }
+
+/* ============================================
+   Day 13：视图之间平级切换 ＋ 列表页（词汇速记 / 作文模板）
+   本节全部是【新增】，上面的规则一条没动 —— 首页与跟读页已按
+   PRD 第六节验收过，改它们等于把跑通的东西拉回风险里。
+   ============================================ */
+
+/* ---- 视图切换导航条 ----
+   三个内页（跟读 / 词汇 / 作文）共用同一条，互相直达，不必先绕回首页。
+   每一项都挂 class="btn item"：药丸形与那身皮直接复用现成组件，不另写一套。
+   ⚠️ 语义用的是 aria-current="page"（「当前页就是这一个」，链接的正确说法），
+      而 .item 那套选中皮只认 aria-current="true"（那是给"当前打开的文件"用的），
+      两个值互不相通 —— 所以下面单独补一条，把同一套视觉给到 'page'。
+      不这么写就得把导航项改成 aria-current="true"，那等于为了迁就样式写错语义。 */
+.view-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+}
+
+/* .btn 是照 <button> 写的，链接得自己摘掉下划线 */
+.view-nav a {
+  text-decoration: none;
+}
+
+.view-nav a[aria-current='page'] {
+  border-color: var(--accent);
+  background: var(--ok-bg);
+  color: var(--accent);
+}
+
+/* ---- 列表页：词汇速记 / 作文模板 ----
+   一行一条，三栏：主词（或模板名）· 说明 · 右标签。
+   ⚠️ 为什么不用 .file-btn：那个是「可点的按钮行」—— 带 cursor: pointer、
+      带 aria-current 选中态。而这里的条目是【纯展示】，点了什么都不该发生；
+      借那套皮等于给用户一个点不动的按钮，是误导。
+      所以只借 .item 那身皮（白底 / 描边 / 圆角 / 阴影），排布自己写。 */
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  list-style: none;
+}
+
+/* 列表空着时整个收掉：空状态那句话已经写在 #list-status 里，
+   留着这个空 <ul> 只会白占一段间距（同 #reader:empty 的思路） */
+.list:empty {
+  display: none;
+}
+
+.list-item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: var(--space-3);
+  padding: 12px 16px;
+}
+
+.li-title {
+  font-weight: 500;
+  overflow-wrap: break-word;
+}
+
+.li-desc {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  overflow-wrap: break-word;
+}
+
+/* 右标签：单元 / 类型那一类归组信息。
+   tabular-nums 让数字等宽 —— 上下两行的 Unit 1 / Unit 2 不会左右跳 */
+.li-tag {
+  font-size: var(--text-xs);
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* 窄屏：三栏挤不下，改成竖排（说明换到第二行，标签跟在后面） */
+@media (max-width: 599px) {
+  .list-item {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-1);
+  }
+}
+
+/* ---- 列表页入场：和跟读页同一套节奏（页头 → 导航 → 列表 依次上浮）----
+   ⚠️ 必须用 .page-list 限定：.site-header 每个页面都有，
+      不限定的话首页和跟读页会被动两次（见跟读页那一节踩过的坑）。
+   ⚠️ #list-status 和 #list 都要动：列表区有四种状态，
+      只动其中一种，就会出现「列表浮入、空状态硬闪」的不一致。
+   ⚠️ 依旧用 riseIn（translate 属性），不用 transform，理由见本节上方那段说明。 */
+.page-list .site-header { animation: riseIn .45s var(--ease-out) both; }
+.page-list .view-nav    { animation: riseIn .45s var(--ease-out) both; animation-delay: .08s; }
+.page-list #list-status,
+.page-list #list        { animation: riseIn .5s  var(--ease-out) both; animation-delay: .16s; }
