@@ -180,7 +180,19 @@ function moveLight(card, e) {
   card.style.setProperty('--my', (e.clientY - r.top) + 'px');
 }
 
+/* 窄屏（手机）吗 —— Day 14 起，手机改走"整张皮 opacity 淡出"这条路
+   （见 style.css 里 @media (max-width: 599px) 的那一节）。
+   ⚠️ 为什么要在这里判：手机上一律【不写 --r】。
+      写了会怎样：窄屏那边没有 --r 过渡，洞会【瞬时】开满整卡，
+      皮当场全透 —— 后面那条淡出就白做了，又变回"啪一下空白"。
+      所以圆的整套逻辑（悬停 / 按下 / 溶解撑开）在手机上一个都不参与。 */
+function isNarrow() {
+  return !!(window.matchMedia &&
+            window.matchMedia('(max-width: 599px)').matches);
+}
+
 function setRadius(card, px) {
+  if (isNarrow()) return;
   card.style.setProperty('--r', px + 'px');
 }
 
@@ -262,6 +274,16 @@ function wireCards() {
           setTimeout(function () {
             window.location.href = link.getAttribute('href');
           }, NAV_WAIT);
+
+          /* 【网 3】兜底：这次跳转要是没走成 —— 页面被浏览器冻进缓存、
+             又原样吐回来，而 pageshow / visibilitychange 一个信号都没到 ——
+             到点就把卡片收回原样，免得你看到一张没有皮、没有字的空卡。
+             正常跳转时这一页早就被销毁了，这个定时器什么都不会跑。
+             ⚠️ 已知取舍：网络极慢、两秒后还停在这一页时，卡片会自己弹回来一下。
+                弹回来难看，但比"永远空着"强。 */
+          setTimeout(function () {
+            if (document.visibilityState === 'visible') resetCards();
+          }, NAV_WAIT + 1500);
         });
       } else {
         /* 「开发中」的卡片：没有可去的地方，溶解一下就【弹回来】——
@@ -295,19 +317,27 @@ document.addEventListener('click', function (e) {
    而那次跳转其实没真的完成（页面是被冻住，不是被销毁）。
    于是回到这一页，屏幕上就是【一张没有皮、没有字的空卡】。
 
-   修法：bfcache 恢复的那一刻，浏览器一定会在 window 上派发 pageshow，且 e.persisted 为 true。
-   借这个信号把三样东西擦干净，回到初始样。
+   修法：借"页面重新出现在屏幕上"的信号把几样东西擦干净，回到初始样。
+   **三层网**，每一层盖一种失败方式（下面的 resetCards / pageshow / visibilitychange）：
 
-   ⚠️ 为什么只在 persisted 为真时才动手：
-      首次加载和普通刷新也会派发 pageshow，但那两种情况是全新页面、本来就没有残留。
-      多清一次虽然无害，却会白跑一遍 DOM，也容易让以后读代码的人误解触发条件。
+     网 1  pageshow      —— 浏览器从 bfcache 吐回来时会派发
+     网 2  visibilitychange（变回可见）—— 个别内置浏览器恢复时【不派发 pageshow】
+     网 3  跳转后的兜底定时器（写在点卡片那一段）—— 万一前两个信号一个都没来
+
+   ⚠️⚠️ Day 14 更正（真人测试实测）：原版【只在 e.persisted 为真时才动手】，
+      而那台手机上实测到 bug —— 点进板块 → 返回键退出 → 被点的卡【仍然是空的】。
+      说明它恢复页面时 pageshow 的 persisted 不是 true，清理整段被那行判断挡掉了。
+      ⇒ 现在改成【每次 pageshow 都清】。首次加载多清一遍三张卡，代价可以忽略。
+      （教训：别用"顺便省一点"的优化去挡一条【正确性】分支 —— 省下的是三次 DOM 遍历，
+        赔上的是别人手机上一条擦不掉的空卡。）
+
    ⚠️ 为什么用 removeProperty 而不是写 0：
       写 0 会留下一个"内联的 0px"，那和"从没被碰过"是两种状态（以后想判断
       --r 有没有被写过就不准了）。直接删掉，才真的回到"这张卡还没被悬停过"的样子。
    ⚠️ 挂在顶层而不是 DOMContentLoaded 里：它只用到 window，不用等 DOM，
       而且脚本只执行一次，不会重复注册。 */
-window.addEventListener('pageshow', function (e) {
-  if (!e.persisted) return;
+/* 把三张卡擦回初始样 —— 三处收尾共用这一份 */
+function resetCards() {
   var cards = document.querySelectorAll('.board');
   for (var i = 0; i < cards.length; i++) {
     cards[i].classList.remove('is-dissolving');
@@ -315,6 +345,24 @@ window.addEventListener('pageshow', function (e) {
     cards[i].style.removeProperty('--mx');
     cards[i].style.removeProperty('--my');
   }
+}
+
+/* 【网 1】pageshow —— 页面从"冻结状态"被吐回来时，浏览器会派发它。
+   ⚠️ Day 14：这里【故意不再判断 e.persisted】。
+      原来写的是「只在 persisted 为真时才动手」，理由是"首次加载没有残留，清了白清"。
+      但真人测试在手机上实测到了反例：点进板块 → 手机返回键退出 →
+      被点击的那张卡【仍然是空的】。说明那台浏览器把页面恢复回来时，
+      pageshow 里的 persisted 并不是 true —— 于是清理被这行判断挡掉了，残留原样留在屏幕上。
+      ⇒ 判断删掉：**每次 pageshow 都清一遍**。三张卡的 DOM 遍历，代价可以忽略，
+        换来的是"不管浏览器怎么恢复，看到的都是干净的一页"。 */
+window.addEventListener('pageshow', resetCards);
+
+/* 【网 2】visibilitychange —— 页面重新变可见时再清一遍。
+   为什么还要这一条：网 1 靠的是 pageshow，而个别手机浏览器（内置 WebView 那类）
+   从自己的页面缓存里恢复时，可能压根不派发 pageshow。
+   但"变回可见"这个信号几乎所有浏览器都会给 —— 再兜一层。 */
+document.addEventListener('visibilitychange', function () {
+  if (document.visibilityState === 'visible') resetCards();
 });
 
 document.addEventListener('DOMContentLoaded', render);

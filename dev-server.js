@@ -45,6 +45,13 @@ const MIME = {
   '.ico':  'image/x-icon',
 };
 
+/* Day 14：项目文档（.md）不对外提供。
+   起因：发布是「只增不删」—— 文档一旦随发布上传，就留在沙箱里删不掉了
+   （实测：本地删掉后重发，线上仍返回 200）。所以只能改由服务器层拒绝。
+   这是唯一能可靠下架「已经上传过的文件」的办法。
+   只挡这一种后缀，其它一律照旧。 */
+const BLOCKED_EXT = ['.md'];
+
 /* 网址 → 本机文件路径。顺便挡住 ../../ 越界访问。
    Windows 上路径分隔符有正反两种，必须先 normalize 再比较，否则会误判 */
 function resolveFile(urlPath) {
@@ -83,6 +90,12 @@ function fail(res, code, message) {
 const server = http.createServer((req, res) => {
   let filePath = resolveFile(req.url);
   if (!filePath) return fail(res, 403, '403 越界访问被拒绝');
+
+  /* Day 14：项目文档不对外（详见文件上方 BLOCKED_EXT 的说明）。
+     放在越界检查之后、目录处理之前，直接当"找不到"回，不暴露文件是否存在。 */
+  if (BLOCKED_EXT.includes(path.extname(filePath).toLowerCase())) {
+    return fail(res, 404, '404 找不到：' + req.url);
+  }
 
   /* 访问目录 → 找里面的 index.html */
   try {

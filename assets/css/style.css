@@ -755,6 +755,40 @@ main {
   }
 }
 
+/* ---- Day 14 · 窄屏（手机）：绕开 mask 那条昂贵路径 ----
+   起因：真人测试反馈「手机上点卡片 / 切页面卡顿」。
+
+   病根：这块皮靠 mask-image 里的 radial-gradient 挖洞，洞的半径 --r 是【注册过的】
+   自定义属性 —— 注册属性补间【不走合成器】，每一帧都要在主线程上重算一张径向渐变遮罩
+   （上面注释里写着"实测能取到 50 多个中间帧"）。桌面 GPU 快、看不出来；
+   手机连算几十帧就是"点一下等半拍"。
+
+   做法：手机上一律【不挖洞】，改成整张皮 opacity 淡出。
+   观感仍然是"白皮没了、字没了、背后的光斑透出来"，而且是一段看得见的渐变；
+   但全程只动 opacity —— 合成器一把过，主线程不掺和。
+
+   配套（缺一不可）：home.js 的 setRadius() 在窄屏直接 return，一个 --r 都不写。
+   不写 ⇒ 洞永远停在半径 0 ⇒ 皮始终完整，淡出才看得见。
+   要是 JS 照写 --r，洞会【瞬时】开满（窄屏这边没有 --r 过渡），
+   皮当场全透、后面那条淡出反而白做，又变回"啪一下空白"。
+
+   ⚠️ 599px 与文件里其它窄屏规则（.list-item 那条）同一档。
+      手机横屏（宽 > 599）仍走原来的 mask 路径，这是已知取舍，没顺手扩大范围。
+   ⚠️ 桌面（≥ 600px）一行都不受影响：下面全部包在媒体查询里。 */
+@media (max-width: 599px) {
+  /* 皮不再补间 --r —— 窄屏上它只负责"淡出" */
+  .board::after {
+    transition: border-color var(--duration-fast) var(--ease-out);
+  }
+
+  /* 溶解：整张皮淡出，和文字淡出同一时刻开始、同一时刻结束 */
+  .board.is-dissolving::after {
+    opacity: 0;
+    transition: opacity var(--duration-dissolve) var(--ease-out),
+                border-color var(--duration-dissolve) var(--ease-out);
+  }
+}
+
 /* ---- 内页：返回首页与内容面板 ---- */
 
 .back-link {

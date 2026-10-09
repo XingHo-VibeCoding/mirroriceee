@@ -1,5 +1,5 @@
 {
-  "name": "english-reading-tool",
+  "name": "echoread",
   "version": "1.0.0",
   "private": true,
   "description": "面向学生的英语跟读工具：静态页面 + 支持 Range 的极简静态服务器",
