@@ -1,0 +1,7 @@
+{
+  "name": "echoread-api",
+  "version": "1.0.0",
+  "private": true,
+  "description": "echoread 后端云函数（Day 15 起）：HTTP 接口都在这儿",
+  "main": "index.js"
+}
