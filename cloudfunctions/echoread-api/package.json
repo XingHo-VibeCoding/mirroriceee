@@ -2,6 +2,6 @@
   "name": "echoread-api",
   "version": "1.0.0",
   "private": true,
-  "description": "echoread 后端云函数（Day 15 起）：HTTP 接口都在这儿",
+  "description": "echoread 后端云函数（Day 15 起）：HTTP 接口都在这儿。Day 17 起零依赖——数据走 PG REST 网关，不再需要 pg 驱动",
   "main": "index.js"
 }

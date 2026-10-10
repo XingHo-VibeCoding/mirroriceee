@@ -192,11 +192,11 @@ words / templates / boards   —— 各自独立，不与其他表关联
 | # | 方法 | 路径 | 用途 | 哪个页面用 | 本期状态 |
 |---|---|---|---|---|---|
 | 1 | `GET` | `/api/health` | 健康检查 | —（运维/排查） | ✅ **已实现** |
-| 2 | `GET` | `/api/boards` | 首页板块列表 | `index.html` | 📝 待实现 |
+| 2 | `GET` | `/api/boards` | 首页板块列表 | `index.html` | ✅ **已实现** |
 | 3 | `GET` | `/api/levels` | 等级目录 | `reader.html` | 📝 待实现 |
 | 4 | `GET` | `/api/materials` | 素材列表（可按等级筛） | `reader.html` | 📝 待实现 |
 | 5 | `GET` | `/api/materials/{id}/segments` | 某条素材的分句与时间戳 | `reader.html` | 📝 待实现 |
-| 6 | `GET` | `/api/words` | 词表列表（可按单元筛） | `vocab.html` | 📝 待实现 |
+| 6 | `GET` | `/api/words` | 词表列表（可按单元筛） | `vocab.html` | ✅ **已实现** |
 | 7 | `GET` | `/api/templates` | 作文模板列表 | `writing.html` | 📝 待实现 |
 | 8 | `GET` | `/api/templates/{id}` | 单篇模板详情 | `writing.html`（未做） | 📝 待实现 |
 | 9 | `GET/POST` | `/api/mastered-words` | 标记「已掌握」 | `vocab.html`（未做） | ⛔ **本期不做**（见第五节） |
@@ -230,7 +230,7 @@ words / templates / boards   —— 各自独立，不与其他表关联
 
 ---
 
-#### 2. `GET /api/boards` 📝 待实现
+#### 2. `GET /api/boards` ✅ 已实现
 
 **用途**：首页三张板块卡片。
 
@@ -345,7 +345,7 @@ words / templates / boards   —— 各自独立，不与其他表关联
 
 ---
 
-#### 6. `GET /api/words` 📝 待实现
+#### 6. `GET /api/words` ✅ 已实现
 
 **用途**：词汇速记页的词表。
 
@@ -502,3 +502,4 @@ GET /api/mastered-words?studentKey=<匿名标识>
 |---|---|---|---|
 | v1.0 | 2026-10-09 | Day 15 | 首版落盘：通用约定 + **6 张表**（含 `boards`，同日拍板入表）+ 8 个待实现接口 + 1 个占位接口。今天**只登记、不实现**（已实现的仅 `GET /api/health`） |
 | v1.1 | 2026-10-10 | Day 16 | 建表与种子落盘（`db/schema.sql` / `db/seed.sql`，均可重复执行）；契约同步三处：`templates.desc` / `boards.desc` → **`description`**（DESC 是 PG 保留关键字）、`materials.level_code` 外键补 `ON DELETE RESTRICT`、`segments` 同名索引并入唯一约束。线上实测 6 张表建成，行数 3 / 5 / 16 / 3 / 0 / 3 |
+| v1.2 | 2026-10-10 | Day 17 | 前两个读接口落地上线：`GET /api/boards` 与 `GET /api/words`（含 `?unit=` 筛选）。⚠️ **实现方式与最初设想不同**：原计划用 `pg` 驱动「TCP 直连」数据库，实测本套餐（免费体验版 / 共享集群）既没有内网地址、公网直连又要求「独享集群」的安全组，且 `anon`/`authenticated`/`service_role` 三个角色全是 `NOLOGIN`、根本无法直接登录 —— 遂改为**调 CloudBase PG REST 网关**（`https://<envId>.api.tcloudbasegateway.com/v1/rdb/rest/<表>`，头带 `Authorization: Bearer <API Key>`，Key 由云函数环境变量 `CLOUDBASE_API_KEY` 注入，零依赖）。**代价**（如实记）：1.4 节说的「SQL 参数化」在这条路上对应为「用户输入一律 `encodeURIComponent` 后作为查询参数」，防注入的目标不变、形式变了。线上实测：`GET /api/boards` → 200 + 3 条；`GET /api/words?unit=Unit 2` → 200 + 1 条；`POST /api/boards` → 405；未知路径 → 404 |
