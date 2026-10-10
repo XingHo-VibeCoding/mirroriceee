@@ -5,6 +5,10 @@
    Day 17：加两个真读接口，读 PostgreSQL 里的真数据
      · GET /api/boards —— 首页板块清单（读 boards 表）
      · GET /api/words  —— 词表列表（读 words 表，可按课程单元筛）
+   Day 18：加第一个**写**接口，往 PostgreSQL 里插数据
+     · POST /api/words —— 新增一条词条（写 words 表；必填校验 + 防重复提交）
+     ⚠️ 路由器随之改形：从「非 GET/HEAD 一律 405」改成「先按路径找、再按方法分」——
+        否则新接口会被自己那句 405 拦死（见 exports.main 里的 ① ②）。
 
    ⚠️ 数据是怎么取到的（Day 17 改过一版，原因写在这，别下次忘了）
      原计划：云函数里用 `pg` 驱动「直连」数据库（PGHOST/PGUSER/PGPASSWORD 那一套）。
@@ -23,8 +27,12 @@
              （service_role 默认就能访问所有表）。
 
    ⚠️ 三个必须守住的约定（订在 api-contract.md 里，动它就等于动前端）：
-     ① 响应形状：成功 = 直接给业务对象（如 {"boards":[...]}），失败 = {ok:false,error,message}
-        —— 不套 {code,data} 信封，前端 home.js 认的是 data.boards
+     ① 响应形状：
+        · 读接口成功 = 直接给业务对象（如 {"boards":[...]}）—— 不套 {code,data} 信封
+        · 写接口成功 = {ok:true, data:{...}} —— 写操作没有「业务对象」可给
+          （返回的是「写成功」这个结果）；而失败形状本来就是 {ok:false,error,message}，
+          两者对称，前端看一个 ok 字段就够，不用去解析 HTTP 状态码
+        · 失败一律 = {ok:false, error, message}（error 给机器、message 给人，中文）
      ② 字段名翻译在【这一层】做：数据库叫 description / word / meaning / unit_tag，
         网页要的是 desc / title / desc / tag —— 翻译错了，列表页当场全空
      ③ 用户输入永远不拼进查询串 —— 必须 encodeURIComponent（这里就是「参数化」的位置）
@@ -131,9 +139,92 @@ async function rdbSelect(table, select, order, filters) {
   return res.json();
 }
 
+/* ---------------------------------------------------------------------------
+   往 PG REST 网关写一行（POST /v1/rdb/rest/<表>）
+
+   table —— 表名。同 rdbSelect：只允许传【代码里写死的常量】。
+   row   —— 要插入的一行，键是**数据库列名**（字段名翻译由调用方做完）
+
+   返回：网关回显的**数组**（带了 Prefer: return=representation，插完把整行给回来，
+         省掉「再查一次」）。万一个别网关版本回的是单对象，这里统一包成数组。
+   出错就抛；「唯一约束冲突」额外带 conflict = true（由调用方翻成 409）。
+   --------------------------------------------------------------------------- */
+async function rdbInsert(table, row) {
+  var apiKey = process.env.CLOUDBASE_API_KEY;
+  if (!apiKey) {
+    throw new Error('未配置 CLOUDBASE_API_KEY 环境变量');
+  }
+
+  var url = REST_BASE + '/v1/rdb/rest/' + table + '?select=*';
+
+  var res = await fetch(url, {
+    method: 'POST',
+    headers: {
+      Authorization: 'Bearer ' + apiKey,
+      'Content-Type': 'application/json',
+      /* ⚠️ Prefer: return=representation —— 不加的话，网关默认 return=minimal，
+         只回一个空 body 和一个 content-range 头（说明「1 行受影响」），拿不到刚插进去的那行。
+         加了它，插入后的整行直接回来，我们就不用再发一次 SELECT。 */
+      Prefer: 'return=representation'
+    },
+    body: JSON.stringify(row),
+    signal: AbortSignal.timeout(REST_TIMEOUT_MS)
+  });
+
+  if (!res.ok) {
+    var detail = '';
+    try { detail = (await res.text()).slice(0, 300); } catch (e) { /* 读不出就作罢 */ }
+    var err = new Error('REST ' + res.status + ' ' + detail);
+    err.status = res.status;
+    /* 「重复提交」的识别：PostgREST 把唯一约束冲突翻成 HTTP 409；
+       再兜一层 —— 错误体里出现 PostgreSQL 的错误码 23505（unique_violation）也认。 */
+    err.conflict = (res.status === 409) || detail.indexOf('23505') !== -1;
+    throw err;
+  }
+
+  var out = await res.json();
+  return Array.isArray(out) ? out : [out];
+}
+
+/* ---------------------------------------------------------------------------
+   解析 POST 请求体 → 普通对象
+
+   ⚠️ CloudBase 集成响应里 event.body 有两种可能，两种都要能吃：
+      · 普通字符串（Content-Type: application/json 时）
+      · **base64 编码**的字符串（event.isBase64Encoded === true 时，平台对二进制内容会这样传）
+   返回 { ok:true, data:对象 } 或 { ok:false, error, message }（后者直接能喂给 fail()）。
+   --------------------------------------------------------------------------- */
+function parseBody(event) {
+  var raw = event.body;
+
+  if (raw === undefined || raw === null || raw === '') {
+    return { ok: false, error: 'invalid_body', message: '请求体必须是 JSON 对象' };
+  }
+
+  if (event.isBase64Encoded) {
+    raw = Buffer.from(raw, 'base64').toString('utf8');
+  }
+
+  var data;
+  try {
+    data = JSON.parse(raw);
+  } catch (e) {
+    return { ok: false, error: 'invalid_body', message: '请求体必须是合法的 JSON' };
+  }
+
+  /* 只收「普通对象」：数组、字符串、数字、null 一律拒。
+     为什么拒数组 —— 那是批量写入的形状，本期清单明确不做（Day 18 边界）。 */
+  if (typeof data !== 'object' || data === null || Array.isArray(data)) {
+    return { ok: false, error: 'invalid_body', message: '请求体必须是 JSON 对象' };
+  }
+
+  return { ok: true, data: data };
+}
+
 /* ===========================================================================
    各接口的处理函数
    约定：每个函数返回「已经构造好的响应对象」（json(...) 的返回值）
+   ⚠️ 签名统一为 handler(query, event)：读接口只用 query，写接口要用 event 拿 body。
    =========================================================================== */
 
 /* ---- GET /api/health —— 健康检查（Day 15 起就在，行为不变）----
@@ -204,15 +295,110 @@ async function getWords(query) {
   });
 }
 
+/* ---- POST /api/words —— 新增一条词条（Day 18 今天的主角）----
+   契约（api-contract.md 3.2 第 6 号 POST 子段）：
+     请求体 { id, title, desc, tag? }
+     成功  201 { ok:true, data:{ id,title,desc,tag } }
+     错误  400 invalid_body / 400 missing_field / 400 invalid_field / 409 duplicate_id
+
+   ⚠️ 字段名在这一层来回翻译：
+       请求体（网页的叫法）    id  /  title  /  desc     /  tag
+       数据库列（库里的叫法）  id  /  word   /  meaning  /  unit_tag
+     进：网页 → 库（拼 row 时翻）　　出：库 → 网页（回 data 时翻回来） */
+async function postWords(query, event) {
+  /* ① 取请求体。解析失败直接回 400（error / message 由 parseBody 备好了）。 */
+  var parsed = parseBody(event);
+  if (!parsed.ok) {
+    return fail(400, parsed.error, parsed.message);
+  }
+  var body = parsed.data;
+
+  /* ② 校验：必填 + 格式。
+     ⚠️ 一次把缺的/错的**收集齐再报**，不做「报一个、你改一个、再报下一个」的挤牙膏 ——
+        前端一次就能把话说明白。 */
+  var REQUIRED = [
+    { key: 'id',    label: '词条 id（id）' },
+    { key: 'title', label: '单词（title）' },
+    { key: 'desc',  label: '释义（desc）' }
+  ];
+  var missing = [];
+  var badType = [];
+
+  REQUIRED.forEach(function (f) {
+    var v = body[f.key];
+    if (v === undefined || v === null || String(v).trim() === '') {
+      missing.push(f.label);
+    } else if (typeof v !== 'string') {
+      /* 数字、布尔、对象……都不收：库里这三列是 TEXT，硬塞进去只会变成
+         "[object Object]" 这样的脏数据，不如当场拒掉。 */
+      badType.push(f.label);
+    }
+  });
+
+  if (missing.length > 0) {
+    return fail(400, 'missing_field', '缺少必填字段：' + missing.join('、'));
+  }
+  if (badType.length > 0) {
+    return fail(400, 'invalid_field', '字段「' + badType.join('、') + '」必须是非空字符串');
+  }
+
+  /* tag 是可选字段：没给 / 给了空白 → 存 NULL（不是空字符串 —— 两者在库里含义不同）。 */
+  var tag = (body.tag === undefined || body.tag === null || String(body.tag).trim() === '')
+    ? null
+    : String(body.tag).trim();
+
+  /* ③ 写库。字段名翻译：网页的叫法 → 库里的叫法。 */
+  var row = {
+    id:       body.id.trim(),
+    word:     body.title.trim(),
+    meaning:  body.desc.trim(),
+    unit_tag: tag
+  };
+
+  var inserted;
+  try {
+    inserted = await rdbInsert('words', row);
+  } catch (err) {
+    /* ⚠️ 「重复提交」不是服务端故障，是**业务上可预期的结果** —— 单独翻成 409，
+       别让它混进 500。识别靠 rdbInsert 打的 conflict 标记（网关 409 或 SQLSTATE 23505）。
+       这就是「防重复」的全部实现：**不做「先查后插」**（那样两个请求同时查、同时插，
+       照样重复）—— 直接插、让**数据库主键**去拦，一次请求解决，天然没有竞态。 */
+    if (err && err.conflict) {
+      console.log('[echoread-api] POST /api/words 重复提交被拒：id =', row.id);
+      return fail(409, 'duplicate_id', '这个词条 id 已存在，请不要重复提交');
+    }
+    throw err;   /* 其它错误（未配 Key / 网络超时 / 网关 5xx）交给入口统一翻 500 */
+  }
+
+  /* ④ 回 201。字段名翻译回：库里的叫法 → 网页的叫法。
+     回显优先用网关给的那行（inserted[0]）—— 万一以后加了数据库默认值（如时间戳），
+     它能反映真实落库结果；取不到就退回我们自己拼的 row。 */
+  var r = inserted[0] || row;
+
+  /* 余力加练的服务端日志：写入成功记一条，方便以后排查「到底插没插进去」。 */
+  console.log('[echoread-api] POST /api/words 写入成功：id =', r.id);
+
+  return json(201, {
+    ok: true,
+    data: {
+      id:    r.id,
+      title: r.word,        /* word    → title */
+      desc:  r.meaning,     /* meaning → desc  */
+      tag:   r.unit_tag     /* unit_tag → tag  */
+    }
+  });
+}
+
 /* ===========================================================================
-   路由表：路径 → 处理函数
-   网关那边配的是通配 /api/*，所以「哪个路径归哪个函数」由这张表决定。
-   以后加接口，只在这里加一行（外加写一个处理函数），不用再动网关。
+   路由表：路径 → { 方法: 处理函数 }
+   ⚠️ Day 18 改了形状：原来是「路径 → 函数」（隐含只支持 GET），
+      现在一个路径可以挂多个方法（如 /api/words 既有 GET 又有 POST）。
+      以后加接口，只在这里加一行（外加写一个处理函数），不用再动网关。
    =========================================================================== */
 var ROUTES = {
-  '/api/health': getHealth,
-  '/api/boards': getBoards,
-  '/api/words':  getWords
+  '/api/health': { GET: getHealth },
+  '/api/boards': { GET: getBoards },
+  '/api/words':  { GET: getWords, POST: postWords }
 };
 
 /* ===========================================================================
@@ -226,33 +412,46 @@ exports.main = async function (event, context) {
      先转成大写再比较，避免大小写差异导致误判。 */
   var method = String(event.httpMethod || 'GET').toUpperCase();
 
-  /* 只开放 GET。
-     为什么顺带放行 HEAD：有些浏览器和监控探针会先发一个 HEAD 探一下，
-     被拒会误报「接口挂了」。放行它、不返回 body 即可。
-     其余方法（POST / PUT / DELETE）一律 405 —— HTTP 里「方法不允许」的标准码。 */
-  if (method !== 'GET' && method !== 'HEAD') {
-    return fail(405, 'method_not_allowed', '该接口只支持 GET');
+  /* HEAD 当成 GET 处理：有些浏览器和监控探针会先发一个 HEAD 探一下，
+     被拒会误报「接口挂了」。它和 GET 走同一个处理函数即可
+     （HTTP 规范要求 HEAD 的响应头与 GET 一致、但不带 body —— 网关会替我们丢掉 body）。 */
+  if (method === 'HEAD') {
+    method = 'GET';
   }
 
   /* event.path —— 请求路径。网关上开了「路径透传」时，这里会拿到完整路径
      （如 /api/boards）。去掉结尾多余的斜杠再查表，让 /api/boards/ 也能命中。 */
   var path = String(event.path || '').replace(/\/+$/, '') || '/';
 
-  var handler = ROUTES[path];
-  if (!handler) {
+  /* ① 先按路径找。找不到 = 这个路径根本不存在 → 404
+     （跟「路径在、但方法不对」是两回事，别混成一个错误）。 */
+  var route = ROUTES[path];
+  if (!route) {
     return fail(404, 'not_found', '没有这个接口');
+  }
+
+  /* ② 再看这个方法挂没挂处理函数。
+     ⚠️ Day 18 的改动就在这儿：原来「非 GET/HEAD 一律 405」是**写死**的；
+        现在改成「这个路径支持哪些方法，就看路由表里挂了哪些」——
+        /api/words 挂了 GET 和 POST ⇒ 这俩都通，PUT 才 405。
+        message 里列出该路径**实际支持**的方法，用户一看就知道该怎么调。 */
+  var handler = route[method];
+  if (!handler) {
+    var allowed = Object.keys(route).join('、');
+    return fail(405, 'method_not_allowed', '该接口只支持 ' + allowed);
   }
 
   try {
     /* event.queryStringParameters —— URL 上 ?a=1&b=2 那部分，CloudBase 已经解析成对象。
-       没有问号参数时它可能是 undefined，兜一个空对象，省得下游到处判空。 */
+       没有问号参数时它可能是 undefined，兜一个空对象，省得下游到处判空。
+       ⚠️ event 也一并传下去 —— 写接口（POST）要从 event.body 取请求体。 */
     var query = event.queryStringParameters || {};
-    return await handler(query);
+    return await handler(query, event);
   } catch (err) {
     /* 未配 Key、网关报错、网络超时……都落到这里。
        ⚠️ 不把 err.message 原样吐给前端 —— 那里面可能带主机名、状态码、内部细节。
           人话给用户，详细原因留给控制台的日志（console.error 会进「日志监控」）。 */
     console.error('[echoread-api] 接口出错:', err && err.message ? err.message : err);
-    return fail(500, 'db_error', '服务端读取出错，请稍后再试');
+    return fail(500, 'db_error', '服务端出错，请稍后再试');
   }
 };

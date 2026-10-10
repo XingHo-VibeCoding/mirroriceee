@@ -61,9 +61,11 @@
 | 码 | 什么时候用 |
 |---|---|
 | `200` | 请求成功（GET 命中） |
-| `400` | 参数不合法（例如 `level=LX`） |
+| `201` | 创建成功（POST 写入了一条新记录） |
+| `400` | 参数不合法（例如 `level=LX`；缺必填字段） |
 | `404` | 资源不存在（例如 id 查不到） |
-| `405` | 方法不允许（例如用 POST 打只读接口） |
+| `405` | 方法不允许（例如用 PUT 打只读接口） |
+| `409` | 冲突（重复提交同一个 id —— 唯一约束撞车） |
 | `500` | 服务端出错（数据库连不上等） |
 
 ### 1.4 命名与类型约定（**这条最要紧，写错了前端全废**）
@@ -197,6 +199,7 @@ words / templates / boards   —— 各自独立，不与其他表关联
 | 4 | `GET` | `/api/materials` | 素材列表（可按等级筛） | `reader.html` | 📝 待实现 |
 | 5 | `GET` | `/api/materials/{id}/segments` | 某条素材的分句与时间戳 | `reader.html` | 📝 待实现 |
 | 6 | `GET` | `/api/words` | 词表列表（可按单元筛） | `vocab.html` | ✅ **已实现** |
+| 6 | `POST` | `/api/words` | 新增一条词条（写接口） | `vocab.html`（本期未接线） | 📝 **待实现** |
 | 7 | `GET` | `/api/templates` | 作文模板列表 | `writing.html` | 📝 待实现 |
 | 8 | `GET` | `/api/templates/{id}` | 单篇模板详情 | `writing.html`（未做） | 📝 待实现 |
 | 9 | `GET/POST` | `/api/mastered-words` | 标记「已掌握」 | `vocab.html`（未做） | ⛔ **本期不做**（见第五节） |
@@ -348,7 +351,9 @@ words / templates / boards   —— 各自独立，不与其他表关联
 
 ---
 
-#### 6. `GET /api/words` ✅ 已实现
+#### 6. `GET` / `POST` `/api/words`
+
+> **`GET`** ✅ 已实现（Day 17）　｜　**`POST`** 📝 待实现（Day 18）
 
 **用途**：词汇速记页的词表。
 
@@ -378,6 +383,51 @@ words / templates / boards   —— 各自独立，不与其他表关联
 > **转换在接口层做**，前端一行不改。要是这里「按数据库的叫法」返回，前端所有列表页当场全空。
 
 **实测状态**（2026-10-10）：`200` ✓ 返回 3 条；`?unit=Unit 2` → 1 条（筛选生效）✓
+
+**`POST /api/words`** —— 新增一条词条 📝 待实现（Day 18）
+
+**用途**：往词表里插一条新词。本期**只做接口**，词汇页的「新增」入口未做。
+
+**请求体**（JSON 对象）
+
+| 字段 | 必填 | 对应数据库列 | 说明 |
+|---|---|---|---|
+| `id` | **是** | `id` | 词条 id，可读短名，如 `w-diligent`。**重复提交同一个 id 会被拒** |
+| `title` | **是** | `word` | 单词本身 |
+| `desc` | **是** | `meaning` | 中文释义 |
+| `tag` | 否 | `unit_tag` | 课程单元，如 `Unit 3`；不传 = 空 |
+
+> **为什么请求体沿用 `title` / `desc` / `tag`**：与 `GET` 响应**完全同形** —— 前端从列表里拿到一个对象，
+> 改几个值就能直接提交回去；也让 `list-page.js` 认的字段名在**读写两侧一致**。
+
+**响应 201**
+
+```json
+{
+  "ok": true,
+  "data": { "id": "w-diligent", "title": "diligent", "desc": "adj. 勤奋的", "tag": "Unit 3" }
+}
+```
+
+> **写接口成功为什么带 `ok`**：读接口的成功形状是"直接给业务对象"，因为返回的就是一组业务数据。
+> 写操作没有这种"业务对象"可给（返回的是"写成功"这个结果），而失败形状本来就带 `ok:false` ——
+> 写接口成功用 `{ok:true, data}` 与失败**对称**，前端靠一个 `ok` 字段就能判断成败，不必解析 HTTP 状态码。
+
+**错误**
+
+| 码 | error | message（中文，可直接显示到页面上） |
+|---|---|---|
+| `400` | `invalid_body` | 请求体必须是 JSON 对象 |
+| `400` | `missing_field` | 缺少必填字段：单词（title）（缺哪个就写哪个） |
+| `400` | `invalid_field` | 字段「单词（title）」必须是非空字符串 |
+| `409` | `duplicate_id` | 这个词条 id 已存在，请不要重复提交 |
+| `500` | `db_error` | 服务端写入出错，请稍后再试 |
+
+> **防重复怎么做**：不是「先查一次、没有就插」—— 那样两个请求同时查、同时插，照样重复（并发漏洞）。
+> 做法是**直接插，让数据库主键拦住**：PostgreSQL 抛唯一约束冲突（SQLSTATE `23505`），
+> 云函数把它翻成 `409 duplicate_id`。一次请求解决，天然没有竞态。
+
+**实测状态**：待 Day 18 部署后补。
 
 ---
 
@@ -508,3 +558,4 @@ GET /api/mastered-words?studentKey=<匿名标识>
 | v1.0 | 2026-10-09 | Day 15 | 首版落盘：通用约定 + **6 张表**（含 `boards`，同日拍板入表）+ 8 个待实现接口 + 1 个占位接口。今天**只登记、不实现**（已实现的仅 `GET /api/health`） |
 | v1.1 | 2026-10-10 | Day 16 | 建表与种子落盘（`db/schema.sql` / `db/seed.sql`，均可重复执行）；契约同步三处：`templates.desc` / `boards.desc` → **`description`**（DESC 是 PG 保留关键字）、`materials.level_code` 外键补 `ON DELETE RESTRICT`、`segments` 同名索引并入唯一约束。线上实测 6 张表建成，行数 3 / 5 / 16 / 3 / 0 / 3 |
 | v1.2 | 2026-10-10 | Day 17 | 前两个读接口落地上线：`GET /api/boards` 与 `GET /api/words`（含 `?unit=` 筛选）。⚠️ **实现方式与最初设想不同**：原计划用 `pg` 驱动「TCP 直连」数据库，实测本套餐（免费体验版 / 共享集群）既没有内网地址、公网直连又要求「独享集群」的安全组，且 `anon`/`authenticated`/`service_role` 三个角色全是 `NOLOGIN`、根本无法直接登录 —— 遂改为**调 CloudBase PG REST 网关**（`https://<envId>.api.tcloudbasegateway.com/v1/rdb/rest/<表>`，头带 `Authorization: Bearer <API Key>`，Key 由云函数环境变量 `CLOUDBASE_API_KEY` 注入，零依赖）。**代价**（如实记）：原方案设想的「SQL 参数化」在这条路上对应为「用户输入一律 `encodeURIComponent` 后作为查询参数」，防注入的目标不变、形式变了。线上实测：`GET /api/boards` → 200 + 3 条；`GET /api/words?unit=Unit 2` → 200 + 1 条；`POST /api/boards` → 405；未知路径 → 404 |
+| v1.3 | 2026-10-10 | Day 18 | 新增写接口 `POST /api/words`（登记，代码同日实现）：请求体 `id` / `title` / `desc` / `tag`，前三项必填；成功 `201 {ok:true,data}`（**拍板**：写接口成功一律带 `ok`，与失败形状对称）；重复 id → `409 duplicate_id`（**靠主键唯一约束，非「先查后插」**）；缺必填 → `400 missing_field`（中文写明缺哪一项）。1.3 状态码表补 `201` 与 `409`，并把 405 的过期例子（「用 POST 打只读接口」）改为 PUT |
