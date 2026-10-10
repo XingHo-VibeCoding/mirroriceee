@@ -88,6 +88,8 @@
 ## 二、数据模型（PostgreSQL）
 
 > 本节是 Day 16 建表的直接依据。表结构来自第 2 周的 5 份 mock JSON —— **不是凭空设计**，是把已有的数据文件「竖起来」。
+>
+> **Day 16 已落盘**：建表脚本 `db/schema.sql`、种子数据 `db/seed.sql`（都在仓库根的 `db/` 下，两份都可重复执行）。
 
 ### 2.1 表清单
 
@@ -115,7 +117,7 @@
 | 列 | 类型 | 约束 | 说明 |
 |---|---|---|---|
 | `id` | `TEXT` | **主键** | 如 `oh-im-really-sorry`（用可读的短名，不用数字自增） |
-| `level_code` | `TEXT` | 非空，**外键 → `levels.code`** | 这条素材属于哪一级 |
+| `level_code` | `TEXT` | 非空，**外键 → `levels.code`**（`ON DELETE RESTRICT`） | 这条素材属于哪一级 |
 | `title` | `TEXT` | 非空 | 如 `Oh, I'm really sorry` |
 | `audio_path` | `TEXT` | 非空 | 音频文件路径，如 `assets/audio/oh-im-really-sorry.mp3` |
 | `sort_order` | `INT` | 非空，默认 0 | 同级内的排序 |
@@ -131,7 +133,7 @@
 | `end_sec` | `NUMERIC(8,3)` | 非空 | 终点（秒） |
 | `text` | `TEXT` | 非空 | 这一句的原文 |
 | — | — | **唯一约束 `(material_id, idx)`** | 同一条素材里句号不许重复 |
-| — | — | 索引 `(material_id, idx)` | 按素材取全部句子是最常做的查询 |
+| — | — | 索引 `(material_id, idx)` **由上一行唯一约束自带，无需重复建** | 按素材取全部句子是最常做的查询 |
 
 **`words` —— 词表**
 
@@ -149,7 +151,7 @@
 |---|---|---|---|
 | `id` | `TEXT` | **主键** | 如 `t-argument-01` |
 | `title` | `TEXT` | 非空 | 模板名 |
-| `desc` | `TEXT` | 可空 | 列表里的一句话说明 |
+| `description` | `TEXT` | 可空 | 列表里的一句话说明（**原叫 `desc`**：DESC 是 PostgreSQL 保留关键字，当列名会语法报错） |
 | `body` | `TEXT` | 可空 | 正文全文（「单篇查看」用；该页面本期**未做**） |
 | `unit_tag` | `TEXT` | 可空 | 课程单元 |
 | `sort_order` | `INT` | 非空，默认 0 | 排序 |
@@ -160,7 +162,7 @@
 |---|---|---|---|
 | `id` | `TEXT` | **主键** | `reader` / `vocab` / `writing` |
 | `title` | `TEXT` | 非空 | 卡片标题 |
-| `desc` | `TEXT` | 可空 | 卡片说明 |
+| `description` | `TEXT` | 可空 | 卡片说明（**原叫 `desc`**，同上） |
 | `status` | `TEXT` | 非空 | `available`（可用）/ `wip`（开发中） |
 | `href` | `TEXT` | 可空 | 点击跳转的页面 |
 | `sort_order` | `INT` | 非空，默认 0 | 卡片顺序 |
@@ -499,3 +501,4 @@ GET /api/mastered-words?studentKey=<匿名标识>
 | 版本 | 日期 | 阶段 | 改了什么 |
 |---|---|---|---|
 | v1.0 | 2026-10-09 | Day 15 | 首版落盘：通用约定 + **6 张表**（含 `boards`，同日拍板入表）+ 8 个待实现接口 + 1 个占位接口。今天**只登记、不实现**（已实现的仅 `GET /api/health`） |
+| v1.1 | 2026-10-10 | Day 16 | 建表与种子落盘（`db/schema.sql` / `db/seed.sql`，均可重复执行）；契约同步三处：`templates.desc` / `boards.desc` → **`description`**（DESC 是 PG 保留关键字）、`materials.level_code` 外键补 `ON DELETE RESTRICT`、`segments` 同名索引并入唯一约束。线上实测 6 张表建成，行数 3 / 5 / 16 / 3 / 0 / 3 |
