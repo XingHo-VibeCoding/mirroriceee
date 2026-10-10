@@ -251,7 +251,10 @@ words / templates / boards   —— 各自独立，不与其他表关联
 **错误**：无特殊错误（读一张固定表）。
 
 > **形状说明**：与 `data/boards.json` **完全一致**，前端 `home.js` 只需把 `BOARDS_URL` 从
-> `data/boards.json` 换成 `/api/boards`，渲染逻辑一行不改。
+> `data/boards.json` 换成**接口完整地址**（`https://<云函数域名>/api/boards`：页面与接口不在同一
+> 域名，写相对路径必 404），渲染逻辑一行不改。
+
+**实测状态**（2026-10-10）：`200` ✓ 返回 3 条，字段为 `desc`（映射生效）✓
 
 ---
 
@@ -373,6 +376,8 @@ words / templates / boards   —— 各自独立，不与其他表关联
 > 为什么故意不一致 —— 因为 `list-page.js` 渲染列表时读的就是 `title` / `desc` / `tag`
 > （它被词汇页和模板页共用，认的是通用字段名）。
 > **转换在接口层做**，前端一行不改。要是这里「按数据库的叫法」返回，前端所有列表页当场全空。
+
+**实测状态**（2026-10-10）：`200` ✓ 返回 3 条；`?unit=Unit 2` → 1 条（筛选生效）✓
 
 ---
 
@@ -502,4 +507,4 @@ GET /api/mastered-words?studentKey=<匿名标识>
 |---|---|---|---|
 | v1.0 | 2026-10-09 | Day 15 | 首版落盘：通用约定 + **6 张表**（含 `boards`，同日拍板入表）+ 8 个待实现接口 + 1 个占位接口。今天**只登记、不实现**（已实现的仅 `GET /api/health`） |
 | v1.1 | 2026-10-10 | Day 16 | 建表与种子落盘（`db/schema.sql` / `db/seed.sql`，均可重复执行）；契约同步三处：`templates.desc` / `boards.desc` → **`description`**（DESC 是 PG 保留关键字）、`materials.level_code` 外键补 `ON DELETE RESTRICT`、`segments` 同名索引并入唯一约束。线上实测 6 张表建成，行数 3 / 5 / 16 / 3 / 0 / 3 |
-| v1.2 | 2026-10-10 | Day 17 | 前两个读接口落地上线：`GET /api/boards` 与 `GET /api/words`（含 `?unit=` 筛选）。⚠️ **实现方式与最初设想不同**：原计划用 `pg` 驱动「TCP 直连」数据库，实测本套餐（免费体验版 / 共享集群）既没有内网地址、公网直连又要求「独享集群」的安全组，且 `anon`/`authenticated`/`service_role` 三个角色全是 `NOLOGIN`、根本无法直接登录 —— 遂改为**调 CloudBase PG REST 网关**（`https://<envId>.api.tcloudbasegateway.com/v1/rdb/rest/<表>`，头带 `Authorization: Bearer <API Key>`，Key 由云函数环境变量 `CLOUDBASE_API_KEY` 注入，零依赖）。**代价**（如实记）：1.4 节说的「SQL 参数化」在这条路上对应为「用户输入一律 `encodeURIComponent` 后作为查询参数」，防注入的目标不变、形式变了。线上实测：`GET /api/boards` → 200 + 3 条；`GET /api/words?unit=Unit 2` → 200 + 1 条；`POST /api/boards` → 405；未知路径 → 404 |
+| v1.2 | 2026-10-10 | Day 17 | 前两个读接口落地上线：`GET /api/boards` 与 `GET /api/words`（含 `?unit=` 筛选）。⚠️ **实现方式与最初设想不同**：原计划用 `pg` 驱动「TCP 直连」数据库，实测本套餐（免费体验版 / 共享集群）既没有内网地址、公网直连又要求「独享集群」的安全组，且 `anon`/`authenticated`/`service_role` 三个角色全是 `NOLOGIN`、根本无法直接登录 —— 遂改为**调 CloudBase PG REST 网关**（`https://<envId>.api.tcloudbasegateway.com/v1/rdb/rest/<表>`，头带 `Authorization: Bearer <API Key>`，Key 由云函数环境变量 `CLOUDBASE_API_KEY` 注入，零依赖）。**代价**（如实记）：原方案设想的「SQL 参数化」在这条路上对应为「用户输入一律 `encodeURIComponent` 后作为查询参数」，防注入的目标不变、形式变了。线上实测：`GET /api/boards` → 200 + 3 条；`GET /api/words?unit=Unit 2` → 200 + 1 条；`POST /api/boards` → 405；未知路径 → 404 |
