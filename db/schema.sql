@@ -155,7 +155,70 @@ CREATE TABLE boards (
 
 
 /* ---------------------------------------------------------------------------
-   7. 自查（可选）
+   7. 字段注释（Day 16 余力加练）
+      干什么：把「这一列是干嘛的」写进**数据库自己**，而不是只写在脚本的 -- 注释里。
+
+      为什么不直接用 -- 注释 —— 两者不是一回事：
+        · `--` 注释只活在这个 .sql 文件里。谁拿着库、没拿这个文件，就看不到。
+        · `COMMENT ON` 是**数据库里的元数据**：控制台「数据表 → 字段」能看到，
+          也能用 `SELECT ... FROM information_schema.columns` 查出来。
+          Day 17 写接口时不用来回翻脚本猜字段含义。
+
+      可重复执行：COMMENT ON 是「覆盖写」，反复跑不报错。
+   --------------------------------------------------------------------------- */
+
+-- levels（等级目录）
+COMMENT ON TABLE  levels            IS '等级目录（L1 / L2 / L3）；来源 data/materials.json 的 levels 数组';
+COMMENT ON COLUMN levels.code       IS '等级代码，主键；取值 L1 / L2 / L3';
+COMMENT ON COLUMN levels.title      IS '展示名（当前没有，留位置）';
+COMMENT ON COLUMN levels.sort_order IS '目录顺序；数字小的排前面';
+
+-- materials（素材清单）
+COMMENT ON TABLE  materials             IS '素材（课文）清单；来源 data/materials.json 的 materials 数组';
+COMMENT ON COLUMN materials.id          IS '素材 id，主键；可读短名（如 oh-im-really-sorry），会出现在接口地址里';
+COMMENT ON COLUMN materials.level_code  IS '所属等级；外键 → levels.code';
+COMMENT ON COLUMN materials.title       IS '课文标题';
+COMMENT ON COLUMN materials.audio_path  IS '音频文件相对路径（如 assets/audio/xxx.mp3），相对站点根目录';
+COMMENT ON COLUMN materials.sort_order  IS '同级内的排序';
+
+-- segments（句子 ↔ 音频时间戳）
+COMMENT ON TABLE  segments             IS '句子与音频时间戳；跟读「点哪句播哪句」的核心数据；来源 data/segments.json';
+COMMENT ON COLUMN segments.id          IS '自增主键（BIGSERIAL，由数据库发号）';
+COMMENT ON COLUMN segments.material_id IS '所属素材；外键 → materials.id，素材删除时级联删除';
+COMMENT ON COLUMN segments.idx         IS '第几句，从 0 起（与 data/segments.json 的 idx 一致）';
+COMMENT ON COLUMN segments.start_sec   IS '这一句的起点，单位秒，精确到 0.001 秒';
+COMMENT ON COLUMN segments.end_sec     IS '这一句的终点，单位秒';
+COMMENT ON COLUMN segments.text        IS '这一句的原文';
+
+-- words（词表）
+COMMENT ON TABLE  words            IS '词表；来源 data/words.json';
+COMMENT ON COLUMN words.id         IS '词条 id，主键（如 w-abandon）';
+COMMENT ON COLUMN words.word       IS '单词本身';
+COMMENT ON COLUMN words.meaning    IS '中文释义';
+COMMENT ON COLUMN words.unit_tag   IS '课程单元（如 Unit 1），用于筛选；可空';
+COMMENT ON COLUMN words.sort_order IS '排序';
+
+-- templates（作文模板）
+COMMENT ON TABLE  templates             IS '作文模板；来源 data/templates.json（本期为空清单）';
+COMMENT ON COLUMN templates.id          IS '模板 id，主键（如 t-argument-01）';
+COMMENT ON COLUMN templates.title       IS '模板名';
+COMMENT ON COLUMN templates.description IS '列表里的一句话说明（原契约叫 desc；DESC 是 PG 保留字，故改名）';
+COMMENT ON COLUMN templates.body        IS '正文全文；「单篇查看」页用（该页面本期未做）';
+COMMENT ON COLUMN templates.unit_tag    IS '课程单元；可空';
+COMMENT ON COLUMN templates.sort_order  IS '排序';
+
+-- boards（首页板块入口）
+COMMENT ON TABLE  boards             IS '首页板块入口；来源 data/boards.json（固定 3 条）';
+COMMENT ON COLUMN boards.id          IS '板块 id：reader / vocab / writing';
+COMMENT ON COLUMN boards.title       IS '卡片标题';
+COMMENT ON COLUMN boards.description IS '卡片说明（原契约叫 desc，同上）';
+COMMENT ON COLUMN boards.status      IS '状态：available（可用）/ wip（开发中）；受 CHECK 约束限制';
+COMMENT ON COLUMN boards.href        IS '点击跳转的页面（如 reader.html）';
+COMMENT ON COLUMN boards.sort_order  IS '卡片顺序';
+
+
+/* ---------------------------------------------------------------------------
+   8. 自查（可选）
       想当场确认 6 张表都建出来了，就把下面两行前面的 -- 去掉再执行一遍。
       期望：返回 6 行表名。
    --------------------------------------------------------------------------- */
