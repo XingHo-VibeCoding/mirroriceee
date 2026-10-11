@@ -52,24 +52,72 @@ function escapeHTML(str) {
     .replace(/>/g, '&gt;');
 }
 
-/* 把失败翻译成人话 —— 绝不能让用户看到 "Failed to fetch" 这种英文报错。
-     what   这次没取到的是什么（「词表」「作文模板」…）：写进句子里，用户才知道卡在哪一步
+/* ============================================
+   把失败翻译成人话 —— 全站【唯一】一份（Day 23 统一）
+
+   Day 23 之前，home.js / app.js 各带一份「复制版」，改一处另两处不生效。
+   今天收编到这里：那两个页面改为直接引用本文件，各自的副本删掉。
+   ⇒ 从此「错误提示长什么样」只有这一个源头，改文案不会漏。
+
+   ⚠️ 硬规矩：绝不让用户看到 "Failed to fetch" / "HTTP 500" 这种英文或机器话。
+
+   ---- 三类错误，三种说法（这就是今天要掌握的分类）----
+     ① 用户输入错（invalid / missing）—— 告诉他【改什么】，别只说"错了"
+     ② 网络 / 接口错（network / http）—— 提示【稍后再试】，带重试入口
+     ③ 服务端错（server / parse）    —— 【记日志 + 通用提示】，不透内部细节
+   为什么必须分：三类里只有 ② 是用户能自救的（重试）；① 要他改输入；
+                 ③ 他做什么都没用，只能说"稍后再试"，真相留在控制台。
+   ============================================ */
+
+/* 三个「类别」→ 一句给人看的中文。集中在这里，方便一眼看清全站口径。
+   ⚠️ 文案里【不带】err.message 这种技术原文 —— 那可能含主机名、状态码、内部细节。 */
+var FAIL_TEXT = {
+  /* ① 用户输入错：指出改什么 */
+  invalid:  '填写的内容不符合要求，请检查后重试。',
+  /* ② 网络 / 接口错：用户能自救 —— 检查网络、稍后重试 */
+  network:  '网络连不上，请检查网络后点下面的「重试」。',
+  http:     '服务暂时没能响应，请稍后点下面的「重试」。',
+  /* ③ 服务端错：用户做啥都没用，说清"不是你的问题"，真相留在日志 */
+  server:   '服务端出错了，请稍后再试。',
+  parse:    '数据读不出来，这是服务端的问题，请稍后再试或联系维护者。'
+};
+
+/* 把「错误对象的 kind」归到上面三类之一。
+   ⚠️ 为什么要有这一层映射：kind 是技术分类（network/http/parse），
+      而"给用户看哪一句"是产品分类（能自救 / 要改输入 / 只能等）——
+      两者不是一一对应，中间必须有个翻译。 */
+function failClassOf(kind) {
+  if (kind === 'network' || kind === 'http') return kind;      /* ② 网络/接口 */
+  if (kind === 'parse') return 'parse';                        /* ③ 服务端 */
+  if (kind === 'invalid') return 'invalid';                    /* ① 用户输入 */
+  return 'server';                                             /* 兜底 = ③ 服务端 */
+}
+
+/* 统一的人话入口。
+     err    带 kind 标签的错误（loadJSON 抛的那些）或 {kind:'server'} 兜底
+     what   这次没取到的是什么（「词表」「作文模板」…）：写进句子，用户才知道卡在哪
      action 重试按钮的 data-action 值：各页面认自己的那一个，互不干扰
-   返回值直接是 HTML：一句人话 ＋ 一个重试入口（PRD R6 要求失败必须能重试，不能只有一句话） */
+   返回值直接是 HTML：一句人话 ＋ 一个重试入口（PRD R6：失败必须能重试）。 */
 function failureHTML(err, what, action) {
   var label = escapeHTML(what || '内容');
-  var text;
+  var cls = failClassOf(err && err.kind);
+  var text = FAIL_TEXT[cls] || FAIL_TEXT.server;
 
-  if (err.kind === 'network') {
+  /* 把「哪块内容」和「该怎么自救」缝进句子；句子本身不带 err.message 原文。 */
+  if (cls === 'network') {
     text = '网络连不上，加载不了' + label + '。请检查网络后点下面的「重试」。';
-  } else if (err.kind === 'http') {
-    text = '服务器没能提供' + label + '（' + err.message + '）。请稍后点「重试」。';
-  } else if (err.kind === 'parse') {
-    text = label + '读不出来（' + err.message + '）。这是数据文件本身的问题，请联系维护者。';
+  } else if (cls === 'http') {
+    text = '服务器没能提供' + label + '，请稍后点下面的「重试」。';
+  } else if (cls === 'parse') {
+    text = label + '读不出来，这是数据本身的问题，请联系维护者。';
+  } else if (cls === 'invalid') {
+    text = label + '填写的内容不符合要求，请检查后重试。';
   } else {
-    text = label + '加载失败：' + err.message;
+    /* ③ 兜底：不管底层抛的是什么（含 err.message），对外只说这一句 ——
+       详细原因由各页面 console.error 记进控制台日志，不给用户看。 */
+    text = label + '加载失败，请稍后再试。';
   }
 
   return '<p class="empty">' + escapeHTML(text) + '</p>' +
-         '<button type="button" class="btn item" data-action="' + escapeHTML(action) + '">重试</button>';
+         '<button type="button" class="btn item" data-action="' + escapeHTML(action || 'retry') + '">重试</button>';
 }

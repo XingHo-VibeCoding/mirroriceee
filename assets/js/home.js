@@ -36,63 +36,14 @@ var STATUS_STYLE = {
   wip:       { label: '开发中', badge: 'badge-todo', hint: '开发中 · 暂不可进入' }
 };
 
-/* ⚠️ 下面 loadJSON / failureHTML / escapeHTML 三段，与 assets/js/app.js 里是同一套逻辑，
-   这里是【有意复制】的，不是漏了抽取：
-   TECH_DESIGN.md §2.1 已经认下这笔账 —— 本项目不引框架、不引构建工具，
-   两个页面各带一份小工具函数，代价远小于引入一整套工具链。
-   等页面多到第三、第四页，再抽成共用文件不迟。 */
+/* ⚠️ 下面 loadJSON / failureHTML / escapeHTML 三段，Day 23 之前是【有意复制】的
+   （当时只有两个页面，TECH_DESIGN.md §2.1 认下这笔账）。
+   Day 23 结账：它们已收编进 assets/js/common.js，本文件改为直接引用那一份，
+   不再自带副本 —— 全站错误提示从此只有一个源头。
 
-/* 取一个 JSON 文件；读不到就抛错，交给 render 的 catch 统一处理。
-   失败原因分三类打标签（kind），因为给用户看的话不一样：
-     network —— 断网 / DNS 挂了 / 被拦了
-     http    —— 服务器答了，但不是 200（比如 404 文件不在、500 服务器炸了）
-     parse   —— 文件拿到了，但里面不是合法 JSON（手写 JSON 少个逗号就会这样） */
-function loadJSON(url) {
-  return fetch(url).then(function (res) {
-    if (!res.ok) {
-      var e = new Error('HTTP ' + res.status);
-      e.kind = 'http';
-      e.url = url;
-      throw e;
-    }
-    return res.json().catch(function () {
-      var e2 = new Error('内容不是合法 JSON');
-      e2.kind = 'parse';
-      e2.url = url;
-      throw e2;
-    });
-  }, function () {
-    /* fetch 自己 reject 了：根本没连上服务器 */
-    var e3 = new Error('网络连不上');
-    e3.kind = 'network';
-    e3.url = url;
-    throw e3;
-  });
-}
-
-/* 把失败翻译成人话 —— 绝不能让用户看到 "Failed to fetch" 这种英文报错 */
-function failureHTML(err) {
-  var text;
-  if (err.kind === 'network') {
-    text = '网络连不上，加载不了板块列表。请检查网络后点下面的「重试」。';
-  } else if (err.kind === 'http') {
-    text = '服务器没能提供板块列表（' + err.message + '）。请稍后点「重试」。';
-  } else if (err.kind === 'parse') {
-    text = '板块列表读不出来（' + err.message + '）。这是数据文件本身的问题，请联系维护者。';
-  } else {
-    text = '板块列表加载失败：' + err.message;
-  }
-  return '<p class="empty">' + escapeHTML(text) + '</p>' +
-         '<button type="button" class="btn item" data-action="retry-boards">重试</button>';
-}
-
-/* 文本里的 & < > 要转义，否则数据文件里一个尖括号就能把页面结构冲乱 */
-function escapeHTML(str) {
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
-}
+   为什么必须由 common.js 提供（而不是各页各写一份）：
+     错误提示的风格要"统一"，靠三份复制品是统一不了的 —— 改一处，另两处不同步。
+   ⇒ index.html 的 <script> 里，common.js 必须排在 home.js 之前。 */
 
 /* 把一条板块数据拼成一张卡。三条规矩：
      ① 只有 status 是 available 【且】给了 href 的才做成链接 ——
@@ -149,8 +100,10 @@ function render() {
     list.innerHTML = boards.map(buildBoardHTML).join('');
     wireCards();                          /* Day 11：卡片刚铺好，立刻接上浮圆与扩散 */
   }).catch(function (err) {
-    /* 读不到数据也要给人话 ＋ 重试入口，不能白屏 */
-    setStatus(status, failureHTML(err));
+    /* 读不到数据也要给人话 ＋ 重试入口，不能白屏。
+       Day 23：改调 common.js 的统一版 —— 必须传 what / action，
+       否则按钮 data-action 会退成默认值、点重试找不到这个页面的处理函数。 */
+    setStatus(status, failureHTML(err, '板块列表', 'retry-boards'));
     console.error(err);
   });
 }

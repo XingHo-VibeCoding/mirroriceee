@@ -211,9 +211,11 @@ function submitWrite(event) {
        ① 网络断了 —— 根本没连上
        ② 跨域被拦 —— 浏览器先发预检 OPTIONS，服务器没放行，fetch 直接 reject
        （curl 不触发跨域，所以【只有真浏览器才看得见这一条】；
-         要确认到底是哪种，用 curl 带 Origin 头去看有没有 Access-Control-Allow-Origin） */
+         要确认到底是哪种，用 curl 带 Origin 头去看有没有 Access-Control-Allow-Origin）
+       Day 23：话术统一走 common.js 的 network 类口径 ——
+       两处（网络/跨域）合成一句"连不上＋稍后重试"，自查命令另起一行。 */
     setHTML('write-result',
-      '<span class="check-fail">请求没发出去：网络不通，或跨域被浏览器拦了。</span>' +
+      failureHTML({ kind: 'network' }, '写入接口', 'refresh-all') +
       '<span class="empty"> 自查：curl -D - -o /dev/null -H "Origin: ' +
       escapeHTML(location.origin) + '" ' + escapeHTML(HEALTH_URL) +
       ' | grep -i access-control</span>');
@@ -314,8 +316,8 @@ function submitPatch(event) {
     setHTML('patch-result',
       '<span class="check-fail">修改未生效（' + r.status + '）：' + escapeHTML(String(msg)) + '</span>');
   }).catch(function () {
-    setHTML('patch-result',
-      '<span class="check-fail">请求没发出去：网络不通，或跨域被浏览器拦了。</span>');
+    /* Day 23：统一走 common.js 的 network 类口径（原来是一句自己写的"网络不通或跨域被拦"）。 */
+    setHTML('patch-result', failureHTML({ kind: 'network' }, '修改接口', 'refresh-all'));
   });
 }
 
@@ -368,8 +370,8 @@ function submitDelete(event) {
     setHTML('delete-result',
       '<span class="check-fail">删除未执行（' + r.status + '）：' + escapeHTML(String(msg)) + '</span>');
   }).catch(function () {
-    setHTML('delete-result',
-      '<span class="check-fail">请求没发出去：网络不通，或跨域被浏览器拦了。</span>');
+    /* Day 23：统一走 common.js 的 network 类口径。 */
+    setHTML('delete-result', failureHTML({ kind: 'network' }, '删除接口', 'refresh-all'));
   });
 }
 

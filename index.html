@@ -49,6 +49,9 @@
     <ul class="boards" id="boards"></ul>
   </main>
 
+  <!-- Day 23：先引 common.js（提供 loadJSON / failureHTML / escapeHTML），
+       再引 home.js —— home.js 已改为引用共用版，顺序反了会报未定义。 -->
+  <script src="assets/js/common.js"></script>
   <script src="assets/js/home.js"></script>
 </body>
 </html>

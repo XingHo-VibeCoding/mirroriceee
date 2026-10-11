@@ -63,6 +63,9 @@ Thumbs.db
 npm-debug.log*
 yarn-error.log*
 
+# --- Day 23：git 历史检查的快照（本地生成物，随时可由 git log 重跑）---
+.git-history-snapshot.txt
+
 # --- 构建产物与缓存 ---
 dist/
 build/

@@ -41,6 +41,9 @@
     </div>
   </main>
 
+  <!-- Day 23：common.js 先引（提供 loadJSON / failureHTML / escapeHTML），
+       app.js 已改为引用共用版 —— 顺序反了会报未定义。 -->
+  <script src="assets/js/common.js"></script>
   <script src="assets/js/app.js"></script>
   <script src="assets/js/player.js"></script>
 </body>

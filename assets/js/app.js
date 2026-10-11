@@ -33,58 +33,10 @@ function formatClock(seconds) {
   return (m < 10 ? '0' + m : m) + ':' + (s < 10 ? '0' + s : s);
 }
 
-/* 取一个 JSON 文件；读不到就抛错，交给 render 的 catch 统一处理。
-   失败原因分三类打标签（kind），因为给用户看的话不一样：
-     network —— 断网 / DNS 挂了 / 被拦了（B1 断网就落这里）
-     http    —— 服务器答了，但不是 200（比如 404 文件不在、500 服务器炸了）
-     parse   —— 文件拿到了，但里面不是合法 JSON（手写 JSON 少个逗号就会这样） */
-function loadJSON(url) {
-  return fetch(url).then(function (res) {
-    if (!res.ok) {
-      var e = new Error('HTTP ' + res.status);
-      e.kind = 'http';
-      e.url = url;
-      throw e;
-    }
-    return res.json().catch(function () {
-      var e2 = new Error('内容不是合法 JSON');
-      e2.kind = 'parse';
-      e2.url = url;
-      throw e2;
-    });
-  }, function () {
-    /* fetch 自己 reject 了：根本没连上服务器 */
-    var e3 = new Error('网络连不上');
-    e3.kind = 'network';
-    e3.url = url;
-    throw e3;
-  });
-}
-
-/* 把失败翻译成人话 —— 绝不能让用户看到 "Failed to fetch" 这种英文报错（B1 / R6） */
-function failureHTML(err) {
-  var text;
-  if (err.kind === 'network') {
-    text = '网络连不上，加载不了素材。请检查网络后点下面的「重试」。';
-  } else if (err.kind === 'http') {
-    text = '服务器没能提供素材（' + err.message + '）。请稍后点「重试」。';
-  } else if (err.kind === 'parse') {
-    text = '素材文件读不出来（' + err.message + '）。这是数据文件本身的问题，请联系维护者。';
-  } else {
-    text = '素材加载失败：' + err.message;
-  }
-  return '<p class="empty">' + escapeHTML(text) + '</p>' +
-         /* R6 明确要求：加载失败要给「重试入口」，不能只有一句话 */
-         '<button type="button" class="btn item" data-action="retry-load">重试</button>';
-}
-
-/* 文本里的 & < > 要转义，否则会把页面结构冲乱 */
-function escapeHTML(str) {
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
-}
+/* ⚠️ 下面 loadJSON / failureHTML / escapeHTML 三段，Day 23 之前是本文件自带的【复制品】。
+   Day 23 收编：改由 assets/js/common.js 提供，本文件直接引用那一份。
+   ⇒ 全站「失败提示」从此只有一个源头（home.js 同一天做了同样的收编）。
+   ⚠️ reader.html 的 <script> 里，common.js 必须排在 app.js 之前。 */
 
 /* ---- 两条取数捷径：筛选逻辑只写一处，免得以后改了这处漏了那处 ---- */
 
@@ -247,10 +199,11 @@ function render() {
       renderMaterialView();
     })
     .catch(function (err) {
-      /* 坏路径：读不到数据也要给人话 ＋ 重试入口，不能白屏（B1 / R6） */
+      /* 坏路径：读不到数据也要给人话 ＋ 重试入口，不能白屏（B1 / R6）。
+         Day 23：改调 common.js 的统一版，参数（what / action）必须给全。 */
       setLevelsHTML('');
       setFilesHTML('');
-      box.innerHTML = failureHTML(err);
+      box.innerHTML = failureHTML(err, '素材', 'retry-load');
       console.error(err);
     });
 }

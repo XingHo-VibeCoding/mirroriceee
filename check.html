@@ -101,10 +101,10 @@
       <!-- hidden 属性：没输对口令前，这一整块是收着的 -->
       <div id="write-body" hidden>
         <form class="check-form" id="write-form">
-          <label>词条 id<input id="w-id" name="id" type="text" required placeholder="w-check-test"></label>
-          <label>单词<input id="w-title" name="title" type="text" required placeholder="check"></label>
-          <label>释义<input id="w-desc" name="desc" type="text" required placeholder="检查台测试词"></label>
-          <label>单元（可空）<input id="w-tag" name="tag" type="text" placeholder="Unit 9"></label>
+          <label>词条 id<input id="w-id" name="id" type="text" required maxlength="64" placeholder="w-check-test"></label>
+          <label>单词<input id="w-title" name="title" type="text" required maxlength="64" placeholder="check"></label>
+          <label>释义<input id="w-desc" name="desc" type="text" required maxlength="500" placeholder="检查台测试词"></label>
+          <label>单元（可空）<input id="w-tag" name="tag" type="text" maxlength="32" placeholder="Unit 9"></label>
           <button type="submit" class="btn item">写入测试</button>
         </form>
         <p class="empty" id="write-result" role="status"></p>
@@ -132,17 +132,17 @@
 
       <!-- 4-A 修改：填 id + 要改的字段（留空 = 不改这个字段） -->
       <form class="check-form" id="patch-form">
-        <label>要改的 id<input id="p-id" name="id" type="text" required placeholder="w-check-test"></label>
-        <label>新单词（可空）<input id="p-title" name="title" type="text" placeholder="留空=不改"></label>
-        <label>新释义（可空）<input id="p-desc" name="desc" type="text" placeholder="留空=不改"></label>
-        <label>新单元（可空）<input id="p-tag" name="tag" type="text" placeholder="留空=不改"></label>
+        <label>要改的 id<input id="p-id" name="id" type="text" required maxlength="64" placeholder="w-check-test"></label>
+        <label>新单词（可空）<input id="p-title" name="title" type="text" maxlength="64" placeholder="留空=不改"></label>
+        <label>新释义（可空）<input id="p-desc" name="desc" type="text" maxlength="500" placeholder="留空=不改"></label>
+        <label>新单元（可空）<input id="p-tag" name="tag" type="text" maxlength="32" placeholder="留空=不改"></label>
         <button type="submit" class="btn item">修改（PATCH）</button>
       </form>
       <p class="empty" id="patch-result" role="status"></p>
 
       <!-- 4-B 删除：填 id → 点按钮 → 先弹确认框，确认后才真删 -->
       <form class="check-form" id="delete-form" style="margin-top: 12px;">
-        <label>要删的 id<input id="d-id" name="id" type="text" required placeholder="w-check-test"></label>
+        <label>要删的 id<input id="d-id" name="id" type="text" required maxlength="64" placeholder="w-check-test"></label>
         <button type="submit" class="btn item">删除（DELETE）</button>
       </form>
       <p class="empty" id="delete-result" role="status"></p>

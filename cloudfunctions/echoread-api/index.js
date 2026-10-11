@@ -85,8 +85,31 @@ function fail(statusCode, error, message) {
 
 /* ---- rdbSelect / rdbInsert（以及它们要的环境配置）—— Day 19 起住在 lib/rdb.js ---- */
 
-/* ---------------------------------------------------------------------------
-   解析 POST 请求体 → 普通对象
+/* ---- 字段长度上限（Day 23 安全审计补的）----
+   ⚠️ 为什么需要它：在这之前，接口只校验「必填 / 是字符串」，
+      没人拦「长度」—— 一个 10MB 的字符串照样会被收下、发给数据库。
+      轻则撑大存储、重则拖慢查询。这是安全审计里明确的「超长输入」风险。
+
+   取值依据（不是拍脑袋）：都对着【数据库列的真实用途】留足余量 ——
+     id    64  —— 形如 w-abandon，正常十几字符，64 绰绰有余
+     title 64  —— 一个单词 / 短语，最长不会过几十字符
+     desc 500  —— 一句释义，留够写长解释的空间
+     tag   32  —— 单元标签，形如 Unit 1
+   超了怎么办：不当场拒绝，而是收集齐一起报 400（同「挤牙膏」原则），
+   告诉用户【哪个字段、超了多少】，而不是一句干巴巴的"参数错误"。 */
+var MAX_LEN = { id: 64, title: 64, desc: 500, tag: 32 };
+
+/* 校验单个字符串字段的长度。返回 null（没问题）或一句人话（超长）。
+   为什么单独抽出来：POST 和 PATCH 都要用，写两遍早晚不一致。 */
+function checkLen(label, value, max) {
+  if (typeof value !== 'string') return null;   /* 类型不对由别处管，这里只查长度 */
+  if (value.length > max) {
+    return label + '太长（最多 ' + max + ' 个字符，当前 ' + value.length + ' 个）';
+  }
+  return null;
+}
+
+/* 解析 POST 请求体 → 普通对象
 
    ⚠️ CloudBase 集成响应里 event.body 有两种可能，两种都要能吃：
       · 普通字符串（Content-Type: application/json 时）
@@ -208,12 +231,13 @@ async function postWords(query, event) {
      ⚠️ 一次把缺的/错的**收集齐再报**，不做「报一个、你改一个、再报下一个」的挤牙膏 ——
         前端一次就能把话说明白。 */
   var REQUIRED = [
-    { key: 'id',    label: '词条 id（id）' },
-    { key: 'title', label: '单词（title）' },
-    { key: 'desc',  label: '释义（desc）' }
+    { key: 'id',    label: '词条 id（id）',      max: MAX_LEN.id },
+    { key: 'title', label: '单词（title）',      max: MAX_LEN.title },
+    { key: 'desc',  label: '释义（desc）',       max: MAX_LEN.desc }
   ];
   var missing = [];
   var badType = [];
+  var tooLong = [];
 
   REQUIRED.forEach(function (f) {
     var v = body[f.key];
@@ -223,6 +247,10 @@ async function postWords(query, event) {
       /* 数字、布尔、对象……都不收：库里这三列是 TEXT，硬塞进去只会变成
          "[object Object]" 这样的脏数据，不如当场拒掉。 */
       badType.push(f.label);
+    } else {
+      /* Day 23：类型对了再查长度（超长也是「用户输入错」，要走 400 说清改什么）。 */
+      var over = checkLen(f.label, v, f.max);
+      if (over) tooLong.push(over);
     }
   });
 
@@ -232,8 +260,17 @@ async function postWords(query, event) {
   if (badType.length > 0) {
     return fail(400, 'invalid_field', '字段「' + badType.join('、') + '」必须是非空字符串');
   }
+  /* ⚠️ 超长单独回一类 message —— 用户需要的是「哪个字段、超了多少」，好去改。 */
+  if (tooLong.length > 0) {
+    return fail(400, 'invalid_field', '字段过长：' + tooLong.join('；'));
+  }
 
-  /* tag 是可选字段：没给 / 给了空白 → 存 NULL（不是空字符串 —— 两者在库里含义不同）。 */
+  /* tag 是可选字段：没给 / 给了空白 → 存 NULL（不是空字符串 —— 两者在库里含义不同）。
+     Day 23：tag 也查长度（可选的字段同样可能被塞超长值）。 */
+  if (body.tag !== undefined && body.tag !== null && String(body.tag).trim() !== '') {
+    var tagOver = checkLen('单元（tag）', String(body.tag), MAX_LEN.tag);
+    if (tagOver) return fail(400, 'invalid_field', '字段过长：' + tagOver);
+  }
   var tag = (body.tag === undefined || body.tag === null || String(body.tag).trim() === '')
     ? null
     : String(body.tag).trim();
@@ -362,6 +399,7 @@ async function patchWords(query, event) {
 
   var fields = {};      /* 库列名 → 新值（翻译后的） */
   var badType = [];
+  var tooLong = [];
   var provided = 0;
 
   EDITABLE.forEach(function (f) {
@@ -372,8 +410,11 @@ async function patchWords(query, event) {
     provided += 1;
 
     /* tag 允许「显式清空」：传空字符串 = 把单元置空（存 NULL）。
-       title / desc 是必填性质的列，传空串是坏值，拒掉。 */
+       title / desc 是必填性质的列，传空串是坏值，拒掉。
+       Day 23：三个可改字段都补上长度校验。 */
     if (f.key === 'tag') {
+      var tagOver = checkLen('单元（tag）', String(v), MAX_LEN.tag);
+      if (tagOver) { tooLong.push(tagOver); return; }
       fields.unit_tag = (String(v).trim() === '') ? null : String(v).trim();
       return;
     }
@@ -382,11 +423,17 @@ async function patchWords(query, event) {
       badType.push(f.label);
       return;
     }
+    var over = checkLen(f.label, v, f.key === 'title' ? MAX_LEN.title : MAX_LEN.desc);
+    if (over) { tooLong.push(over); return; }
     fields[f.key === 'title' ? 'word' : 'meaning'] = v.trim();
   });
 
   if (badType.length > 0) {
     return fail(400, 'invalid_field', '字段「' + badType.join('、') + '」必须是非空字符串');
+  }
+  /* Day 23：超长单独说 —— 告诉用户哪个字段、超了多少。 */
+  if (tooLong.length > 0) {
+    return fail(400, 'invalid_field', '字段过长：' + tooLong.join('；'));
   }
 
   if (provided === 0) {
