@@ -32,8 +32,18 @@
 
     <!-- 列表由 assets/js/list-page.js 按下面三个 data-* 渲染。
          以后再添一个列表页，照抄这一个 <ul>、改三个属性即可 -->
+
+    <!-- ⚠️ Day 20：data-list-url 从仓库里的 data/words.json 换成【后端接口的完整地址】。
+         为什么写完整地址、不写 /api/words 这种相对路径：
+           页面挂在静态托管域名（…tcloudbaseapp.com）上，接口在云函数域名
+           （…ap-shanghai.app.tcloudbase.com）上 —— 两个域名不一样，
+           写相对路径浏览器会去静态站找 /api/words，那边根本没这个路径，必 404。
+         为什么只改这一行就够：
+           GET /api/words 返回的形状（{ words: [{ id, title, desc, tag }] }）与
+           data/words.json 完全一致 —— 所以下面 list-page.js 的渲染逻辑一行都不用动。
+         地址里不含任何密钥（只是个公开 URL）；能读写数据库的那把 Key 只在云函数的环境变量里。 -->
     <ul class="list" id="list"
-        data-list-url="data/words.json"
+        data-list-url="https://echoread-d0g1b2ez6a369d11e-1502538433.ap-shanghai.app.tcloudbase.com/api/words"
         data-list-key="words"
         data-list-name="词表"></ul>
   </main>

@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <!-- ⚠️ 跨页过渡的 opt-in，【必须】留在这里 —— 站内每个页面各声明一份才生效。
+       为什么不能挪进 style.css：见 index.html 里的同名注释。 -->
+  <style>@view-transition { navigation: auto; }</style>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>检查台 · 英语学习工具</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+
+  <!-- 检查台专用的那一小点样式（Day 20）。
+       ⚠️ 为什么不写进 assets/css/style.css：
+          那个文件是全站共用的、且已经过多轮真机验收（94 KB）。为了一个页面的
+          表单和标题间距去动它，等于把已验证的东西重新拉回风险里。
+          这里只有 6 条规则，范围限定在本页，代价更小。
+       ⚠️ 用的颜色变量全是 style.css 顶部 :root 里已有的，所以明暗两套底都能自动适配。 -->
+  <style>
+    .check-block { margin-bottom: 16px; }
+    .check-block h2 { margin: 0 0 8px; font-size: 15px; font-weight: 500; }
+    .check-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .check-hint { margin: 0 0 12px; font-size: 13px; color: var(--text-muted); }
+    .check-form { display: flex; flex-wrap: wrap; gap: 10px 12px; align-items: flex-end; }
+    .check-form label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--text-muted); }
+    .check-form input {
+      min-width: 140px; padding: 6px 8px; font: inherit; font-size: 13px;
+      color: inherit; background: var(--surface);
+      border: 1px solid var(--border); border-radius: 6px;
+    }
+    /* 成功沿用「可用」那套绿（--ok-text，和首页徽章同一个色）。
+       ⚠️ 失败色 style.css 里【没有】—— 全站只有「可用绿」和「开发中灰」两种状态色，
+          没有错误态。这里用 #973f3b（项目里原本就有的砖红），不新造一个色板条目。 */
+    .check-ok { color: var(--ok-text); }
+    .check-fail { color: #973f3b; }
+    .check-stamp { margin: 0; font-size: 12px; color: var(--text-faint); text-align: right; }
+  </style>
+</head>
+<body class="page-list">
+  <header class="site-header">
+    <a class="back-link" href="index.html">&larr; 返回首页</a>
+    <h1>检查台</h1>
+  </header>
+
+  <main>
+    <!-- 视图间平级切换：和三个内页共用同一条导航，风格一致 -->
+    <nav class="view-nav" aria-label="视图切换">
+      <a class="btn item" href="reader.html">文本跟读</a>
+      <a class="btn item" href="vocab.html">词汇速记</a>
+      <a class="btn item" href="writing.html">作文模板</a>
+    </nav>
+
+    <!-- ① 健康状态：只打 /api/health。
+         为什么单独放最上面 —— 这个接口【不碰数据库】。它通，说明「云函数 + 路由」活着，
+         出问题就大概率在业务/数据那一层；它不通，就是部署或路由的问题。
+         排查顺序永远是：先看它。 -->
+    <section class="panel check-block">
+      <div class="check-head">
+        <h2>① 服务健康状态</h2>
+        <button type="button" class="btn item" data-action="refresh-all">全部刷新</button>
+      </div>
+      <!-- role="status" ：内容一变读屏软件就念出来，不用用户自己去找 -->
+      <p class="empty" id="health-status" role="status">正在检查…</p>
+    </section>
+
+    <!-- ② 核心表真实数据：打 /api/words，把数据库里真有几条展示出来。
+         本项目本期「写接口」只做了 words 表，所以它就是核心表的代表。
+         判断标准：这里显示的条数，应当和 CloudBase 控制台里 select * from words 的行数一致。 -->
+    <section class="panel check-block">
+      <h2>② 核心表真实数据（words 表）</h2>
+      <p class="empty" id="words-status" role="status">正在加载词表…</p>
+      <ul class="list" id="words-list"></ul>
+    </section>
+
+    <!-- ③ 一次写入测试：POST /api/words，往数据库真插一条。
+         这里同时验证两件事 —— 写入接口通不通、浏览器跨域写请求放不放行（带 JSON 的 POST 会先发预检）。
+         重复 id 会被数据库主键拦成 409，那说明「防重复」也在工作。
+
+         ⚠️ Day 20 拍板 B —— 这一区**默认收起**，要输口令才展开。
+         为什么：POST /api/words 是【无认证的公开写接口】，拿到地址的人都能往线上库插数据；
+         检查台把它做成了按钮 ⇒ 等于把写入口摆到了台面上。
+
+         ⚠️⚠️ 这道门槛的真实分量，必须写清楚，别自我安慰：
+            **它不是安全机制。** 口令就写在前端代码里，任何人按 F12 都看得见 ——
+            它只能挡住「随手点一下」和「扫描器瞎撞」，**挡不住有心人**。
+            真正的拦法只有一条：在**云函数里**加校验（那是改后端，不在今天范围内）。
+         ⚠️ 也别指望跨域能挡：跨域只拦「别的网站上的脚本」，
+            直接 curl / Postman / 自己写的脚本一律畅通（本期 PRD 3.4 就是「公开访问、不识别谁是谁」）。 -->
+    <section class="panel check-block">
+      <h2>③ 一次写入测试（默认收起）</h2>
+      <p class="check-hint">
+        这一区默认收起：它往 words 表**真插**数据。同一个 id 提交两次，第二次会被数据库主键拦成「重复」——那是预期行为。
+      </p>
+
+      <!-- 门槛：输对口令才把下面的表单放出来 -->
+      <div class="check-form" id="write-gate">
+        <label>展开口令<input id="gate-pass" type="text" placeholder="口令" autocomplete="off"></label>
+        <button type="button" class="btn item" data-action="open-write">展开写入测试</button>
+      </div>
+      <p class="empty" id="gate-msg" role="status"></p>
+
+      <!-- hidden 属性：没输对口令前，这一整块是收着的 -->
+      <div id="write-body" hidden>
+        <form class="check-form" id="write-form">
+          <label>词条 id<input id="w-id" name="id" type="text" required placeholder="w-check-test"></label>
+          <label>单词<input id="w-title" name="title" type="text" required placeholder="check"></label>
+          <label>释义<input id="w-desc" name="desc" type="text" required placeholder="检查台测试词"></label>
+          <label>单元（可空）<input id="w-tag" name="tag" type="text" placeholder="Unit 9"></label>
+          <button type="submit" class="btn item">写入测试</button>
+        </form>
+        <p class="empty" id="write-result" role="status"></p>
+        <button type="button" class="btn item" data-action="close-write">收起</button>
+      </div>
+    </section>
+
+    <!-- 余力加练（Day 20）：最后更新时间。
+         记录的是「这一页最近一次成功取到数」的时刻 —— 用来判断你看到的是不是刚刷出来的。 -->
+    <p class="check-stamp">最后更新时间：<span id="last-updated">—</span></p>
+  </main>
+
+  <script src="assets/js/common.js"></script>
+  <script src="assets/js/check.js"></script>
+</body>
+</html>
