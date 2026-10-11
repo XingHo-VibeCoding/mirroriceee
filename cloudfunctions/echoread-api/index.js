@@ -1,5 +1,5 @@
 /* ============================================
-   echoread-api —— CloudBase 云函数
+   echoread-api —— CloudBase 云函数（**接口层**）
 
    Day 15：只做一件事 —— GET /api/health（健康检查，不连库）。
    Day 17：加两个真读接口，读 PostgreSQL 里的真数据
@@ -9,22 +9,15 @@
      · POST /api/words —— 新增一条词条（写 words 表；必填校验 + 防重复提交）
      ⚠️ 路由器随之改形：从「非 GET/HEAD 一律 405」改成「先按路径找、再按方法分」——
         否则新接口会被自己那句 405 拦死（见 exports.main 里的 ① ②）。
+   Day 19：**分层重构**（行为一字未改）——
+     把本文件里「查数据库」的代码搬出去，这里只留「接口的事」：
+       · lib/rdb.js              网关客户端：rdbSelect / rdbInsert（怎么跟数据库说话）
+       · repositories/*.repo.js  数据访问层：一表一份，知道查哪张表、要哪些列
+     ⇒ 本文件（接口层）从此**不认识数据库**：不再出现表名、列名、网关地址。
+        它只做三件事：**接请求 → 调函数 → 返响应**。
 
-   ⚠️ 数据是怎么取到的（Day 17 改过一版，原因写在这，别下次忘了）
-     原计划：云函数里用 `pg` 驱动「直连」数据库（PGHOST/PGUSER/PGPASSWORD 那一套）。
-     实测 + 查证后否掉了，两条硬理由：
-       ① 直连需要的「内网地址」只在开启私有网络（VPC）后才有，而本环境是
-          免费体验版 / 共享集群 —— 控制台里「内网地址」那一栏就是个 `-`；
-          公网直连那条路要配安全组，而安全组要求「独享集群」，共享集群下闭环堵死。
-       ② 更底层：数据库里三个应用角色（anon / authenticated / service_role）
-          全是 `NOLOGIN` —— 它们根本不能直接登录，只能由网关照 JWT 切换出来。
-      官方开发指引的原话是「TCP 直连会引入 VPC、安全组、数据库账号密码三件套，
-      全是部署后才暴露的问题，能不碰就不碰」，推荐走「SDK / 网关路径」。
-     ⇒ 现在走的就是官方推荐那条：**HTTP 调「PG REST 网关」**。
-       地址形如 https://<envId>.api.tcloudbasegateway.com/v1/rdb/rest/<表>?select=...
-       带一个 `Authorization: Bearer <API Key>` 头，网关自己完成 SQL 查询。
-       好处：零依赖（Node 18 自带 fetch）、不用数据库密码、不用开 VPC、不用配 GRANT
-             （service_role 默认就能访问所有表）。
+   ⚠️ 数据是怎么取到的 —— 那段说明已随代码一起搬进 lib/rdb.js。
+      （PG REST 网关那条路、为什么不用 pg 直连，都写在那儿了，要看细节翻它。）
 
    ⚠️ 三个必须守住的约定（订在 api-contract.md 里，动它就等于动前端）：
      ① 响应形状：
@@ -45,25 +38,14 @@
    ============================================ */
 
 /* ---------------------------------------------------------------------------
-   环境配置
+   本文件依赖的「数据访问层」
 
-   ENV_ID    环境 ID，不是秘密（公网地址里就有）。允许用环境变量覆盖，
-             方便以后换环境；不配就用默认值。
-   REST_BASE PG REST 网关的基地址，所有查询都拼在它后面。
+   ⚠️ 这里只 require **仓库对象**，不 require lib/rdb.js ——
+      因为「怎么跟数据库说话」是 repository 的事，接口层不需要知道。
+      依赖方向永远是一条直线：index.js → repositories → lib/rdb.js，绝不回头。
    --------------------------------------------------------------------------- */
-var ENV_ID = process.env.CLOUDBASE_ENV_ID || 'echoread-d0g1b2ez6a369d11e';
-var REST_BASE = 'https://' + ENV_ID + '.api.tcloudbasegateway.com';
-
-/* 网关调用超时（毫秒）。
-
-   ⚠️ 为什么是 2500 而不是更长 —— 因为天花板不在我们手里：
-      个人版云函数的「执行超时」**锁死在 3 秒**（控制台里那个框是灰的，改不了）。
-      我们这里要是写 10 秒，等于「安全绳」比「天花板」还长 —— 真超时的时候，
-      是函数先被平台整根掐掉，用户看到的是网关的一串英文错误码，
-      而不是下面那句我们精心准备的中文提示。
-      设 2500ms（给平台的 3 秒留 500ms 余量）→ 快到点的时候我们自己先收手，
-      稳稳返回 `{"ok":false,"error":"db_error",...}`。 */
-var REST_TIMEOUT_MS = 2500;
+var boardsRepo = require('./repositories/boards.repo');
+var wordsRepo = require('./repositories/words.repo');
 
 /* 统一的 JSON 响应构造器。
    注意 body 必须是「字符串」：集成响应不会帮你二次序列化，
@@ -85,106 +67,7 @@ function fail(statusCode, error, message) {
   return json(statusCode, { ok: false, error: error, message: message });
 }
 
-/* ---------------------------------------------------------------------------
-   从 PG REST 网关读一张表
-
-   table   —— 表名。⚠️ 只允许传【代码里写死的常量】，绝不接受用户输入：
-              这是唯一一处「名字直接进地址」的地方，放开就等于把表名交给外人挑。
-   select  —— 要哪几列（PostgREST 的列选择语法，逗号分隔）
-   order   —— 排序，如 sort_order.asc,id.asc
-   filters —— 额外的「等值过滤」，形如 [['unit_tag', 'Unit 1']]，可空
-
-   返回：网关给的**数组**（注意不是 { data: [...] } 那种信封）。
-   出错就抛 —— 由入口函数统一翻成 500。
-   --------------------------------------------------------------------------- */
-async function rdbSelect(table, select, order, filters) {
-  /* API Key（对应数据库的 service_role 角色，能绕过行级权限 RLS）。
-     ⚠️ 它等于数据库的万能钥匙：只能从环境变量读，绝不写进代码、
-        更绝不出现在任何返回给浏览器的内容里。 */
-  var apiKey = process.env.CLOUDBASE_API_KEY;
-  if (!apiKey) {
-    throw new Error('未配置 CLOUDBASE_API_KEY 环境变量');
-  }
-
-  var qs = ['select=' + select, 'order=' + order];
-  (filters || []).forEach(function (f) {
-    /* ⚠️ 用户给的值必须 encodeURIComponent —— 这就是「参数化」在这条路上的
-       对应做法：值永远不参与查询串的结构，只当一个「字面量」被送过去。
-       不编码的话，值里一个 & 就能凭空多长出一条查询条件。 */
-    qs.push(encodeURIComponent(f[0]) + '=eq.' + encodeURIComponent(f[1]));
-  });
-
-  var url = REST_BASE + '/v1/rdb/rest/' + table + '?' + qs.join('&');
-
-  var res = await fetch(url, {
-    method: 'GET',
-    headers: {
-      Authorization: 'Bearer ' + apiKey,
-      Accept: 'application/json'
-    },
-    signal: AbortSignal.timeout(REST_TIMEOUT_MS)
-  });
-
-  if (!res.ok) {
-    /* 把网关响应体的前 300 字夹进错误里 —— 它会进 console.error，
-       也就是控制台「日志监控」，是排障时唯一能看到真相的地方。
-       注意：这段**不会**返回给浏览器（入口函数对外只说一句人话）。 */
-    var detail = '';
-    try { detail = (await res.text()).slice(0, 300); } catch (e) { /* 读不出就作罢 */ }
-    var err = new Error('REST ' + res.status + ' ' + detail);
-    err.status = res.status;
-    throw err;
-  }
-
-  return res.json();
-}
-
-/* ---------------------------------------------------------------------------
-   往 PG REST 网关写一行（POST /v1/rdb/rest/<表>）
-
-   table —— 表名。同 rdbSelect：只允许传【代码里写死的常量】。
-   row   —— 要插入的一行，键是**数据库列名**（字段名翻译由调用方做完）
-
-   返回：网关回显的**数组**（带了 Prefer: return=representation，插完把整行给回来，
-         省掉「再查一次」）。万一个别网关版本回的是单对象，这里统一包成数组。
-   出错就抛；「唯一约束冲突」额外带 conflict = true（由调用方翻成 409）。
-   --------------------------------------------------------------------------- */
-async function rdbInsert(table, row) {
-  var apiKey = process.env.CLOUDBASE_API_KEY;
-  if (!apiKey) {
-    throw new Error('未配置 CLOUDBASE_API_KEY 环境变量');
-  }
-
-  var url = REST_BASE + '/v1/rdb/rest/' + table + '?select=*';
-
-  var res = await fetch(url, {
-    method: 'POST',
-    headers: {
-      Authorization: 'Bearer ' + apiKey,
-      'Content-Type': 'application/json',
-      /* ⚠️ Prefer: return=representation —— 不加的话，网关默认 return=minimal，
-         只回一个空 body 和一个 content-range 头（说明「1 行受影响」），拿不到刚插进去的那行。
-         加了它，插入后的整行直接回来，我们就不用再发一次 SELECT。 */
-      Prefer: 'return=representation'
-    },
-    body: JSON.stringify(row),
-    signal: AbortSignal.timeout(REST_TIMEOUT_MS)
-  });
-
-  if (!res.ok) {
-    var detail = '';
-    try { detail = (await res.text()).slice(0, 300); } catch (e) { /* 读不出就作罢 */ }
-    var err = new Error('REST ' + res.status + ' ' + detail);
-    err.status = res.status;
-    /* 「重复提交」的识别：PostgREST 把唯一约束冲突翻成 HTTP 409；
-       再兜一层 —— 错误体里出现 PostgreSQL 的错误码 23505（unique_violation）也认。 */
-    err.conflict = (res.status === 409) || detail.indexOf('23505') !== -1;
-    throw err;
-  }
-
-  var out = await res.json();
-  return Array.isArray(out) ? out : [out];
-}
+/* ---- rdbSelect / rdbInsert（以及它们要的环境配置）—— Day 19 起住在 lib/rdb.js ---- */
 
 /* ---------------------------------------------------------------------------
    解析 POST 请求体 → 普通对象
@@ -242,11 +125,9 @@ async function getHealth() {
      { "boards": [ {id,title,desc,status,href}, ... ] }
    ⚠️ 数据库列叫 description，接口字段叫 desc —— 这里翻译（前端认的是 desc）。 */
 async function getBoards() {
-  var rows = await rdbSelect(
-    'boards',
-    'id,title,description,status,href',
-    'sort_order.asc,id.asc'
-  );
+  /* ⚠️ 「查哪张表、要哪几列、怎么排序」已经搬进 boards.repo.js ——
+     接口层只管拿回来、翻译、包成响应。 */
+  var rows = await boardsRepo.listBoards();
 
   return json(200, {
     boards: rows.map(function (row) {
@@ -273,15 +154,9 @@ async function getBoards() {
       （assets/js/list-page.js），它只认 title/desc/tag 这三个通用名字。
       翻译放在接口层，前端一行不用改。 */
 async function getWords(query) {
-  /* 有 unit 就加一条等值过滤，没有就不过滤（返回全部） */
-  var filters = query.unit ? [['unit_tag', query.unit]] : [];
-
-  var rows = await rdbSelect(
-    'words',
-    'id,word,meaning,unit_tag',
-    'sort_order.asc,id.asc',
-    filters
-  );
+  /* ⚠️ 「按 unit_tag 列筛」这个过滤条件也搬进 words.repo.js 了 ——
+     接口层只管把 query.unit 递过去，不关心它落到哪个列上。 */
+  var rows = await wordsRepo.listWords(query.unit);
 
   return json(200, {
     words: rows.map(function (row) {
@@ -357,7 +232,7 @@ async function postWords(query, event) {
 
   var inserted;
   try {
-    inserted = await rdbInsert('words', row);
+    inserted = await wordsRepo.createWord(row);
   } catch (err) {
     /* ⚠️ 「重复提交」不是服务端故障，是**业务上可预期的结果** —— 单独翻成 409，
        别让它混进 500。识别靠 rdbInsert 打的 conflict 标记（网关 409 或 SQLSTATE 23505）。
