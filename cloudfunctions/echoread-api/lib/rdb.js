@@ -5,6 +5,14 @@
    和两个函数（rdbSelect / rdbInsert），原先是 index.js 中部的一大段，
    **一字未改地搬了过来** —— 行为跟搬之前完全一样，只是换了个住处。
 
+   Day 22：补齐「写」的另一半 —— 原来只会「读一行 / 插一行」，
+     今天加「改一行 / 删一行」：
+       · rdbUpdate —— PATCH /v1/rdb/rest/<表>?<过滤>（改）
+       · rdbDelete —— DELETE /v1/rdb/rest/<表>?<过滤>（删）
+     两个都带 Prefer: return=representation，网关会把「改后 / 被删的那行」回显回来。
+     ⇒ 这是它俩最有用的地方：**回显空数组 = 那一行压根不存在**，
+       不用「先查再改/删」（那是竞态写法），一次请求就能兼顾「做事」和「说清结果」。
+
    为什么单独放一个文件：
      它是【全站唯一】跟数据库网关说话的地方。「怎么把话递到数据库」
      ——拼地址、带 Key、编码参数、超时、把网关的英文错误翻成人话——
@@ -154,9 +162,121 @@ async function rdbInsert(table, row) {
   return Array.isArray(out) ? out : [out];
 }
 
+/* ---------------------------------------------------------------------------
+   改一行（PATCH /v1/rdb/rest/<表>?<过滤>）
+
+   table   —— 表名。同前：只允许传【代码里写死的常量】。
+   patch   —— 要改的字段，键是**数据库列名**（字段名翻译由调用方做完），
+              值是要写进去的新值。
+   filters —— 「改哪一行」的等值过滤，形如 [['id', 'w-abandon']]。
+              ⚠️ 这个是**必须给的** —— 不带过滤的 PATCH 会改掉整张表，那是事故不是本事。
+
+   返回：网关回显的**数组** —— 改成功 = 改后那一行；数组为空 = 没有匹配的行
+         （也就是「这个 id 不存在」）。调用方靠 `rows.length === 0` 判 404。
+   出错就抛；「唯一约束冲突」（比如把某一列改成了已存在的值）额外带 conflict = true。
+   --------------------------------------------------------------------------- */
+async function rdbUpdate(table, patch, filters) {
+  var apiKey = process.env.CLOUDBASE_API_KEY;
+  if (!apiKey) {
+    throw new Error('未配置 CLOUDBASE_API_KEY 环境变量');
+  }
+
+  var qs = ['select=*'];
+  (filters || []).forEach(function (f) {
+    qs.push(encodeURIComponent(f[0]) + '=eq.' + encodeURIComponent(f[1]));
+  });
+
+  var url = REST_BASE + '/v1/rdb/rest/' + table + '?' + qs.join('&');
+
+  var res = await fetch(url, {
+    method: 'PATCH',
+    headers: {
+      Authorization: 'Bearer ' + apiKey,
+      'Content-Type': 'application/json',
+      /* 同 rdbInsert：不加这句，网关默认 return=minimal，只回一个空 body，
+         我们就分不清「改到了」和「没这行」。 */
+      Prefer: 'return=representation'
+    },
+    body: JSON.stringify(patch),
+    signal: AbortSignal.timeout(REST_TIMEOUT_MS)
+  });
+
+  if (!res.ok) {
+    var detail = '';
+    try { detail = (await res.text()).slice(0, 300); } catch (e) { /* 读不出就作罢 */ }
+    var err = new Error('REST ' + res.status + ' ' + detail);
+    err.status = res.status;
+    /* 改一个值撞了唯一约束（如把 id 改成别人已占的）→ 翻 409，与 POST 那套一致。 */
+    err.conflict = (res.status === 409) || detail.indexOf('23505') !== -1;
+    throw err;
+  }
+
+  var out = await res.json();
+  return Array.isArray(out) ? out : [out];
+}
+
+/* ---------------------------------------------------------------------------
+   删一行（DELETE /v1/rdb/rest/<表>?<过滤>）
+
+   table   —— 表名。同前：只允许传【代码里写死的常量】。
+   filters —— 「删哪一行」的等值过滤，形如 [['id', 'w-abandon']]。
+              ⚠️ 同 rdbUpdate：**必须给** —— 不带过滤的 DELETE 会清空整张表。
+
+   返回：网关回显的**数组**（return=representation）—— 删成功 = 被删掉的那一行；
+         数组为空 = 没有匹配的行（即「这个 id 不存在」）。调用方靠 `rows.length === 0` 判 404。
+   出错就抛。
+   --------------------------------------------------------------------------- */
+async function rdbDelete(table, filters) {
+  var apiKey = process.env.CLOUDBASE_API_KEY;
+  if (!apiKey) {
+    throw new Error('未配置 CLOUDBASE_API_KEY 环境变量');
+  }
+
+  var qs = ['select=*'];
+  (filters || []).forEach(function (f) {
+    qs.push(encodeURIComponent(f[0]) + '=eq.' + encodeURIComponent(f[1]));
+  });
+
+  var url = REST_BASE + '/v1/rdb/rest/' + table + '?' + qs.join('&');
+
+  var res = await fetch(url, {
+    method: 'DELETE',
+    headers: {
+      Authorization: 'Bearer ' + apiKey,
+      Accept: 'application/json',
+      /* ⚠️ 这一句是「删得明白」的关键：默认 return=minimal 只回一个 204 空响应，
+         那我们就永远不知道「删掉的是哪一行」「是不是压根没这行」。
+         加了它，被删的那一行原样回来 —— 前端能显示「已删除 w-xxx = abandon」，
+         空数组则说明 id 不存在，可以正大光明地回 404。 */
+      Prefer: 'return=representation'
+    },
+    signal: AbortSignal.timeout(REST_TIMEOUT_MS)
+  });
+
+  if (!res.ok) {
+    var detail = '';
+    try { detail = (await res.text()).slice(0, 300); } catch (e) { /* 读不出就作罢 */ }
+    var err = new Error('REST ' + res.status + ' ' + detail);
+    err.status = res.status;
+    throw err;
+  }
+
+  /* DELETE 成功且 return=minimal 时网关回 204，这里 body 是空的 —— 兜一层，
+     避免 res.json() 在空 body 上抛错（本项目一直是 representation，属防御性写法）。 */
+  var text = '';
+  try { text = await res.text(); } catch (e) { /* 读不出就作罢 */ }
+  if (!text) return [];
+
+  var out;
+  try { out = JSON.parse(text); } catch (e) { return []; }
+  return Array.isArray(out) ? out : [out];
+}
+
 /* ⚠️ 这里是这个文件对外的「接口」—— 只放上面这两个函数。
    外面（repositories / index.js）拿到的是这两个名字，不是内部细节。 */
 module.exports = {
   rdbSelect: rdbSelect,
-  rdbInsert: rdbInsert
+  rdbInsert: rdbInsert,
+  rdbUpdate: rdbUpdate,
+  rdbDelete: rdbDelete
 };

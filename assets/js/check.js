@@ -1,18 +1,20 @@
 /* ============================================
-   check.js —— 检查台（Day 20 新建）
+   check.js —— 检查台（Day 20 新建，Day 22 扩到「增删改查」四类）
 
-   这一页是干什么的：把「后端到底通不通」变成眼睛能看见的三行东西。
+   这一页是干什么的：把「后端到底通不通」变成眼睛能看见的东西。
      ① 服务健康状态   —— GET /api/health（不碰数据库，通不通一看就知道）
      ② 核心表真实数据 —— GET /api/words（数据库里真有几条，列出来）
      ③ 一次写入测试   —— POST /api/words（真往库里插一条，看写入这条路通不通）
+     ④ 修改 / 删除测试 —— PATCH / DELETE /api/words?id=...（Day 22 新增；
+                         删除带二次确认 —— 删错了找不回来）
 
    ⚠️ 为什么单独做一页、不挂在首页：
       首页三张卡是【数据库驱动】的（boards 表），要加第四个入口就得往库里插一行 ——
       那是写操作，且会改动已经验收过的首页。检查台是「运维视角」的页面，
       给的是自己看的证据，不必占首页那三格。所以它是一张可以直达的独立页。
 
-   ⚠️ 这一页只做「读 / 写」两件已有接口，不新增任何后端代码 ——
-      后端这周已经封版，检查台只是把这些接口当仪表盘读出来。
+   ⚠️ 这一页只把后端**已有**的接口当仪表盘读出来，自身不新增任何后端逻辑 ——
+      接口的增删改查（GET/POST/PATCH/DELETE）都在 Day 22 补齐了。
    ============================================ */
 
 /* 接口基地址。⚠️ 必须写完整域名：
@@ -219,7 +221,160 @@ function submitWrite(event) {
 }
 
 /* ============================================
-   装配：三个区一起跑。「全部刷新」也是这一件事。
+   ④ 修改 / 删除测试（Day 22 新增）
+
+   这一页原本只做「读 / 写」两件已有接口，Day 22 起后端补上了 PATCH / DELETE，
+   检查台跟着把它们也当仪表盘读出来 —— 「增删改查」四类操作在这里都有眼睛看得见的入口。
+
+   ⚠️ 为什么这两个要放最后、而且删除要多一道确认：
+      新增错了 → 多一条，随手能清；
+      修改错了 → 值被覆盖，原来的值就没了（除非你记得）；
+      删除错了 → **整行消失，没有回收站**。
+      风险是递增的，防护也就得递增：写入口令门槛 → 改/删前先让人看清楚对象 → 删除再加一次 confirm。
+   ============================================ */
+
+/* 把接口返回的一条词条，渲染成「改前 / 改后」的对比小串。
+   before / after 都是 {id,title,desc,tag} 形状（after 可能缺字段）。 */
+function fieldDiff(label, before, after) {
+  var b = (before === undefined || before === null || before === '') ? '（空）' : String(before);
+  var a = (after   === undefined || after   === null || after   === '') ? '（空）' : String(after);
+  if (b === a) {
+    return escapeHTML(label) + ' ' + escapeHTML(b) + '（未变）';
+  }
+  return escapeHTML(label) + ' <s>' + escapeHTML(b) + '</s> → <strong>' + escapeHTML(a) + '</strong>';
+}
+
+/* ---- 4-A 修改（PATCH /api/words?id=...）----
+   ⚠️ 做一个「改前先取对照」的动作：先 GET 一次当前值，
+      改完再显示 改前 → 改后 的对比。截图要的正是这个「值的变化」。 */
+function submitPatch(event) {
+  event.preventDefault();
+
+  var id = text('p-id');
+  if (!id) return;
+
+  /* 收集「要改的字段」：留空的字段 = 不改它，不放进 body。 */
+  var body = {};
+  var t = text('p-title');
+  var d = text('p-desc');
+  var g = text('p-tag');
+  if (t) body.title = t;
+  if (d) body.desc = d;
+  if (g) body.tag = g;
+
+  if (Object.keys(body).length === 0) {
+    setHTML('patch-result', '<span class="check-fail">至少要填一个要改的字段（新单词 / 新释义 / 新单元）。</span>');
+    return;
+  }
+
+  setHTML('patch-result', '<span class="empty">正在修改…</span>');
+
+  /* ① 先取「改前」的样子（从 ② 区已加载的数据里找；找不到就再 GET 一次）。 */
+  var before = null;
+  fetch(WORDS_URL).then(function (res) { return res.json(); }).then(function (data) {
+    var items = (data && Array.isArray(data.words)) ? data.words : [];
+    for (var i = 0; i < items.length; i++) {
+      if (items[i].id === id) { before = items[i]; break; }
+    }
+    if (!before) throw new Error('not_found_local');
+    return null;
+  }).catch(function () {
+    /* 本地找不到（或 GET 失败）也继续往下走 —— 让 PATCH 自己去判 id 存不存在，
+       接口会回 404 并给出中文说明，比前端猜更准。 */
+    return null;
+  }).then(function () {
+    /* ② 发 PATCH。 */
+    return fetch(WORDS_URL + '?id=' + encodeURIComponent(id), {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    }).then(function (res) {
+      return res.json().catch(function () { return null; }).then(function (data) {
+        return { status: res.status, data: data };
+      });
+    });
+  }).then(function (r) {
+    var d = r.data;
+
+    if (r.status === 200 && d && d.ok && d.data) {
+      var after = d.data;
+      var lines = [];
+      lines.push(fieldDiff('单词', before && before.title, after.title));
+      lines.push(fieldDiff('释义', before && before.desc,  after.desc));
+      lines.push(fieldDiff('单元', before && before.tag,   after.tag));
+      setHTML('patch-result',
+        '<span class="check-ok">修改成功（200）：' + escapeHTML(String(after.id)) + '</span><br>' +
+        '<span class="empty">' + lines.join('<br>') + '</span>');
+      loadWords();                 /* ② 区立刻回读，让改后的值当场可见 */
+      stampUpdated();
+      return;
+    }
+
+    var msg = (d && d.message) ? d.message : ('HTTP ' + r.status);
+    setHTML('patch-result',
+      '<span class="check-fail">修改未生效（' + r.status + '）：' + escapeHTML(String(msg)) + '</span>');
+  }).catch(function () {
+    setHTML('patch-result',
+      '<span class="check-fail">请求没发出去：网络不通，或跨域被浏览器拦了。</span>');
+  });
+}
+
+/* ---- 4-B 删除（DELETE /api/words?id=...）----
+   ⚠️⚠️ 这里就是今天要掌握的那个知识点在**前端**的落点：
+      「删除为什么比新增更容易出事」—— 因为删错了找不回来。
+      所以点删除按钮后，**必须先过一道确认框**（window.confirm），
+      把「你要删的到底是谁」摆到人眼前，确认了才真的发请求。
+      confirm 返回 false（点了取消）→ 直接中止，一个字节都不发出去。 */
+function submitDelete(event) {
+  event.preventDefault();
+
+  var id = text('d-id');
+  if (!id) return;
+
+  /* ① 二次确认。把 id 原样念出来 —— 让人有机会发现"我是不是拼错了 id"。 */
+  var okToDelete = window.confirm(
+    '确定要删除这条词条吗？\n\n' +
+    'id：' + id + '\n\n' +
+    '⚠️ 这是真删除，删掉后 GET 就不会再返回它，而且不可恢复。'
+  );
+
+  if (!okToDelete) {
+    setHTML('delete-result', '<span class="empty">已取消删除，没有发出任何请求。</span>');
+    return;
+  }
+
+  /* ② 确认了才发 DELETE。 */
+  setHTML('delete-result', '<span class="empty">正在删除…</span>');
+
+  fetch(WORDS_URL + '?id=' + encodeURIComponent(id), {
+    method: 'DELETE'
+  }).then(function (res) {
+    return res.json().catch(function () { return null; }).then(function (data) {
+      return { status: res.status, data: data };
+    });
+  }).then(function (r) {
+    var d = r.data;
+
+    if (r.status === 200 && d && d.ok && d.data) {
+      setHTML('delete-result',
+        '<span class="check-ok">删除成功（200）：已删除 ' + escapeHTML(String(d.data.id)) +
+        ' = ' + escapeHTML(String(d.data.title)) + '</span> · 见下方 ② 区，条数应当 −1 且这行消失');
+      loadWords();                 /* ② 区立刻回读，让"这条没了"当场可见 */
+      stampUpdated();
+      return;
+    }
+
+    var msg = (d && d.message) ? d.message : ('HTTP ' + r.status);
+    setHTML('delete-result',
+      '<span class="check-fail">删除未执行（' + r.status + '）：' + escapeHTML(String(msg)) + '</span>');
+  }).catch(function () {
+    setHTML('delete-result',
+      '<span class="check-fail">请求没发出去：网络不通，或跨域被浏览器拦了。</span>');
+  });
+}
+
+/* ============================================
+   装配：几个区一起跑。「全部刷新」也是这一件事。
    ============================================ */
 function refreshAll() {
   return Promise.all([runHealth(), loadWords()]);
@@ -228,6 +383,12 @@ function refreshAll() {
 document.addEventListener('DOMContentLoaded', function () {
   var form = document.getElementById('write-form');
   if (form) form.addEventListener('submit', submitWrite);
+
+  var patchForm = document.getElementById('patch-form');
+  if (patchForm) patchForm.addEventListener('submit', submitPatch);
+
+  var deleteForm = document.getElementById('delete-form');
+  if (deleteForm) deleteForm.addEventListener('submit', submitDelete);
 
   /* 口令框里按回车 = 点「展开」。省得为了一个入口去够鼠标。 */
   var gateInput = document.getElementById('gate-pass');

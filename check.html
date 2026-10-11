@@ -112,6 +112,42 @@
       </div>
     </section>
 
+    <!-- ④ 修改 / 删除测试（Day 22 新增）
+         把「增删改查」里最后两类补齐 —— 上面 ②③ 管「查 / 增」，这里管「改 / 删」。
+
+         ⚠️⚠️ 为什么这一区**不做口令门槛**，却做**二次确认**：
+           ③ 写入区是「往库里加东西」，加错了顶多多一条，随手能清；
+           ④ 这里是「改 / 删」，删掉的数据**找不回来**。所以防护的重点不一样：
+             · 写入 → 防"随手点开"（口令门槛）
+             · 修改 → 防"改错对象"（先用 GET 确认要改的那条长什么样）
+             · 删除 → 防"手滑"（点删除必须先过一道 window.confirm 确认框）
+
+         ⚠️ 这里的删除是【真删】（DELETE），不是软删。删完 GET 就不再返回它了。
+            软删（加 is_deleted 标记、查询时跳过、删错能找回）是今天的余力加练，本期未做。 -->
+    <section class="panel check-block">
+      <h2>④ 修改 / 删除测试（真改、真删）</h2>
+      <p class="check-hint">
+        这一区直接作用于 words 表。<strong>修改</strong>会把指定 id 的字段改成新值；<strong>删除</strong>会真把这行删掉、删完 ② 区就不再列它。删错了没有回收站 —— 所以点删除前会弹一次确认框。
+      </p>
+
+      <!-- 4-A 修改：填 id + 要改的字段（留空 = 不改这个字段） -->
+      <form class="check-form" id="patch-form">
+        <label>要改的 id<input id="p-id" name="id" type="text" required placeholder="w-check-test"></label>
+        <label>新单词（可空）<input id="p-title" name="title" type="text" placeholder="留空=不改"></label>
+        <label>新释义（可空）<input id="p-desc" name="desc" type="text" placeholder="留空=不改"></label>
+        <label>新单元（可空）<input id="p-tag" name="tag" type="text" placeholder="留空=不改"></label>
+        <button type="submit" class="btn item">修改（PATCH）</button>
+      </form>
+      <p class="empty" id="patch-result" role="status"></p>
+
+      <!-- 4-B 删除：填 id → 点按钮 → 先弹确认框，确认后才真删 -->
+      <form class="check-form" id="delete-form" style="margin-top: 12px;">
+        <label>要删的 id<input id="d-id" name="id" type="text" required placeholder="w-check-test"></label>
+        <button type="submit" class="btn item">删除（DELETE）</button>
+      </form>
+      <p class="empty" id="delete-result" role="status"></p>
+    </section>
+
     <!-- 余力加练（Day 20）：最后更新时间。
          记录的是「这一页最近一次成功取到数」的时刻 —— 用来判断你看到的是不是刚刷出来的。 -->
     <p class="check-stamp">最后更新时间：<span id="last-updated">—</span></p>

@@ -15,6 +15,14 @@
        · repositories/*.repo.js  数据访问层：一表一份，知道查哪张表、要哪些列
      ⇒ 本文件（接口层）从此**不认识数据库**：不再出现表名、列名、网关地址。
         它只做三件事：**接请求 → 调函数 → 返响应**。
+   Day 22：补齐「改 / 删」两个写接口，「增删改查」四类操作闭环
+     · PATCH  /api/words?id=w-xxx —— 改一条词条（可改 title / desc / tag）
+     · DELETE /api/words?id=w-xxx —— 删一条词条（**真删**）
+     ⚠️ 为什么 id 走 query 参数（?id=）而不是 /api/words/{id} 这种路径参数：
+        路径参数要动网关的「路径透传」配置，能不能碰就不碰；
+        而 query 参数跟 GET ?unit= 是同一套路，网关压根不用改。
+     ⚠️ 「删除为什么比新增更容易出事」—— 这个答案写在这一层的 deleteWords 里，
+        一句话：新增错了只是多一条，删除错了是**少一条、且找不回来**。
 
    ⚠️ 数据是怎么取到的 —— 那段说明已随代码一起搬进 lib/rdb.js。
       （PG REST 网关那条路、为什么不用 pg 直连，都写在那儿了，要看细节翻它。）
@@ -264,16 +272,187 @@ async function postWords(query, event) {
   });
 }
 
+/* ---- PATCH /api/words?id=w-xxx —— 改一条词条（Day 22 新增）----
+   契约（api-contract.md 3.2 第 6 号 PATCH 子段）：
+     URL 参数  id（必填）—— 改哪一条
+     请求体    { title?, desc?, tag? } —— 至少给一个，不给 = 没说要改什么
+     成功      200 { ok:true, data:{ id,title,desc,tag } }（改后的值）
+     错误      400 missing_id / 400 invalid_body / 400 missing_field /
+               400 invalid_field / 404 word_not_found / 409 duplicate_id
+
+   ⚠️ 三个设计决定，都是有意的：
+     ① **id 放 query、不放 body**：id 是「选中哪一条」，属于「定位」而不是「要改的内容」；
+        放进 URL 让请求地址本身就是可复制的（curl 一条就能复现）。
+     ② **id 不在可改字段里**：主键是这一行的身份，改主键 = 换了一条记录，
+        不是「修改」而是「搬家」。真要换 id，那是先删后插的事。
+     ③ **至少得改一个字段**：空 body（{}）不当作「什么都不改也算成功」——
+        那是一次没意义的往返，直接回 400 让前端说清楚。
+
+   ⚠️ 字段名翻译同 POST（进：网页叫法 → 库列名；出：库列名 → 网页叫法）。 */
+async function patchWords(query, event) {
+  /* ① 取 id（定位）。缺失直接回 400。 */
+  var id = query && query.id ? String(query.id).trim() : '';
+  if (!id) {
+    return fail(400, 'missing_id', '缺少 id 参数：请在地址里带上 ?id=词条id');
+  }
+
+  /* ② 取请求体。 */
+  var parsed = parseBody(event);
+  if (!parsed.ok) {
+    return fail(400, parsed.error, parsed.message);
+  }
+  var body = parsed.data;
+
+  /* ③ 校验可改字段。
+     可改的只有这三个（对应库里的 word / meaning / unit_tag）—— id 不在其中。
+     ⚠️ 一次把缺的/错的收集齐再报，同 POST 的挤牙膏原则。 */
+  var EDITABLE = [
+    { key: 'title', label: '单词（title）' },
+    { key: 'desc',  label: '释义（desc）' },
+    { key: 'tag',   label: '单元（tag）' }
+  ];
+
+  var fields = {};      /* 库列名 → 新值（翻译后的） */
+  var badType = [];
+  var provided = 0;
+
+  EDITABLE.forEach(function (f) {
+    var v = body[f.key];
+    if (v === undefined || v === null) {
+      return;   /* 没给这个字段 = 不改它，正常 */
+    }
+    provided += 1;
+
+    /* tag 允许「显式清空」：传空字符串 = 把单元置空（存 NULL）。
+       title / desc 是必填性质的列，传空串是坏值，拒掉。 */
+    if (f.key === 'tag') {
+      fields.unit_tag = (String(v).trim() === '') ? null : String(v).trim();
+      return;
+    }
+
+    if (typeof v !== 'string' || v.trim() === '') {
+      badType.push(f.label);
+      return;
+    }
+    fields[f.key === 'title' ? 'word' : 'meaning'] = v.trim();
+  });
+
+  if (badType.length > 0) {
+    return fail(400, 'invalid_field', '字段「' + badType.join('、') + '」必须是非空字符串');
+  }
+
+  if (provided === 0) {
+    return fail(400, 'missing_field', '请求体里至少要有一个要改的字段：单词（title）、释义（desc）或单元（tag）');
+  }
+
+  /* ④ 改库。字段名已在上面翻成库列名（word / meaning / unit_tag）。 */
+  var updated;
+  try {
+    updated = await wordsRepo.updateWord(id, fields);
+  } catch (err) {
+    /* 撞唯一约束（极少数：把某列改成了已存在的值）→ 409，与 POST 一致。 */
+    if (err && err.conflict) {
+      console.log('[echoread-api] PATCH /api/words 改后撞唯一约束：id =', id);
+      return fail(409, 'duplicate_id', '修改后的值与已有记录冲突，请换一个值');
+    }
+    throw err;
+  }
+
+  /* ⑤ 空数组 = 没有任何一行匹配 → 这个 id 不存在 → 404。
+     ⚠️ 这就是「删除/修改比新增更容易出事」的技术落点：新增不必先确认目标存在，
+        改和删都**必须先确认目标在不在** —— 否则你会对着空气改、对着空气删，
+        还以为成功了。用 return=representation 的回显来判，一次请求解决，没有竞态。 */
+  if (!updated || updated.length === 0) {
+    console.log('[echoread-api] PATCH /api/words 目标不存在：id =', id);
+    return fail(404, 'word_not_found', '没有找到 id 为「' + id + '」的词条，无法修改');
+  }
+
+  var r = updated[0];
+  console.log('[echoread-api] PATCH /api/words 修改成功：id =', r.id);
+
+  return json(200, {
+    ok: true,
+    data: {
+      id:    r.id,
+      title: r.word,        /* word    → title */
+      desc:  r.meaning,     /* meaning → desc  */
+      tag:   r.unit_tag     /* unit_tag → tag  */
+    }
+  });
+}
+
+/* ---- DELETE /api/words?id=w-xxx —— 删一条词条（Day 22 新增）----
+   契约（api-contract.md 3.2 第 6 号 DELETE 子段）：
+     URL 参数  id（必填）—— 删哪一条
+     成功      200 { ok:true, data:{ id,title,desc,tag } }（**被删掉的那条**，留个底）
+     错误      400 missing_id / 404 word_not_found
+
+   ⚠️⚠️ 「删除为什么比新增更容易出事」—— 今天要掌握的那件事，答案在这个函数里：
+
+     新增：插进去的东西**看得见**（GET 一查就在），错了再删一次就完了。
+     删除：一执行，那一行就从业务里**消失**了，而且这是 `DELETE`（真删）——
+           数据库不会给你「回收站」，找回来要靠备份或者重敲一遍。
+     更要命的是「删错对象」：以为删的是测试数据，实际删的是种子数据；
+     或者 id 拼错、少了个字母，命令照样"成功"。
+
+     ⇒ 所以删除这条路上，三层都必须有：
+        · 接口层（这里）：**id 不存在就明确回 404**，绝不说"删除成功"糊弄过去。
+        · 前端（check.js）：**二次确认**，让人在真正动手前再看一眼「要删的是谁」。
+        · 契约文档：把「这是真删、不可恢复」写明白，别让人以为能撤。
+     三层里少一层，就会出现"我以为删掉了 / 我以为没删掉"这种理解偏差。 */
+async function deleteWords(query, event) {
+  /* ① 取 id（定位）。缺失直接回 400。 */
+  var id = query && query.id ? String(query.id).trim() : '';
+  if (!id) {
+    return fail(400, 'missing_id', '缺少 id 参数：请在地址里带上 ?id=词条id');
+  }
+
+  /* ② 删库。 */
+  var removed;
+  try {
+    removed = await wordsRepo.deleteWord(id);
+  } catch (err) {
+    throw err;   /* 网络 / 网关 5xx 交给入口统一翻 500 */
+  }
+
+  /* ③ 空数组 = 没有匹配的行 → 这个 id 压根不存在 → 404。
+     ⚠️ 这一条是「删除最会坑人的地方」的解药：不带 Prefer: return=representation 时，
+        删一个不存在的 id，网关同样回 204/成功 —— 用户会以为"删掉了"，
+        实际什么都没发生（因为本来就没有）。显式判空 → 如实告诉用户"没有这条"，
+        杜绝"我以为删掉了"的理解偏差。 */
+  if (!removed || removed.length === 0) {
+    console.log('[echoread-api] DELETE /api/words 目标不存在：id =', id);
+    return fail(404, 'word_not_found', '没有找到 id 为「' + id + '」的词条，无需删除');
+  }
+
+  var r = removed[0];
+  console.log('[echoread-api] DELETE /api/words 删除成功：id =', r.id);
+
+  /* ④ 把被删掉的那行**回显**出去 —— 前端能显示「已删除 w-xxx = abandon」，
+     这是删除操作唯一还能拿到"删了什么"的机会（删完 GET 就没有了）。 */
+  return json(200, {
+    ok: true,
+    data: {
+      id:    r.id,
+      title: r.word,        /* word    → title */
+      desc:  r.meaning,     /* meaning → desc  */
+      tag:   r.unit_tag     /* unit_tag → tag  */
+    }
+  });
+}
+
 /* ===========================================================================
    路由表：路径 → { 方法: 处理函数 }
    ⚠️ Day 18 改了形状：原来是「路径 → 函数」（隐含只支持 GET），
       现在一个路径可以挂多个方法（如 /api/words 既有 GET 又有 POST）。
       以后加接口，只在这里加一行（外加写一个处理函数），不用再动网关。
+   Day 22：/api/words 再挂上 PATCH 和 DELETE —— 这一个路径现在支持四种方法，
+           对应「增（POST）删（DELETE）改（PATCH）查（GET）」四类操作。
    =========================================================================== */
 var ROUTES = {
   '/api/health': { GET: getHealth },
   '/api/boards': { GET: getBoards },
-  '/api/words':  { GET: getWords, POST: postWords }
+  '/api/words':  { GET: getWords, POST: postWords, PATCH: patchWords, DELETE: deleteWords }
 };
 
 /* ===========================================================================

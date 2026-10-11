@@ -199,7 +199,9 @@ words / templates / boards   —— 各自独立，不与其他表关联
 | 4 | `GET` | `/api/materials` | 素材列表（可按等级筛） | `reader.html` | 📝 待实现 |
 | 5 | `GET` | `/api/materials/{id}/segments` | 某条素材的分句与时间戳 | `reader.html` | 📝 待实现 |
 | 6 | `GET` | `/api/words` | 词表列表（可按单元筛） | `vocab.html` | ✅ **已实现** |
-| 6 | `POST` | `/api/words` | 新增一条词条（写接口） | `vocab.html`（本期未接线） | 📝 **待实现** |
+| 6 | `POST` | `/api/words` | 新增一条词条（写接口） | `vocab.html`（本期未接线） | ✅ **已实现**（Day 18） |
+| 6 | `PATCH` | `/api/words?id=` | 修改一条词条（写接口） | `check.html` 检查台 | ✅ **已实现**（Day 22） |
+| 6 | `DELETE` | `/api/words?id=` | 删除一条词条（写接口，**真删**） | `check.html` 检查台 | ✅ **已实现**（Day 22） |
 | 7 | `GET` | `/api/templates` | 作文模板列表 | `writing.html` | 📝 待实现 |
 | 8 | `GET` | `/api/templates/{id}` | 单篇模板详情 | `writing.html`（未做） | 📝 待实现 |
 | 9 | `GET/POST` | `/api/mastered-words` | 标记「已掌握」 | `vocab.html`（未做） | ⛔ **本期不做**（见第五节） |
@@ -351,9 +353,10 @@ words / templates / boards   —— 各自独立，不与其他表关联
 
 ---
 
-#### 6. `GET` / `POST` `/api/words`
+#### 6. `GET` / `POST` / `PATCH` / `DELETE` `/api/words`
 
-> **`GET`** ✅ 已实现（Day 17）　｜　**`POST`** 📝 待实现（Day 18）
+> **`GET`** ✅ 已实现（Day 17）　｜　**`POST`** ✅ 已实现（Day 18）　｜　**`PATCH`** ✅ 已实现（Day 22）　｜　**`DELETE`** ✅ 已实现（Day 22）
+> ⇒ 这一个路径（`/api/words`）现在支撑「增（POST）删（DELETE）改（PATCH）查（GET）」四类操作。
 
 **用途**：词汇速记页的词表。
 
@@ -384,7 +387,7 @@ words / templates / boards   —— 各自独立，不与其他表关联
 
 **实测状态**（2026-10-10）：`200` ✓ 返回 3 条；`?unit=Unit 2` → 1 条（筛选生效）✓
 
-**`POST /api/words`** —— 新增一条词条 📝 待实现（Day 18）
+**`POST /api/words`** —— 新增一条词条 ✅ 已实现（Day 18）
 
 **用途**：往词表里插一条新词。本期**只做接口**，词汇页的「新增」入口未做。
 
@@ -427,7 +430,135 @@ words / templates / boards   —— 各自独立，不与其他表关联
 > 做法是**直接插，让数据库主键拦住**：PostgreSQL 抛唯一约束冲突（SQLSTATE `23505`），
 > 云函数把它翻成 `409 duplicate_id`。一次请求解决，天然没有竞态。
 
-**实测状态**：待 Day 18 部署后补。
+**实测状态**（Day 18 部署后补，Day 21 复核）：`POST /api/words` → `201` ✓，响应
+`{"ok":true,"data":{"id":"w-test-bin","title":"test","desc":"测试","tag":null}}`；
+同 id 重复提交 → `409 duplicate_id` ✓（数据库主键拦截生效，无竞态）。
+
+---
+
+**`PATCH /api/words?id=w-xxx`** —— 修改一条词条 ✅ 已实现（Day 22）
+
+**用途**：改一条已存在词条的字段。本期**只做接口**，词汇页的「编辑」入口未做（页面未接线）。
+
+**URL 参数**
+
+| 参数 | 位置 | 必填 | 说明 |
+|---|---|---|---|
+| `id` | query | **是** | 改哪一条，如 `w-diligent`。**不存在则回 `404`** |
+
+> ⚠️ **为什么 id 走 query 参数、不走 `/api/words/{id}` 这种路径参数**：
+> 路径参数需要动网关的「路径透传」配置（能不能碰就不碰）；
+> 而 query 参数与 `GET ?unit=` 是同一套路，网关**一行都不用改**。
+> 另外它让请求地址自身可复制 —— 一条 `curl` 就能完整复现这次修改。
+
+**请求体**（JSON 对象）
+
+| 字段 | 必填 | 对应数据库列 | 说明 |
+|---|---|---|---|
+| `title` | 否 | `word` | 新单词。不传 = 不改这个字段 |
+| `desc` | 否 | `meaning` | 新释义。不传 = 不改这个字段 |
+| `tag` | 否 | `unit_tag` | 新单元。不传 = 不改；**传空字符串 = 清空该字段（存 `NULL`）** |
+
+> ⚠️ **两个硬规矩**：
+> ① **`id` 不在可改字段里** —— 主键是这一行的身份，改主键 = 换了一条记录，那是「先删后插」，不是「修改」。
+> ② **至少要给一个可改字段** —— 空 body（`{}`）回 `400 missing_field`，不当作「什么都不改也算成功」。
+
+**响应 200**
+
+```json
+{
+  "ok": true,
+  "data": { "id": "w-diligent", "title": "diligent", "desc": "adj. 勤奋的；用功的", "tag": "Unit 3" }
+}
+```
+
+> 返回的是**改后**的整行（网关 `Prefer: return=representation` 回显），前端不用再 `GET` 一次。
+
+**错误**
+
+| 码 | error | message（中文，可直接显示到页面上） |
+|---|---|---|
+| `400` | `missing_id` | 缺少 id 参数：请在地址里带上 ?id=词条id |
+| `400` | `invalid_body` | 请求体必须是 JSON 对象 |
+| `400` | `missing_field` | 请求体里至少要有一个要改的字段：单词（title）、释义（desc）或单元（tag） |
+| `400` | `invalid_field` | 字段「单词（title）」必须是非空字符串 |
+| `404` | `word_not_found` | 没有找到 id 为「w-xxx」的词条，无法修改 |
+| `409` | `duplicate_id` | 修改后的值与已有记录冲突，请换一个值 |
+| `500` | `db_error` | 服务端出错，请稍后再试 |
+
+> **`404` 怎么判定**（不用「先查后改」那种有竞态的写法）：
+> PATCH 带 `Prefer: return=representation` 时，网关把「被改的行」回显回来；
+> **回显是空数组 = 没有任何一行匹配 = 这个 id 不存在**。一次请求同时完成「做事」和「判存在」，天然无竞态。
+
+---
+
+**`DELETE /api/words?id=w-xxx`** —— 删除一条词条 ✅ 已实现（Day 22）
+
+**用途**：删掉一条已存在的词条。⚠️ **这是真删（`DELETE`），不是软删** —— 删完库里就没这行了，`GET` 不再返回，**没有回收站**。
+
+**URL 参数**
+
+| 参数 | 位置 | 必填 | 说明 |
+|---|---|---|---|
+| `id` | query | **是** | 删哪一条，如 `w-diligent`。**不存在则回 `404`** |
+
+**请求体**：无。
+
+**响应 200**
+
+```json
+{
+  "ok": true,
+  "data": { "id": "w-diligent", "title": "diligent", "desc": "adj. 勤奋的；用功的", "tag": "Unit 3" }
+}
+```
+
+> **为什么删除成功还要把「被删掉的那行」返回**：这是删除操作**唯一**还能拿到「删了什么」的机会 ——
+> 删完再 `GET` 就没有它了。前端据此显示「已删除 w-diligent = diligent」，留个据可查。
+
+**错误**
+
+| 码 | error | message（中文，可直接显示到页面上） |
+|---|---|---|
+| `400` | `missing_id` | 缺少 id 参数：请在地址里带上 ?id=词条id |
+| `404` | `word_not_found` | 没有找到 id 为「w-xxx」的词条，无需删除 |
+| `500` | `db_error` | 服务端出错，请稍后再试 |
+
+> ⚠️⚠️ **为什么删除必须显式判 `404`（这是本期最要紧的一个坑）**：
+> 不带 `Prefer: return=representation` 时，删一个**不存在**的 id，网关同样回成功 ——
+> 用户会以为「删掉了」，其实什么都没发生（因为本来就没有）。这正是**理解偏差**的温床。
+> 显式判空 → 如实回「没有这条」，才是诚实的接口。
+
+> ⚠️ **禁止「不带过滤条件的 DELETE」**：`rdbDelete` 的 `filters` 是必给参数，
+> 不带过滤的 DELETE 会**清空整张表**。代码层已把这条写进注释，契约层在这里再钉一遍。
+
+> **删除的防护三层**（今天要掌握的「删除为什么比新增更容易出事」）：
+> 新增错了 → 多一条，删一次就完了；
+> 删除错了 → **少一条，且找不回来**。
+> 所以三层都得有：**接口层**（id 不存在明确回 404，绝不糊弄）＋ **前端**（`check.html` 加 `confirm()` 二次确认）＋ **文档**（本节写明「真删、不可恢复」）。
+
+**实测状态**：见文末「变更记录 v1.4」；现场验证方法见下节「四类操作闭环自检」。
+
+---
+
+#### 6-附. 四类操作闭环自检（Day 22）
+
+要亲手确认「增删改查」四类操作都通、且删除真的生效，按下面这条**单变量**流程走一遍即可
+（`BASE` 换成你的基地址；用 `w-day22-probe` 这种**专门造的测试 id**，别拿种子数据开刀）：
+
+| 步 | 操作 | 命令（curl） | 期望 |
+|---|---|---|---|
+| 1 增 | POST 造一条测试词条 | `curl -sS -X POST "$BASE/api/words" -H 'Content-Type: application/json' -d '{"id":"w-day22-probe","title":"probe","desc":"Day22 测试词","tag":"Unit 9"}'` | `201` + `data.id = w-day22-probe` |
+| 2 查 | GET 应能见到它 | `curl -sS "$BASE/api/words" \| grep day22-probe` | 命中该行 |
+| 3 改 | PATCH 改它的释义 | `curl -sS -X PATCH "$BASE/api/words?id=w-day22-probe" -H 'Content-Type: application/json' -d '{"desc":"改后的释义"}'` | `200` + `data.desc = 改后的释义` |
+| 4 查 | GET 应见到**改后的值** | `curl -sS "$BASE/api/words" \| grep day22-probe` | `desc` 已是新值 |
+| 5 删 | DELETE 删掉它 | `curl -sS -X DELETE "$BASE/api/words?id=w-day22-probe"` | `200` + `data.id = w-day22-probe` |
+| 6 查 | GET **不再返回**它 | `curl -sS "$BASE/api/words" \| grep day22-probe` | **无输出**（这才是删除生效的铁证） |
+| 7 反 | 删一个不存在的 id | `curl -sS -X DELETE "$BASE/api/words?id=w-nope-xxx"` | `404` + 中文 `message` |
+
+> **第 6 步是重点**：删除"成功"不看返回码，要看**那条从 GET 里真的消失了**。
+> **第 7 步是反向验证**（防"橡皮章"）：接口必须能对**不存在的 id** 明确报错，
+> 而不是一律回"成功" —— 只会回成功的接口，等于没有校验。
 
 ---
 
@@ -559,3 +690,4 @@ GET /api/mastered-words?studentKey=<匿名标识>
 | v1.1 | 2026-10-10 | Day 16 | 建表与种子落盘（`db/schema.sql` / `db/seed.sql`，均可重复执行）；契约同步三处：`templates.desc` / `boards.desc` → **`description`**（DESC 是 PG 保留关键字）、`materials.level_code` 外键补 `ON DELETE RESTRICT`、`segments` 同名索引并入唯一约束。线上实测 6 张表建成，行数 3 / 5 / 16 / 3 / 0 / 3 |
 | v1.2 | 2026-10-10 | Day 17 | 前两个读接口落地上线：`GET /api/boards` 与 `GET /api/words`（含 `?unit=` 筛选）。⚠️ **实现方式与最初设想不同**：原计划用 `pg` 驱动「TCP 直连」数据库，实测本套餐（免费体验版 / 共享集群）既没有内网地址、公网直连又要求「独享集群」的安全组，且 `anon`/`authenticated`/`service_role` 三个角色全是 `NOLOGIN`、根本无法直接登录 —— 遂改为**调 CloudBase PG REST 网关**（`https://<envId>.api.tcloudbasegateway.com/v1/rdb/rest/<表>`，头带 `Authorization: Bearer <API Key>`，Key 由云函数环境变量 `CLOUDBASE_API_KEY` 注入，零依赖）。**代价**（如实记）：原方案设想的「SQL 参数化」在这条路上对应为「用户输入一律 `encodeURIComponent` 后作为查询参数」，防注入的目标不变、形式变了。线上实测：`GET /api/boards` → 200 + 3 条；`GET /api/words?unit=Unit 2` → 200 + 1 条；`POST /api/boards` → 405；未知路径 → 404 |
 | v1.3 | 2026-10-10 | Day 18 | 新增写接口 `POST /api/words`（登记，代码同日实现）：请求体 `id` / `title` / `desc` / `tag`，前三项必填；成功 `201 {ok:true,data}`（**拍板**：写接口成功一律带 `ok`，与失败形状对称）；重复 id → `409 duplicate_id`（**靠主键唯一约束，非「先查后插」**）；缺必填 → `400 missing_field`（中文写明缺哪一项）。1.3 状态码表补 `201` 与 `409`，并把 405 的过期例子（「用 POST 打只读接口」）改为 PUT |
+| v1.4 | 2026-10-11 | Day 22 | 补齐写接口的最后两类，`/api/words` 四类操作闭环：新增 **`PATCH /api/words?id=`**（改一条；可改 `title`/`desc`/`tag`；`id` 不入可改字段；至少给一个字段否则 `400`）与 **`DELETE /api/words?id=`**（**真删**一条）。两者均用网关 `Prefer: return=representation` 回显：**空数组 = id 不存在 → `404 word_not_found`**（不写「先查后改/删」那种竞态写法）。`id` 一律走 query 参数（`?id=`），**不动网关配置**。⚠️ 删除的防护三层：接口层判 404 + 前端 `confirm()` 二次确认 + 本节写明「真删、不可恢复」。同时回填上一版遗留的 `POST` 「实测状态」占位（Day 18 已实测留证，Day 21 复核）。新增「6-附. 四类操作闭环自检」小节（7 步单变量流程，含反向验证）。层内改动：`lib/rdb.js` + `rdbUpdate`/`rdbDelete`、`repositories/words.repo.js` + `updateWord`/`deleteWord`、`index.js` + `patchWords`/`deleteWords` 与路由表扩到四方法、`check.html` + `check.js` 新增第 ④ 区（修改 / 删除 + 二次确认） |

@@ -4,8 +4,11 @@
    Day 19：新建。原来「查 / 写 words 表」的代码分别硬写在 index.js 的
    getWords 和 postWords 里，现在都搬到这里 —— 一表一份文件。
 
+   Day 22：补齐「改 / 删」—— words 表的四种操作凑齐（查 list / 插 create /
+   改 update / 删 remove），这也正是今天要掌握的「增删改查闭环」。
+
    分工：
-     · 这个文件只回答「words 表怎么读、怎么写」。
+     · 这个文件只回答「words 表怎么读、怎么写、怎么改、怎么删」。
      · 字段名翻译（title↔word、desc↔meaning、tag↔unit_tag）和必填校验
        仍然是接口层 index.js 的事，一点没挪。
    ============================================ */
@@ -33,7 +36,28 @@ async function createWord(row) {
   return rdb.rdbInsert('words', row);
 }
 
+/* 改一条词条。
+   id     —— 改哪一行（等值过滤，落到 words.id 列上）
+   fields —— 要改的列，键必须是【数据库列名】（word / meaning / unit_tag）；
+             接口层翻译完再递进来。
+   ⚠️ filters 里的列名 'id' 也属于「数据访问的知识」——它得跟表里的主键名一致，
+      所以在这里拼，接口层只管把要改的 id 和字段递进来。
+   返回：改后那一行的数组；**空数组 = 这个 id 不存在**（接口层据此回 404）。 */
+async function updateWord(id, fields) {
+  return rdb.rdbUpdate('words', fields, [['id', id]]);
+}
+
+/* 删一条词条。
+   ⚠️ 这是【真删】（DELETE），不是软删 —— 删完库里就没这行了，找不回来。
+      软删（加 is_deleted 标记、查询时跳过）是今天的余力加练，本期先不做。
+   返回：被删掉那一行的数组；**空数组 = 这个 id 不存在**（接口层据此回 404）。 */
+async function deleteWord(id) {
+  return rdb.rdbDelete('words', [['id', id]]);
+}
+
 module.exports = {
   listWords: listWords,
-  createWord: createWord
+  createWord: createWord,
+  updateWord: updateWord,
+  deleteWord: deleteWord
 };
