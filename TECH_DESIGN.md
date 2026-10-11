@@ -18,6 +18,7 @@
 - [四、数据流](#四数据流) ← **这一节回答「数据从哪来、到哪去」**
 - [五、本期不做 / 将来可加](#五本期不做--将来可加)
 - [六、待同步清单](#六待同步清单)
+- [七、后端分层](#七后端分层)
 - [修订记录](#修订记录)
 
 ---
@@ -339,10 +340,88 @@ flowchart LR
 
 ---
 
+## 七、后端分层（Day 19）
+
+> **一句话：后端云函数在 Day 19 被拆成三层 —— 接口层只管「接请求、调函数、返响应」，查数据库的活儿全部下沉到 `repositories/` 和 `lib/rdb.js`。接口层从此不认识数据库。**
+
+### 7.1 分层示意图
+
+```mermaid
+flowchart TD
+    H["浏览器（前端页面）<br/>index.html / reader.html / vocab.html / writing.html"]
+    subgraph FN["云函数 echoread-api"]
+        direction TB
+        I["① 接口层 index.js<br/>接请求 → 调函数 → 返响应"]
+        R["② 数据访问层 repositories/<br/>一表一份：boards.repo.js · words.repo.js"]
+        G["③ 网关客户端 lib/rdb.js<br/>rdbSelect · rdbInsert"]
+    end
+    GW["PG REST 网关<br/>/v1/rdb/rest/表名"]
+    DB[("PostgreSQL<br/>6 张表")]
+
+    H -->|"HTTP：/api/*"| I
+    I -->|"调仓库对象：listBoards / listWords / createWord"| R
+    R -->|"rdbSelect / rdbInsert"| G
+    G -->|"HTTPS + API Key"| GW
+    GW -->|"SQL"| DB
+```
+
+**同一条链路的文字版**（编辑器不渲染上面那张图时，看这一段）：
+
+```
+浏览器（前端页面）
+      |
+      |  HTTP：GET /api/boards、GET / POST /api/words …
+      v
+① 接口层 index.js           接请求 → 调函数 → 返响应
+      |                     （路由 / handler / 字段名翻译）
+      |
+      |  调仓库对象：listBoards() / listWords(unit) / createWord(row)
+      v
+② 数据访问层 repositories/   一表一份文件
+      |                     （boards.repo.js / words.repo.js）
+      |
+      |  rdbSelect(...) / rdbInsert(...)
+      v
+③ 网关客户端 lib/rdb.js      拼地址 · 编码参数 · 超时 · 把网关的英文错误翻成人话
+      |
+      |  HTTPS + API Key
+      v
+PG REST 网关（<环境ID>.api.tcloudbasegateway.com/v1/rdb/rest/<表名>）
+      |
+      |  SQL
+      v
+PostgreSQL（6 张表；目前做了接口的只有 boards / words 两张）
+```
+
+### 7.2 三层各管什么
+
+| 层 | 文件 | 只回答一个问题 | **不认识**什么 |
+|---|---|---|---|
+| ① 接口层 | `cloudfunctions/echoread-api/index.js` | 这个 HTTP 请求该回什么形状？ | 表名、列名、网关地址 |
+| ② 数据访问层 | `cloudfunctions/echoread-api/repositories/*.repo.js` | 这张表里有什么 / 怎么写进去？ | HTTP 状态码、响应信封 |
+| ③ 网关客户端 | `cloudfunctions/echoread-api/lib/rdb.js` | 怎么把话递到数据库？ | 业务字段叫什么名字 |
+
+**为什么这么拆**：改 HTTP 规矩不碰数据，改数据不碰 HTTP，改数据库连法谁都不碰。
+
+### 7.3 「查数据库」的代码从哪移到了哪
+
+| 原来住在 `index.js` 里的东西 | 搬到哪 |
+|---|---|
+| `rdbSelect()` / `rdbInsert()` 两个函数 + 环境配置 | `lib/rdb.js` |
+| 各接口里写死的「查哪张表、要哪几列、怎么排序」 | `repositories/boards.repo.js`、`repositories/words.repo.js` |
+| `json()` / `fail()` / `parseBody()` / 路由表 / 各 handler | **留在原位**（这些是「接口的事」，本来就不该动） |
+
+> ⚠️ **与第四节的关系**：§4「数据流」写的是 **Day 5 静态站时代**的链路 —— 当时结论是「本期没有后端」，图上**有意不画回程**。**Day 15 起项目已经有了后端**，本节补的就是那之后新增的一段。§4 原文**一字未删**，作为历史留档。
+
+> **字段名翻译放哪（Day 19 拍板）**：仍在**接口层**做 —— 数据库叫 `description` / `word` / `meaning` / `unit_tag`，接口返回 `desc` / `title` / `tag`。这样与 `api-contract.md` 1.4 节「在接口层做映射」保持一致，**契约一字未改**。
+
+---
+
 ## 修订记录
 
 | 版本 | 日期 | 阶段 | 改了什么 |
 |---|---|---|---|
+| v1.3 | 2026-10-11 | Day 19 | **新增 §7「后端分层」**：补上 Day 15 起新增的后端云函数的三层结构图（接口层 / 数据访问层 / 网关客户端），并标明「查数据库」的代码从 `index.js` 搬到了 `lib/rdb.js` 与 `repositories/*.repo.js`；同时注明 **§4 描述的是 Day 5 静态站时代的数据流**（当时「本期没有后端」），§4 原文一字未删。 |
 | v1.2 | 2026-09-30 | Day 8 | **§2.3 同步**：`data/materials.json` 的字段补上 `levels`（等级目录）与 `level`（每条素材属于哪一级）—— 依据 `PRD.md` v1.3 新增的等级目录（跟读页顶部的 L1 / L2 / L3，对应验收标准 **R10**）。原表述「有哪些课文、各自标题与音频路径」保留并扩展，未删。 |
 | v1.1 | 2026-09-28 | Day 7 | ① **§2.7 口径修订**：「手工标注」→「夸克转写 + 按讲话人拆句 + 插值补时间戳」（原方案留档；并**如实注明秒数为插值估算、非逐句校准真值**）；② **§6「待同步清单」标成已完成** —— `PRD.md` 实改 26 处（`eae1a0e`）、`research.md` 实加 6 处标注（`efce204`） |
 | v1.0 | 2026-09-21 | Day 5 | 首版定稿：前提 + 技术路线（9 小节）+ 内容结构 + **数据流（含数据流图）** + 将来可加 + 待同步清单。同日补入第四节「数据流」，章节由 4 节扩为 5 节，并同步修正全文交叉引用（1.1 / 三.纪律2 / 2.9 / 目录） |
