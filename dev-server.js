@@ -49,8 +49,19 @@ const MIME = {
    起因：发布是「只增不删」—— 文档一旦随发布上传，就留在沙箱里删不掉了
    （实测：本地删掉后重发，线上仍返回 200）。所以只能改由服务器层拒绝。
    这是唯一能可靠下架「已经上传过的文件」的办法。
-   只挡这一种后缀，其它一律照旧。 */
-const BLOCKED_EXT = ['.md'];
+
+   Day 23（安全审计）：原来只挡 .md 一种，审计时发现【远远不够】——
+     发布是「整目录上传」，目录里还躺着 .env 和 .workbuddy/，它们会被一起传上去：
+       · .env          —— 本地机密配置（将来会填真 Key），绝不该出现在公网
+       · .env.example  —— 模板也一并挡住（公网没有它的用途，少暴露一个入口）
+       · .workbuddy/   —— 协作笔记 + 记忆，属于"个人台面"，更不该公开
+     所以把黑名单从「只有后缀」扩成「后缀 + 路径前缀」两套。
+   ⚠️ 为什么必须在【服务器层】挡，而不只是靠发布前手动挪文件：
+     手动挪靠"人记得"，漏一次就出事；写在这里是"代码保证"，一次改动永久生效。
+     这正是 Day 23 安全审计的思路：把安全从"人记得"变成"代码保证"。 */
+const BLOCKED_EXT = ['.md', '.env', '.env.example', '.env.local', '.env.production', '.env.development', '.env.test'];
+/* 路径前缀黑名单：以这些相对路径开头的请求一律拒绝（匹配的是 URL 路径，用 / 分隔） */
+const BLOCKED_PATH_PREFIX = ['.env', '.workbuddy/', '.git/'];
 
 /* 网址 → 本机文件路径。顺便挡住 ../../ 越界访问。
    Windows 上路径分隔符有正反两种，必须先 normalize 再比较，否则会误判 */
@@ -94,6 +105,16 @@ const server = http.createServer((req, res) => {
   /* Day 14：项目文档不对外（详见文件上方 BLOCKED_EXT 的说明）。
      放在越界检查之后、目录处理之前，直接当"找不到"回，不暴露文件是否存在。 */
   if (BLOCKED_EXT.includes(path.extname(filePath).toLowerCase())) {
+    return fail(res, 404, '404 找不到：' + req.url);
+  }
+
+  /* Day 23：路径前缀黑名单 —— .env / .workbuddy/ / .git/ 一律拒绝。
+     为什么单独一条：这些是「按前缀挡」，不靠后缀（.workbuddy/memory/x.md 后缀是 .md
+     上面已经挡了，但 .workbuddy/memory/JOURNAL 这种没后缀的也要挡）。
+     ⚠️ 比对用 URL 路径（req.url 的路径部分，统一转 / 和去前导斜杠），
+        不用本地绝对路径 —— 后者带盘符，比不出前缀。 */
+  var reqPath = decodeURIComponent((req.url || '/').split('?')[0]).replace(/^\/+/, '').replace(/\\/g, '/');
+  if (BLOCKED_PATH_PREFIX.some(function (p) { return reqPath === p.replace(/\/$/, '') || reqPath.startsWith(p); })) {
     return fail(res, 404, '404 找不到：' + req.url);
   }
 
