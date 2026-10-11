@@ -146,6 +146,7 @@
 | `meaning` | `TEXT` | 非空 | 如 `v. 放弃；抛弃` |
 | `unit_tag` | `TEXT` | 可空 | 如 `Unit 1`（课程单元，用于筛选） |
 | `sort_order` | `INT` | 非空，默认 0 | 排序 |
+| `is_deleted` | `BOOL` | 非空，默认 `false` | **软删除标记**（Day 22 余力加练）：`false`=正常，`true`=已"删除"但数据仍在库、可恢复。**所有读接口默认只返回 `false` 的行** |
 
 **`templates` —— 作文模板**
 
@@ -201,7 +202,7 @@ words / templates / boards   —— 各自独立，不与其他表关联
 | 6 | `GET` | `/api/words` | 词表列表（可按单元筛） | `vocab.html` | ✅ **已实现** |
 | 6 | `POST` | `/api/words` | 新增一条词条（写接口） | `vocab.html`（本期未接线） | ✅ **已实现**（Day 18） |
 | 6 | `PATCH` | `/api/words?id=` | 修改一条词条（写接口） | `check.html` 检查台 | ✅ **已实现**（Day 22） |
-| 6 | `DELETE` | `/api/words?id=` | 删除一条词条（写接口，**真删**） | `check.html` 检查台 | ✅ **已实现**（Day 22） |
+| 6 | `DELETE` | `/api/words?id=` | 删除一条词条（写接口，**软删**） | `check.html` 检查台 | ✅ **已实现**（Day 22） |
 | 7 | `GET` | `/api/templates` | 作文模板列表 | `writing.html` | 📝 待实现 |
 | 8 | `GET` | `/api/templates/{id}` | 单篇模板详情 | `writing.html`（未做） | 📝 待实现 |
 | 9 | `GET/POST` | `/api/mastered-words` | 标记「已掌握」 | `vocab.html`（未做） | ⛔ **本期不做**（见第五节） |
@@ -430,6 +431,22 @@ words / templates / boards   —— 各自独立，不与其他表关联
 > 做法是**直接插，让数据库主键拦住**：PostgreSQL 抛唯一约束冲突（SQLSTATE `23505`），
 > 云函数把它翻成 `409 duplicate_id`。一次请求解决，天然没有竞态。
 
+> **⚠️ 余力加练（软删除）给这条加了一个岔路**：主键撞车时**先别急着 409** ——
+> 先查这个 id **是不是被软删过的**（`is_deleted = true`）：
+>
+> | 情形 | 处理 | 响应 |
+> |---|---|---|
+> | id 存在、且 `is_deleted = false`（活的） | 真的重复 | `409 duplicate_id` |
+> | id 存在、且 `is_deleted = true`（被软删过） | **复活**：置 `is_deleted = false` + 用新提交的值覆盖字段 | `201 {ok:true, data:{...新值}}` |
+> | id 查不到（理论不该发生，因为刚撞了主键） | 兜底当重复 | `409 duplicate_id` |
+>
+> **为什么必须处理**：软删只是"标记为删"，那一行**还占着主键**。若不特判，
+> 用户 POST 同一个 id 会撞 409，困惑于「我明明把它删了啊？」—— 复活让"删了再加回来"真的 work。
+> ⚠️ 复活时**字段被新值覆盖**（不是保留旧值）：用户 POST 的是"一条全新的词"，
+> 只把标记改回来、留着旧字段，等于骗人。
+>
+> ⇒ 也就是说：**`POST` 一个 id，最终结果可能是「新建」也可能是「复活」**，两者都返回 `201`。
+
 **实测状态**（Day 18 部署后补，Day 21 复核）：`POST /api/words` → `201` ✓，响应
 `{"ok":true,"data":{"id":"w-test-bin","title":"test","desc":"测试","tag":null}}`；
 同 id 重复提交 → `409 duplicate_id` ✓（数据库主键拦截生效，无竞态）。
@@ -494,7 +511,9 @@ words / templates / boards   —— 各自独立，不与其他表关联
 
 **`DELETE /api/words?id=w-xxx`** —— 删除一条词条 ✅ 已实现（Day 22）
 
-**用途**：删掉一条已存在的词条。⚠️ **这是真删（`DELETE`），不是软删** —— 删完库里就没这行了，`GET` 不再返回，**没有回收站**。
+**用途**：删掉一条已存在的词条。⚠️ **这是软删（soft delete）** —— 接口把 `is_deleted` 置为 `true`，
+那一行**仍留在数据库里**，只是从所有读接口的结果中消失（`GET` 不再返回它）。**删错了可以找回**
+（把 `is_deleted` 改回 `false` 即"复活"，见下方 POST 子段）。
 
 **URL 参数**
 
@@ -529,15 +548,31 @@ words / templates / boards   —— 各自独立，不与其他表关联
 > 用户会以为「删掉了」，其实什么都没发生（因为本来就没有）。这正是**理解偏差**的温床。
 > 显式判空 → 如实回「没有这条」，才是诚实的接口。
 
-> ⚠️ **禁止「不带过滤条件的 DELETE」**：`rdbDelete` 的 `filters` 是必给参数，
-> 不带过滤的 DELETE 会**清空整张表**。代码层已把这条写进注释，契约层在这里再钉一遍。
+> ⚠️ **不带过滤条件的 DELETE 会清空整张表**：`rdbDelete` / `rdbUpdate` 的 `filters` 都是必给参数，
+> 代码层已把这条写进注释，契约层在这里再钉一遍。（当前 DELETE 已改为软删、走 `rdbUpdate`，
+> 但"必须带过滤"这条规矩不变。）
 
 > **删除的防护三层**（今天要掌握的「删除为什么比新增更容易出事」）：
 > 新增错了 → 多一条，删一次就完了；
-> 删除错了 → **少一条，且找不回来**。
-> 所以三层都得有：**接口层**（id 不存在明确回 404，绝不糊弄）＋ **前端**（`check.html` 加 `confirm()` 二次确认）＋ **文档**（本节写明「真删、不可恢复」）。
+> 删除错了 → **少一条，且不容易发现**。
+> 所以三层都得有：**接口层**（id 不存在明确回 404，绝不糊弄）＋ **前端**（`check.html` 加 `confirm()` 二次确认）
+> ＋ **数据库层**（**软删**：只改 `is_deleted` 标记，数据还在，改回来就复活）。
+> ⇒ 第 3 层是 Day 22 余力加练的最大价值：把"删除"从**不可逆**变成**可逆**。
 
-**实测状态**：见文末「变更记录 v1.4」；现场验证方法见下节「四类操作闭环自检」。
+**实测状态**（2026-10-11）：见文末「变更记录 v1.5」；现场验证方法见下节「四类操作闭环自检」。
+
+**软删后的"读"行为**：`GET /api/words` 及其 `?unit=` 筛选**都不返回** `is_deleted=true` 的行
+（过滤在 `repositories/words.repo.js` 的 `listWords` 里统一加，接口层不用管）。
+⇒ 从页面视角看，"删除"的效果和真删**完全一样**；区别只在数据库里那一行还在不在。
+
+---
+
+**`DELETE` 的姊妹能力：「复活」（Day 22 余力加练）**
+
+软删的一个自然结果是「删了还能加回来」。本接口**没有**单独的"恢复"端点，
+而是把复活**融进了 `POST`**（见上方 POST 子段）：POST 一个**曾被软删**的 id 时，
+接口会**复活它**（`is_deleted → false` + 用新提交的值覆盖字段），而不是回 `409`。
+⇒ 这样"删了再加回来"这个最自然的操作能真的 work，不用额外造一个端点。
 
 ---
 
@@ -691,3 +726,4 @@ GET /api/mastered-words?studentKey=<匿名标识>
 | v1.2 | 2026-10-10 | Day 17 | 前两个读接口落地上线：`GET /api/boards` 与 `GET /api/words`（含 `?unit=` 筛选）。⚠️ **实现方式与最初设想不同**：原计划用 `pg` 驱动「TCP 直连」数据库，实测本套餐（免费体验版 / 共享集群）既没有内网地址、公网直连又要求「独享集群」的安全组，且 `anon`/`authenticated`/`service_role` 三个角色全是 `NOLOGIN`、根本无法直接登录 —— 遂改为**调 CloudBase PG REST 网关**（`https://<envId>.api.tcloudbasegateway.com/v1/rdb/rest/<表>`，头带 `Authorization: Bearer <API Key>`，Key 由云函数环境变量 `CLOUDBASE_API_KEY` 注入，零依赖）。**代价**（如实记）：原方案设想的「SQL 参数化」在这条路上对应为「用户输入一律 `encodeURIComponent` 后作为查询参数」，防注入的目标不变、形式变了。线上实测：`GET /api/boards` → 200 + 3 条；`GET /api/words?unit=Unit 2` → 200 + 1 条；`POST /api/boards` → 405；未知路径 → 404 |
 | v1.3 | 2026-10-10 | Day 18 | 新增写接口 `POST /api/words`（登记，代码同日实现）：请求体 `id` / `title` / `desc` / `tag`，前三项必填；成功 `201 {ok:true,data}`（**拍板**：写接口成功一律带 `ok`，与失败形状对称）；重复 id → `409 duplicate_id`（**靠主键唯一约束，非「先查后插」**）；缺必填 → `400 missing_field`（中文写明缺哪一项）。1.3 状态码表补 `201` 与 `409`，并把 405 的过期例子（「用 POST 打只读接口」）改为 PUT |
 | v1.4 | 2026-10-11 | Day 22 | 补齐写接口的最后两类，`/api/words` 四类操作闭环：新增 **`PATCH /api/words?id=`**（改一条；可改 `title`/`desc`/`tag`；`id` 不入可改字段；至少给一个字段否则 `400`）与 **`DELETE /api/words?id=`**（**真删**一条）。两者均用网关 `Prefer: return=representation` 回显：**空数组 = id 不存在 → `404 word_not_found`**（不写「先查后改/删」那种竞态写法）。`id` 一律走 query 参数（`?id=`），**不动网关配置**。⚠️ 删除的防护三层：接口层判 404 + 前端 `confirm()` 二次确认 + 本节写明「真删、不可恢复」。同时回填上一版遗留的 `POST` 「实测状态」占位（Day 18 已实测留证，Day 21 复核）。新增「6-附. 四类操作闭环自检」小节（7 步单变量流程，含反向验证）。层内改动：`lib/rdb.js` + `rdbUpdate`/`rdbDelete`、`repositories/words.repo.js` + `updateWord`/`deleteWord`、`index.js` + `patchWords`/`deleteWords` 与路由表扩到四方法、`check.html` + `check.js` 新增第 ④ 区（修改 / 删除 + 二次确认） |
+| v1.5 | 2026-10-11 | Day 22（余力加练） | **软删除**落地：`words` 表新增列 **`is_deleted BOOL NOT NULL DEFAULT false`**（2.2 表定义已补）；**`DELETE /api/words?id=` 的语义由「真删」改为「软删」**——只置 `is_deleted=true`，数据留在库、可恢复，但所有读接口默认不返回它（过滤加在 `words.repo.js` 的 `listWords`）。**`POST` 增加「复活」分支**：撞主键时先查是否 `is_deleted=true`，是则复活（清标记 + 覆盖字段）回 `201`，不是才回 `409`。⇒ 删除从**不可逆**变为**可逆**。⚠️ **数据库升级方式**：线上表已有数据，**不能重跑 `schema.sql`（开头 DROP）/ `seed.sql`（开头 TRUNCATE），都会清库**；`db/schema.sql` 末尾新增「9. 增量升级脚本」，只跑一句 `ALTER TABLE words ADD COLUMN IF NOT EXISTS is_deleted ...`（带 `DEFAULT false`，已有行自动补 `false`，一条数据不动）。层内改动：`words.repo.js` + `findWordById`/`softDeleteWord`/`restoreWord`（`listWords` 加过滤）、`index.js` 的 `deleteWords` 改走软删 + `postWords` 加复活分支 |

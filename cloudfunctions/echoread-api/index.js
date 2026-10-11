@@ -17,12 +17,20 @@
         它只做三件事：**接请求 → 调函数 → 返响应**。
    Day 22：补齐「改 / 删」两个写接口，「增删改查」四类操作闭环
      · PATCH  /api/words?id=w-xxx —— 改一条词条（可改 title / desc / tag）
-     · DELETE /api/words?id=w-xxx —— 删一条词条（**真删**）
+     · DELETE /api/words?id=w-xxx —— 删一条词条
      ⚠️ 为什么 id 走 query 参数（?id=）而不是 /api/words/{id} 这种路径参数：
         路径参数要动网关的「路径透传」配置，能不能碰就不碰；
         而 query 参数跟 GET ?unit= 是同一套路，网关压根不用改。
      ⚠️ 「删除为什么比新增更容易出事」—— 这个答案写在这一层的 deleteWords 里，
         一句话：新增错了只是多一条，删除错了是**少一条、且找不回来**。
+
+   Day 22 余力加练：**软删除**（soft delete）
+     · DELETE 不再真删 —— 改成把 is_deleted 置 true；数据留在库里，能找回。
+     · 连带改了两处：
+       ① postWords —— 撞主键时先看一眼"是不是被软删过的"：是 → 复活（清标记+覆盖值），
+          不是 → 才回 409。否则会出现"我删了它、再加却说已存在"的困惑。
+       ② listWords（在 repo 层）—— 始终带 is_deleted=false 过滤，已删的对上层不可见。
+     ⇒ 这一招让"删除"从**不可逆**变成了**可逆**：删错了，改个布尔值就回来。
 
    ⚠️ 数据是怎么取到的 —— 那段说明已随代码一起搬进 lib/rdb.js。
       （PG REST 网关那条路、为什么不用 pg 直连，都写在那儿了，要看细节翻它。）
@@ -245,8 +253,48 @@ async function postWords(query, event) {
     /* ⚠️ 「重复提交」不是服务端故障，是**业务上可预期的结果** —— 单独翻成 409，
        别让它混进 500。识别靠 rdbInsert 打的 conflict 标记（网关 409 或 SQLSTATE 23505）。
        这就是「防重复」的全部实现：**不做「先查后插」**（那样两个请求同时查、同时插，
-       照样重复）—— 直接插、让**数据库主键**去拦，一次请求解决，天然没有竞态。 */
+       照样重复）—— 直接插、让**数据库主键**去拦，一次请求解决，天然没有竞态。
+
+       ⚠️⚠️ Day 22 余力加练（软删除）在这里加了一层判断：
+          主键撞车时，**先别急着报 409** —— 先查一下这个 id 是不是"被软删过的"：
+            · 查得到、且 is_deleted = true  → **复活它**（把标记改回 false + 覆盖成新提交的值）
+            · 查得到、且 is_deleted = false → 真的重复了 → 409（保持原行为）
+            · 查不到（理论上不会，因为刚才明明撞了主键）→ 当作 409 兜底
+          为什么要专门处理：软删只是"标记为删"，那一行**还占着主键**。
+          用户 POST 同一个 id 时，如果直接 409，他会困惑 ——「我明明把它删了啊？」
+          复活 = 让"删了再加回来"这个最自然的操作，真的能work。 */
     if (err && err.conflict) {
+      /* 查这个 id（连已软删的也查得到）。查不动 / 查不到 → 按普通重复处理。 */
+      var existing = [];
+      try {
+        existing = await wordsRepo.findWordById(row.id);
+      } catch (e) {
+        existing = [];
+      }
+
+      var prev = existing && existing[0];
+
+      /* ① 找到了，而且它是被软删的 → 复活：清标记 + 覆盖字段。 */
+      if (prev && prev.is_deleted === true) {
+        var revived = await wordsRepo.restoreWord(row.id, {
+          word:     row.word,
+          meaning:  row.meaning,
+          unit_tag: row.unit_tag
+        });
+        var rv = revived[0] || row;
+        console.log('[echoread-api] POST /api/words 复活被软删的词条：id =', rv.id);
+        return json(201, {
+          ok: true,
+          data: {
+            id:    rv.id,
+            title: rv.word,
+            desc:  rv.meaning,
+            tag:   rv.unit_tag
+          }
+        });
+      }
+
+      /* ② 找到了但没被删（活的），或压根查不到 → 才是真的重复 → 409。 */
       console.log('[echoread-api] POST /api/words 重复提交被拒：id =', row.id);
       return fail(409, 'duplicate_id', '这个词条 id 已存在，请不要重复提交');
     }
@@ -384,22 +432,22 @@ async function patchWords(query, event) {
 /* ---- DELETE /api/words?id=w-xxx —— 删一条词条（Day 22 新增）----
    契约（api-contract.md 3.2 第 6 号 DELETE 子段）：
      URL 参数  id（必填）—— 删哪一条
-     成功      200 { ok:true, data:{ id,title,desc,tag } }（**被删掉的那条**，留个底）
+     成功      200 { ok:true, data:{ id,title,desc,tag } }（**被"删除"的那条**，留个底）
      错误      400 missing_id / 404 word_not_found
 
-   ⚠️⚠️ 「删除为什么比新增更容易出事」—— 今天要掌握的那件事，答案在这个函数里：
+   ⚠️⚠️ Day 22 余力加练后：**这个接口已从"真删"改为"软删"**。
+     执行的不再是 `DELETE FROM words`，而是 `UPDATE words SET is_deleted = true`：
+       · 上层看到的效果一样 —— 删完 GET 就不返回它了（listWords 带 is_deleted=false 过滤）；
+       · 但数据库里那一行**原封不动还在** —— 删错了、或者后悔了，把 is_deleted 改回 false 就回来了。
+     ⇒ 这就是"删除比新增更容易出事"这把锁的**第二道保险**（第一道是 404 判定，第二道就是软删）。
 
-     新增：插进去的东西**看得见**（GET 一查就在），错了再删一次就完了。
-     删除：一执行，那一行就从业务里**消失**了，而且这是 `DELETE`（真删）——
-           数据库不会给你「回收站」，找回来要靠备份或者重敲一遍。
-     更要命的是「删错对象」：以为删的是测试数据，实际删的是种子数据；
-     或者 id 拼错、少了个字母，命令照样"成功"。
+   ⚠️ 为什么软删要用「改标记」来实现（而不是加一个"不真删"的 DELETE）：
+      HTTP 的 DELETE 语义就是"删掉"，数据库层面兑现这个语义有两条路 ——
+      真删（DELETE 语句）和软删（UPDATE 标记）。**方法名不变、语义升级**，
+      前端和契约的形状（200 + data）都不用动，只是"删"的后果变得更可逆了。
 
-     ⇒ 所以删除这条路上，三层都必须有：
-        · 接口层（这里）：**id 不存在就明确回 404**，绝不说"删除成功"糊弄过去。
-        · 前端（check.js）：**二次确认**，让人在真正动手前再看一眼「要删的是谁」。
-        · 契约文档：把「这是真删、不可恢复」写明白，别让人以为能撤。
-     三层里少一层，就会出现"我以为删掉了 / 我以为没删掉"这种理解偏差。 */
+   ⚠️ 关于"重复删同一个 id"：软删第 2 次时，那一行仍匹配（is_deleted 还是 true），
+      所以回显不为空 → 返回 200。这没问题：删两次的结果都是"它不在了"，幂等。 */
 async function deleteWords(query, event) {
   /* ① 取 id（定位）。缺失直接回 400。 */
   var id = query && query.id ? String(query.id).trim() : '';
@@ -407,17 +455,17 @@ async function deleteWords(query, event) {
     return fail(400, 'missing_id', '缺少 id 参数：请在地址里带上 ?id=词条id');
   }
 
-  /* ② 删库。 */
+  /* ② 软删（改标记，不是真删）。 */
   var removed;
   try {
-    removed = await wordsRepo.deleteWord(id);
+    removed = await wordsRepo.softDeleteWord(id);
   } catch (err) {
     throw err;   /* 网络 / 网关 5xx 交给入口统一翻 500 */
   }
 
   /* ③ 空数组 = 没有匹配的行 → 这个 id 压根不存在 → 404。
      ⚠️ 这一条是「删除最会坑人的地方」的解药：不带 Prefer: return=representation 时，
-        删一个不存在的 id，网关同样回 204/成功 —— 用户会以为"删掉了"，
+        删一个不存在的 id，网关同样回成功 —— 用户会以为"删掉了"，
         实际什么都没发生（因为本来就没有）。显式判空 → 如实告诉用户"没有这条"，
         杜绝"我以为删掉了"的理解偏差。 */
   if (!removed || removed.length === 0) {
@@ -426,9 +474,9 @@ async function deleteWords(query, event) {
   }
 
   var r = removed[0];
-  console.log('[echoread-api] DELETE /api/words 删除成功：id =', r.id);
+  console.log('[echoread-api] DELETE /api/words 软删成功（is_deleted=true）：id =', r.id);
 
-  /* ④ 把被删掉的那行**回显**出去 —— 前端能显示「已删除 w-xxx = abandon」，
+  /* ④ 把"被删掉"的那行**回显**出去 —— 前端能显示「已删除 w-xxx = abandon」，
      这是删除操作唯一还能拿到"删了什么"的机会（删完 GET 就没有了）。 */
   return json(200, {
     ok: true,

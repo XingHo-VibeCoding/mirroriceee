@@ -109,7 +109,16 @@ CREATE TABLE words (
   word       TEXT    NOT NULL,              -- 单词本身，如 abandon
   meaning    TEXT    NOT NULL,              -- 中文释义，如 v. 放弃；抛弃
   unit_tag   TEXT,                          -- 课程单元，如 Unit 1（可空）
-  sort_order INTEGER NOT NULL DEFAULT 0     -- 排序
+  sort_order INTEGER NOT NULL DEFAULT 0,    -- 排序
+
+  -- Day 22 余力加练：软删除标记
+  --   false（默认）= 正常；true = 已"删除"（但数据仍在库里，能找回）
+  --   ⚠️ NOT NULL DEFAULT false 这两个都要有：
+  --      · NOT NULL —— 别让 NULL 混进来（NULL 既不是 true 也不是 false，
+  --        查询条件 is_deleted=false 会漏掉它，等于那行"人间蒸发"，最难查）
+  --      · DEFAULT false —— ALTER TABLE 加列时，已有行会自动填 false
+  --        （这正是"加列不丢数据"的原因：老数据自动补默认值）
+  is_deleted BOOLEAN NOT NULL DEFAULT false
 );
 
 
@@ -197,6 +206,7 @@ COMMENT ON COLUMN words.word       IS '单词本身';
 COMMENT ON COLUMN words.meaning    IS '中文释义';
 COMMENT ON COLUMN words.unit_tag   IS '课程单元（如 Unit 1），用于筛选；可空';
 COMMENT ON COLUMN words.sort_order IS '排序';
+COMMENT ON COLUMN words.is_deleted IS '软删除标记（Day 22 余力加练）：false=正常，true=已删除但数据仍在库、可恢复；查询默认只取 false';
 
 -- templates（作文模板）
 COMMENT ON TABLE  templates             IS '作文模板；来源 data/templates.json（本期为空清单）';
@@ -224,3 +234,30 @@ COMMENT ON COLUMN boards.sort_order  IS '卡片顺序';
    --------------------------------------------------------------------------- */
 -- SELECT table_name FROM information_schema.tables
 --  WHERE table_schema = 'public' ORDER BY table_name;
+
+
+/* ============================================================================
+   9. 增量升级脚本（Day 22 余力加练 · 软删除）—— ⚠️ 线上库只跑这一段，别重跑上面
+   ----------------------------------------------------------------------------
+   背景：线上 words 表**已经建好并且有数据**了。上面那份建表脚本是「先 DROP 再 CREATE」，
+         重跑它 = 清库 = 数据全没。所以给线上加 is_deleted 列，只能走 ALTER TABLE。
+
+   ⚠️ 为什么不用重跑 schema.sql / seed.sql：
+      · schema.sql 开头  DROP TABLE —— 6 张表连同数据一起没
+      · seed.sql   开头  TRUNCATE   —— 数据清空重灌
+      两者都会**丢掉线上现有数据**。ALTER TABLE 是**只加一列**，一条数据不动。
+
+   ✅ ALTER TABLE ADD COLUMN 的安全性（为什么老数据不会丢、也不会变 NULL）：
+      新列带了 DEFAULT false，PostgreSQL 会给**已有的每一行自动填 false** ——
+      所以加完这列，原来的 3 条词条一条不少，且都是「未删除」。
+
+   执行处：控制台 → 数据库 → SQL 编辑器（只粘下面这一句）。
+   ⚠️ 幂等：IF NOT EXISTS 保证重复执行不报错。
+   ============================================================================ */
+ALTER TABLE words
+  ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN NOT NULL DEFAULT false;
+
+COMMENT ON COLUMN words.is_deleted IS '软删除标记（Day 22 余力加练）：false=正常，true=已删除但数据仍在库、可恢复；查询默认只取 false';
+
+-- 自查（可选）：看看列加上了没、现有数据是不是都填了 false
+-- SELECT id, word, is_deleted FROM words ORDER BY id;
