@@ -123,3 +123,76 @@ vibe-coding-30days/
 >
 > 账（Day 13 记）：`home.js` 与 `app.js` 里各留着一份 `loadJSON / escapeHTML / failureHTML` 的旧实现，
 > 本轮没有收编进 `common.js` —— 那两个页面已过 PRD 第六节的验收，有意不动，以后顺手再收。
+
+## 七、后端接口与线上部署（Day 23 补）
+
+### 7.1 两条独立的部署通道 —— 本项目最容易踩的坑
+
+| 东西 | 怎么上线 | 发它的时候，另一个会不会跟着更新 |
+|---|---|---|
+| 前端静态站 | 用发布流程按目录落位上传文件 | ❌ 不会 |
+| 后端云函数 `echoread-api` | **手动**打 zip → 控制台「上传代码包」→ 点「部署」 | ❌ 不会 |
+
+⚠️ **代码提交了 ≠ 线上生效。** 实测（Day 23）：长度校验的代码 `commit 9dcff11` 早就提交了，
+但云函数没重新部署，线上照样放行超长字段。同一次请求、两种表现：
+
+```
+POST /api/words  {"id":"<72 个字符>"}
+  旧版（未重部署）  →  201  {"ok":true}              ← 悄悄收下了
+  新版（已重部署）  →  400  字段过长：词条 id（id）太长（最多 64 个字符，当前 72 个）
+```
+
+**结论：改完 `cloudfunctions/` 下任何东西，必须单独重新部署一次云函数。只发前端 = 后端一个字都没变。**
+
+### 7.2 怎么打包云函数
+
+zip 解压后必须**直接是函数根目录**（不能再套一层文件夹），共 5 个文件：
+
+```
+index.js
+package.json
+lib/rdb.js
+repositories/boards.repo.js
+repositories/words.repo.js
+```
+
+⚠️ 本机**没有 `zip` 命令**；PowerShell `Compress-Archive` 曾静默失败、`Add-Type` 被安全策略拦
+→ 改用 **Python `zipfile`** 或 **Node 自写打包**。
+
+打完**别只信自己的打包脚本**，要独立验两道：
+① Windows 自带 `tar.exe -tvf <zip>` 列清单；② 解到临时目录跟源码 `diff -r`（应当**零差异**）。
+
+### 7.3 跨域（CORS）：哪些来源在白名单里（Day 23 实测）
+
+机制 ＝ CloudBase「环境配置 → 安全来源（Web 安全域名白名单）」＋ HTTP 网关跨域校验：
+**白名单内 → 网关自动补 `Access-Control-Allow-Origin`（只回显自身，不给 `*`）；白名单外 → 一张跨域头都没有。**
+
+| 请求头 `Origin` | 跨域头 |
+|---|---|
+| `https://echoread.app.workbuddy.host`（发布站点在用） | ❌ **没有** |
+| `https://echoread-d0g1b2ez6a369d11e-1502538433.tcloudbaseapp.com` | ✅ 有 |
+| `http://localhost:8000` / `http://localhost:8080` | ✅ 有 |
+| `https://evil.example.com` | ❌ 没有（正确：不给 `*`） |
+
+⇒ **修法**：控制台「环境配置 → 安全来源」把 `https://echoread.app.workbuddy.host` 加进去 —— **不用改任何代码**。
+加之前，浏览器里从发布站点调接口会被拦（页面显示「网络连不上」）；
+但**服务端直连不受影响**（curl / Node 都正常），所以「接口坏了」和「跨域被拦」要先分清楚。
+
+排查口诀（cmd 里跑，`findstr` 是 cmd 的搜索工具，不是 `grep`）：
+
+```
+curl -s -D - -o /dev/null -H "Origin: <页面域名>" <接口地址> | findstr /i "access-control"
+```
+
+有头 ＝ 服务器放行；无头 ＝ 没放行。
+
+### 7.4 线上回归脚本
+
+```
+cd /d <仓库路径>
+node skills\frontend-guidelines\scripts\verify-day23-live.cjs
+```
+
+10 项断言（反例必须被拦 / 边界 64 过、65 拦 / 正例不被误伤 / 库容复核），**自己清理测试数据**，退出码 0 或 1。
+该脚本做过反向验证（拿一个故意模仿旧版行为的假服务器当对照组，必须大面积 FAIL），不是永远亮绿灯的橡皮章。
+
