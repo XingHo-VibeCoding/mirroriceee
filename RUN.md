@@ -123,6 +123,23 @@ vibe-coding-30days/
 >
 > 账（Day 13 记）：`home.js` 与 `app.js` 里各留着一份 `loadJSON / escapeHTML / failureHTML` 的旧实现，
 > 本轮没有收编进 `common.js` —— 那两个页面已过 PRD 第六节的验收，有意不动，以后顺手再收。
+>
+> ⚠️ **（Day 23 补注，2026-10-12）上面这笔账已结清。原文保留不删，只加这条标注。**
+>
+> Day 23 的 `9dcff11`（「统一三类错误提示并补长度校验」）把重复实现收编掉了，实测核对如下：
+>
+> | 核对项 | 结果 |
+> |---|---|
+> | `home.js` 自定义 `loadJSON` / `failureHTML` / `escapeHTML` | 已删除（0 处定义） |
+> | `app.js` 同上 | 已删除（0 处定义） |
+> | `index.html` 引入 `assets/js/common.js` | 已引入 |
+> | `reader.html` 引入 `assets/js/common.js` | 已引入 |
+> | `common.js` 仍提供这三个函数 | 是（单一来源） |
+>
+> 所以「各留着一份旧实现」**不再成立**。变更是**收敛不是退步**：原先同一段取数/转义/错误提示逻辑
+> 在三处各存一份（改一处会漏另外两处），现在全站只认 `common.js` 一份。
+> 三个页面的调用点也一并改成传参形式，例如 `failureHTML(err, '板块列表', 'retry-boards')`。
+
 
 ## 七、后端接口与线上部署（Day 23 补）
 
