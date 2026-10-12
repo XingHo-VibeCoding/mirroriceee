@@ -195,12 +195,52 @@ node skills\frontend-guidelines\scripts\verify-day24-cors.cjs
 | 第 4 组（2 条） | 继续 **PASS** | |
 | 汇总 | **8 PASS / 0 FAIL**，退出码 **0** | |
 
-### 5.3 浏览器侧（人工，两条截图）
+### 5.3 浏览器侧实证（人工截图，2026-10-12 14:48）
 
-| # | 截图 | 内容 |
-|---|---|---|
-| 1 | **改前** | 发布站点打开 `check.html`，F12 控制台：跨域红字原文 + ② 区「网络连不上」（图里要能看见地址栏域名） |
-| 2 | **改后** | 同一个页面：控制台无红字，①②区正常出数，②区条数与控制台 `select * from words` 一致 |
+**✅ 截图 1 —— 改前：线上站点的 F12 控制台（已到手）**
+
+在 `https://echoread.app.workbuddy.host/check.html` 上实测，Console 原文：
+
+```
+Access to fetch at 'https://echoread-d0g1b2ez6a369d11e-1502538433.ap-shanghai.app.tcloudbase.c…'
+  from origin 'https://echoread.app.workbuddy.host' has been blocked by CORS policy:
+  No 'Access-Control-Allow-Origin' header is present on the requested resource.     check.html:1
+GET https://echoread-d0g1b2ez6a369d11e-…  net::ERR_FAILED  200 (OK)                 common.js:25
+Error: 网络连不上
+  at common.js:40:14
+  at async Promise.all (index 1)                                                    check.js:131
+```
+
+🔑 **最有价值的是 `net::ERR_FAILED 200 (OK)` 这一行** —— 它把 H1 一句话讲完了：
+`/api/health` 本来就该回、也确实回了 **200**；失败的原因**不在服务器**，
+而是响应里**没有 `Access-Control-Allow-Origin`**，浏览器因此拒绝把结果交给页面的 JS。
+⇒ **「成功了却失败」这种自相矛盾的组合，只有跨域能造出来。**
+
+同时它也印证了 `Error: 网络连不上`（`common.js:40`）确实出自 `failureHTML` 的 **network 分支**，
+不是"接口挂了" —— 与 `check.js` 的 catch 逻辑完全一致。
+
+> 🔑 **一个免费的诊断判据（现场分辨"本地还是线上"，一眼就够）**：
+>
+> | 控制台里看到 | 说明 |
+> |---|---|
+> | **具体 HTTP 状态码**（404 / 500…） | 请求真的发出去了、服务器真的回了 ⇒ 来源在**白名单内** ⇒ 本地 `localhost` |
+> | `blocked by CORS policy` / `No 'Access-Control-Allow-Origin' header` | 请求在**预检阶段就被浏览器拦死**，拿不到任何状态码 ⇒ **线上** |
+>
+> 实测反例佐证：本地页面删一个不存在的 id，Console 里显示的是 **`404`**（不是 CORS 报错）——
+> 因为 `localhost` 在白名单里，请求确实发出去、服务器如实回了 404。
+
+**⛔ 截图 2 —— 改后：线上恢复正常（已作废，不具备成立条件）**
+
+原计划是"修好后同一页面控制台无红字、①②区正常出数"。但现在已知：
+**免费体验版加不了跨域白名单 ⇒ H1 只能封存**，线上站点的接口调用**永远不会恢复正常**
+（见四·补）。⇒ 这一张**不可能出现**，不再作为验收项，也不该拿假图凑。
+
+替代证据（已到手）：
+
+| 原要求 | 替代方案 |
+|---|---|
+| 修复后正常运行 | **本地** `localhost:8000/check.html`：①区「正常 · 服务名 echoread」、②区「3 条」（与库一致）、④区标题已是「真改、软删」 |
+| "修好会变成什么样" | **脚本的改后预期**（见 5.2：期望 8 PASS / 0 FAIL）—— 等哪天升级套餐真的加了白名单，跑一次即可验证 |
 
 ## 六、这件事的教训（值得记）
 
