@@ -60,8 +60,29 @@ const MIME = {
      手动挪靠"人记得"，漏一次就出事；写在这里是"代码保证"，一次改动永久生效。
      这正是 Day 23 安全审计的思路：把安全从"人记得"变成"代码保证"。 */
 const BLOCKED_EXT = ['.md', '.env', '.env.example', '.env.local', '.env.production', '.env.development', '.env.test'];
-/* 路径前缀黑名单：以这些相对路径开头的请求一律拒绝（匹配的是 URL 路径，用 / 分隔） */
-const BLOCKED_PATH_PREFIX = ['.env', '.workbuddy/', '.git/'];
+/* 路径前缀黑名单：以这些相对路径开头的请求一律拒绝（匹配的是 URL 路径，用 / 分隔）
+
+   Day 24 补充：把 `cloudfunctions/` 挡上。
+     起因：Day 24 发布前的安全体检发现，线上
+       /cloudfunctions/echoread-api/index.js
+       /cloudfunctions/echoread-api/lib/rdb.js
+       /cloudfunctions/echoread-api/package.json
+     三个文件**都能被人直接下载（200）** —— 后端全部接口逻辑、字段映射、错误码、
+     网关调用方式一览无余。
+     为什么之前漏了：Day 23 只想到 .env / .workbuddy / .git 这三个"机密/笔记"目录，
+       没想到「后端源码」本身也是发布目录里的一员 —— 发布是**整目录上传**，
+       仓库里有什么就传什么，仓库根目录下就躺着 cloudfunctions/ 和 db/。
+     ⚠️ 为什么不能指望 WAF 兜底：实测 /.env 与 /db/schema.sql 的 403 是
+       **腾讯云 WAF** 按攻击特征拦下的（请求根本没到我们服务器），
+       但 cloudfunctions/ 不命中任何 WAF 特征 —— 靠平台兜底靠不住，得自己保证。
+     ⚠️ 为什么必须在【服务器层】挡：发布是「只增不删」，文件一旦上去就删不掉了
+       （与 .md 同一个道理，见上面 BLOCKED_EXT 的说明）。
+       加在这里 = 新版本一上线，请求就被我们自己的服务器回 404 挡住，
+       沙箱里那些旧文件即使还在，也访问不到了。
+
+   Day 24 一并加上 `db/`：里面是 schema.sql / seed.sql，目前靠 WAF 挡着（.sql 命中规则），
+     但那是"别人替我挡"；写进自家名单是零成本的纵深防御。 */
+const BLOCKED_PATH_PREFIX = ['.env', '.workbuddy/', '.git/', 'cloudfunctions/', 'db/'];
 
 /* 网址 → 本机文件路径。顺便挡住 ../../ 越界访问。
    Windows 上路径分隔符有正反两种，必须先 normalize 再比较，否则会误判 */
