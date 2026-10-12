@@ -203,6 +203,42 @@ curl -s -D - -o /dev/null -H "Origin: <页面域名>" <接口地址> | findstr /
 
 有头 ＝ 服务器放行；无头 ＝ 没放行。
 
+> ⚠️ **（Day 24 补注，2026-10-12）上面这段的"修法"已实测复现，但【尚未执行】。原文保留不删，只加本条标注。**
+>
+> Day 24 把这条从"听说过"升级成"有完整证据"（含**预检 OPTIONS** 那一条，Day 23 没测）：
+>
+> | 请求 | 发布站点域名 | localhost:8000（对照） |
+> |---|---|---|
+> | `GET /api/health` 带 `Origin` | 200 但**无任何 `access-control-*` 头**、无 `vary` | ✅ 有 `allow-origin` + `vary: Origin` |
+> | `OPTIONS /api/words` 预检（`ACRM: POST`） | **405**（`content-length: 100`）—— 网关把预检**透传给了云函数** | ✅ **204** + `allow-methods: POST` —— 网关自己答的 |
+>
+> ⇒ **网关对白名单外的来源连预检都不应答**，任它掉进云函数撞 405。
+> ⇒ 这也解释了为什么界面报的是「网络连不上」而不是 405：浏览器在**预检阶段**就判不通过，
+>    `fetch` 直接 reject，JS 根本拿不到那个 405。**`check.js` 的提示是如实反映，不是文案写错。**
+>
+> ⚠️ 附带纠正一条容易误解的事：**curl 全绿 ≠ 线上可用**。curl 不发预检、不校验 CORS 头，
+> 所以从 Day 17 到今天所有 curl 命令一路绿灯，唯独浏览器不通 ——
+> 「接口坏了」和「跨域被拦」靠 curl 永远分不出来。
+>
+> ⚠️⚠️ **补一条会让上面那句"修法"白填一轮的坑：填进去的域名【不要带 `http://` 或 `https://` 前缀】。**
+>
+> 本节（Day 23 原文）写的是「把 `https://echoread.app.workbuddy.host` 加进去」——
+> 那个带协议的形态是**给 curl 的 `Origin` 头用的**，**不是控制台该填的**。原文保留不删，这里只作纠正：
+>
+> | 场合 | 正确形态 | 理由 |
+> |---|---|---|
+> | 控制台「安全域名」填写 | `echoread.app.workbuddy.host`（**裸域名**） | 官方示例全是裸域名；CLI 文档明写"不含 `http://` 或 `https://` 前缀"。存的是裸域名，网关按 host 比对，**回显时才补回完整 Origin** |
+> | curl / 脚本的 `Origin` 请求头 | `https://echoread.app.workbuddy.host`（**带协议**） | `Origin` 的规范形态就是 `scheme://host` |
+>
+> 实证：默认列表里存的是裸 `localhost`，而实测它对 `http://localhost:8000` 放行、回显的就是带协议带端口的完整 Origin。
+>
+> **另一条旁证 —— 白名单里其实只有 4 个官方默认项**（`localhost` / HTTP 网关域名 / 静态托管域名 / 文件存储域名），
+> 本次实测放行的正是前三个中的两个。`echoread.app.workbuddy.host` 是发布平台给的自定义域名，
+> **三个默认项里没有它 ⇒ 从来没人加过** —— 根因到此闭环。
+> 官方文档：安全来源 <https://docs.cloudbase.net/envconfig/security/intro> ｜ HTTP 访问服务·跨域设置 <https://cloud.tencent.com/document/product/876/130728>
+>
+> **状态：复现已完成，修复待手动执行。** 完整证据与前后对照见根目录 `CORS_FIX.md`。
+
 ### 7.4 线上回归脚本
 
 ```
@@ -212,4 +248,25 @@ node skills\frontend-guidelines\scripts\verify-day23-live.cjs
 
 10 项断言（反例必须被拦 / 边界 64 过、65 拦 / 正例不被误伤 / 库容复核），**自己清理测试数据**，退出码 0 或 1。
 该脚本做过反向验证（拿一个故意模仿旧版行为的假服务器当对照组，必须大面积 FAIL），不是永远亮绿灯的橡皮章。
+
+### 7.5 跨域（CORS）回归脚本（Day 24 新增）
+
+```
+cd /d <仓库路径>
+node skills\frontend-guidelines\scripts\verify-day24-cors.cjs
+```
+
+8 项断言，**只读**（不写库、不造数据、无需清理）：
+
+| 组 | 断言 | 作用 |
+|---|---|---|
+| 1（3 条） | 发布站点域名带 `Origin` 打 `GET` / `OPTIONS` 预检 / `GET /api/words` | 本次的靶子；**修好之前必然是 FAIL** |
+| 2（2 条） | `localhost:8000` 与内置域名必须继续放行 | 防"修一个坏一个" |
+| 3（1 条） | `https://evil.example.com` 必须仍拿不到跨域头 | 防"白名单被改松"（比原 Bug 更严重） |
+| 4（2 条） | 不带 `Origin` 打接口，确认**接口本体**是活的 | 把"跨域被拦"和"接口坏了"分开 |
+
+退出码 0 / 1。可覆盖地址：`ECHOREAD_API`、`ECHOREAD_SITE`。
+
+⚠️ 这个脚本的反向验证是**最硬的一种**：改前跑就是 5 PASS / 3 FAIL（红的全在第 1 组），
+加完白名单再跑应变成 8 PASS / 0 FAIL —— **这个"红→绿"的差值，就是修复生效的铁证**。
 
