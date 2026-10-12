@@ -551,12 +551,57 @@ var ROUTES = {
 };
 
 /* ===========================================================================
+   请求日志（Day 23 余力加练）—— 一次请求一行，打印到控制台「日志监控」
+
+   为什么加它：云函数出问题时，这里往往是**唯一**能还原现场的地方 ——
+     CloudBase 只留平台自己的调用记录，业务层面「谁在什么时候调了什么、结果如何」
+     得我们自己打。Day 22 的 `w-abandon` 丢失事件就吃过这个亏：
+     **删了却没人察觉，三天后才发现**，当时想回溯「谁删的」完全没有线索。
+
+   ⚠️ 三条刻意的取舍：
+     ① **不打 query string**。`?unit=` / `?id=` 都是用户输入，可能很长
+        （有人塞 10KB 的 unit 就能把日志刷爆），而且里面可能有不该落盘的内容。
+        只打**路径**，够定位就行。
+     ② **不打请求体**。同理，POST 的 body 里是用户数据。
+     ③ **结果只打状态码 + 错误短码**，不打 message —— message 是给人看的中文，
+        排查时看短码（invalid_field / not_found / db_error…）更快、更省地方。
+
+   格式（时间 | 方法 路径 | 结果 | 耗时）：
+     [echoread-api] 2026-10-12T10:55:00.000Z | GET /api/words | 200 | 137ms
+     [echoread-api] 2026-10-12T10:55:01.000Z | POST /api/words | 400 invalid_field | 3ms
+     [echoread-api] 2026-10-12T10:55:02.000Z | GET /api/nope | 404 not_found | 0ms
+   =========================================================================== */
+function logRequest(method, path, res, ms) {
+  var status = (res && res.statusCode) || 0;
+
+  /* 从响应体里抠出错误短码（成功就没有）。body 是我们自己 JSON.stringify 的，
+     但解析失败也绝不该影响正常返回 —— 所以整个包在 try 里：
+     **日志失败不能拖垮接口**。 */
+  var code = '';
+  try {
+    var body = JSON.parse(res.body);
+    if (body && body.ok === false && body.error) code = ' ' + body.error;
+  } catch (e) {
+    /* body 不是 JSON，作罢 */
+  }
+
+  console.log(
+    '[echoread-api] ' + new Date().toISOString() +
+    ' | ' + method + ' ' + path +
+    ' | ' + status + code +
+    ' | ' + ms + 'ms'
+  );
+}
+
+/* ===========================================================================
    函数入口
    event   —— 这次 HTTP 请求的信息（方法、路径、头、参数、body）
    context —— 运行环境信息（函数名、环境 ID、请求上下文等）
    两个参数都由 CloudBase 注入，我们只读不写。
    =========================================================================== */
 exports.main = async function (event, context) {
+  var began = Date.now();   /* ① 开工时刻。收口时减一下就是耗时（Day 23 请求日志） */
+
   /* event.httpMethod —— 这次请求用的 HTTP 方法（GET / POST / …）。
      先转成大写再比较，避免大小写差异导致误判。 */
   var method = String(event.httpMethod || 'GET').toUpperCase();
@@ -572,35 +617,45 @@ exports.main = async function (event, context) {
      （如 /api/boards）。去掉结尾多余的斜杠再查表，让 /api/boards/ 也能命中。 */
   var path = String(event.path || '').replace(/\/+$/, '') || '/';
 
+  /* ⚠️ Day 23：所有分支只往 out 写，**出口收敛成一个 return**。
+     为什么改形状：请求日志要给「每一次请求」都记一行。要是还像以前那样
+     在四个分支里各 return 一次，就得在四处都插一句 logRequest —— 漏一处留一个盲区。
+     收敛成一个出口后，日志只写一次，天然覆盖全部路径（含 404 / 405 / 500）。 */
+  var out;
+
   /* ① 先按路径找。找不到 = 这个路径根本不存在 → 404
      （跟「路径在、但方法不对」是两回事，别混成一个错误）。 */
   var route = ROUTES[path];
   if (!route) {
-    return fail(404, 'not_found', '没有这个接口');
+    out = fail(404, 'not_found', '没有这个接口');
+  } else {
+    /* ② 再看这个方法挂没挂处理函数。
+       ⚠️ Day 18 的改动就在这儿：原来「非 GET/HEAD 一律 405」是**写死**的；
+          现在改成「这个路径支持哪些方法，就看路由表里挂了哪些」——
+          /api/words 挂了 GET 和 POST ⇒ 这俩都通，PUT 才 405。
+          message 里列出该路径**实际支持**的方法，用户一看就知道该怎么调。 */
+    var handler = route[method];
+    if (!handler) {
+      var allowed = Object.keys(route).join('、');
+      out = fail(405, 'method_not_allowed', '该接口只支持 ' + allowed);
+    } else {
+      try {
+        /* event.queryStringParameters —— URL 上 ?a=1&b=2 那部分，CloudBase 已经解析成对象。
+           没有问号参数时它可能是 undefined，兜一个空对象，省得下游到处判空。
+           ⚠️ event 也一并传下去 —— 写接口（POST）要从 event.body 取请求体。 */
+        var query = event.queryStringParameters || {};
+        out = await handler(query, event);
+      } catch (err) {
+        /* 未配 Key、网关报错、网络超时……都落到这里。
+           ⚠️ 不把 err.message 原样吐给前端 —— 那里面可能带主机名、状态码、内部细节。
+              人话给用户，详细原因留给控制台的日志（console.error 会进「日志监控」）。 */
+        console.error('[echoread-api] 接口出错:', err && err.message ? err.message : err);
+        out = fail(500, 'db_error', '服务端出错，请稍后再试');
+      }
+    }
   }
 
-  /* ② 再看这个方法挂没挂处理函数。
-     ⚠️ Day 18 的改动就在这儿：原来「非 GET/HEAD 一律 405」是**写死**的；
-        现在改成「这个路径支持哪些方法，就看路由表里挂了哪些」——
-        /api/words 挂了 GET 和 POST ⇒ 这俩都通，PUT 才 405。
-        message 里列出该路径**实际支持**的方法，用户一看就知道该怎么调。 */
-  var handler = route[method];
-  if (!handler) {
-    var allowed = Object.keys(route).join('、');
-    return fail(405, 'method_not_allowed', '该接口只支持 ' + allowed);
-  }
-
-  try {
-    /* event.queryStringParameters —— URL 上 ?a=1&b=2 那部分，CloudBase 已经解析成对象。
-       没有问号参数时它可能是 undefined，兜一个空对象，省得下游到处判空。
-       ⚠️ event 也一并传下去 —— 写接口（POST）要从 event.body 取请求体。 */
-    var query = event.queryStringParameters || {};
-    return await handler(query, event);
-  } catch (err) {
-    /* 未配 Key、网关报错、网络超时……都落到这里。
-       ⚠️ 不把 err.message 原样吐给前端 —— 那里面可能带主机名、状态码、内部细节。
-          人话给用户，详细原因留给控制台的日志（console.error 会进「日志监控」）。 */
-    console.error('[echoread-api] 接口出错:', err && err.message ? err.message : err);
-    return fail(500, 'db_error', '服务端出错，请稍后再试');
-  }
+  /* ③ 无论走的是上面哪条路，都在这里记一行，然后统一出口。 */
+  logRequest(method, path, out, Date.now() - began);
+  return out;
 };
