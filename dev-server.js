@@ -13,6 +13,7 @@
    ============================================ */
 
 const http = require('http');
+const https = require('https');      /* Day 27：同源代理要用它转发到云函数 */
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
@@ -119,7 +120,53 @@ function fail(res, code, message) {
   res.end(message);
 }
 
+/* 【Day 27】同源代理用的上游地址 —— 只在【服务端】出现，不下发到浏览器。
+   为什么需要这一整套（这不是优化，是修一个线上必现的 bug）：
+     发布站点 https://echoread.app.workbuddy.host 不在 CloudBase 网关的跨域白名单里，
+     浏览器直接调云函数会被 CORS 拦掉 —— 页面上一律「网络连不上」（详见 CORS_FIX.md，
+     Day 23 发现、Day 24 定位，因免费体验版加不了安全域名而封存）。
+   解法：让浏览器只跟【自己人】说话。页面改调 /api/boards（同源、无跨域），
+     由本服务器在服务端转发给云函数 —— 服务器之间不存在 CORS 这回事。
+   附带好处：云函数地址从【前端源码】挪进了【后端】，前端不再暴露它。 */
+const API_ORIGIN = 'https://echoread-d0g1b2ez6a369d11e-1502538433.ap-shanghai.app.tcloudbase.com';
+
+/* 把 /api/** 原样转发到云函数，再把云函数的响应原样送回浏览器。
+   ⚠️ 转发时要【摘掉 Origin 头】：网关是拿它比对白名单的，
+      不带则不进入白名单判断（CORS_FIX.md 第五节实测：无 Origin 一律 200）。
+      这也正是"同源"能解决问题的地方 —— 浏览器那侧压根没有跨域请求要发生。 */
+function proxyToApi(req, res) {
+  let target;
+  try {
+    target = new URL(req.url, API_ORIGIN);
+  } catch (err) {
+    return fail(res, 400, '400 请求地址不合法');
+  }
+
+  const headers = Object.assign({}, req.headers, { host: target.host });
+  delete headers.origin;      /* 见上：带了反而会被白名单拦 */
+  delete headers.referer;
+
+  const upstream = https.request(target, { method: req.method, headers: headers }, function (up) {
+    res.writeHead(up.statusCode || 502, up.headers);
+    up.pipe(res);
+  });
+
+  upstream.on('error', function (err) {
+    console.error('转发到云函数失败：', err.message);
+    fail(res, 502, '502 上游接口暂时不可用');
+  });
+
+  req.pipe(upstream);         /* 请求体（POST 等）也一并转发 */
+}
+
 const server = http.createServer((req, res) => {
+  /* Day 27：/api/** 交给代理，不当作静态文件找。
+     放在最前面，是因为 /api/words 这类路径在磁盘上并不存在，
+     继续往下走只会撞 404。 */
+  if ((req.url || '').split('?')[0].startsWith('/api/')) {
+    return proxyToApi(req, res);
+  }
+
   let filePath = resolveFile(req.url);
   if (!filePath) return fail(res, 403, '403 越界访问被拒绝');
 

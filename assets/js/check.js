@@ -17,13 +17,15 @@
       接口的增删改查（GET/POST/PATCH/DELETE）都在 Day 22 补齐了。
    ============================================ */
 
-/* 接口基地址。⚠️ 必须写完整域名：
-   本页挂在静态托管域名上，接口在云函数域名上，两个域名不同 —— 写相对路径必 404。
+/* 接口地址（Day 27 起改走【同源相对路径】）。
+   ⚠️ 原先写的是云函数完整域名，理由是"两个域名不同、写相对路径必 404" —— 那时没有代理。
+      现在 dev-server.js 加了 /api 代理，同源的 /api/** 会被转发到云函数，
+      跨域问题从浏览器眼里消失（详见 CORS_FIX.md）。
+   ⚠️ 别改回完整域名：跨域会原样回来。
    同款写法在首页的 home.js 与词汇页的 data-list-url 里各有一份（本项目不引构建工具，
    三处各留一份，代价小于为一句话的配置引一套打包流程）。 */
-var API_BASE = 'https://echoread-d0g1b2ez6a369d11e-1502538433.ap-shanghai.app.tcloudbase.com';
-var HEALTH_URL = API_BASE + '/api/health';
-var WORDS_URL = API_BASE + '/api/words';
+var HEALTH_URL = '/api/health';
+var WORDS_URL = '/api/words';
 
 /* ---- ③ 区的门槛：写入测试默认收起，输对口令才展开（Day 20 拍板 B）----
 
