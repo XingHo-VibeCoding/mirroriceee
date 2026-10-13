@@ -75,6 +75,19 @@ function setStatus(box, html) {
   if (box) box.innerHTML = html;
 }
 
+/* 【Day 27】撤掉加载遮罩。
+   放在"数据有结果了"那一刻调用 —— 不管后面是铺成卡片、还是空、还是报错，
+   遮罩的使命都已经结束：它只负责盖住"页面上什么都没有"的那几百毫秒。
+   先加 .is-hide 触发淡出（.32s，见 loading.css），再等过渡走完加 .is-gone 移出布局。
+   为什么用定时器而不是 transitionend：元素被隐藏、或系统开了"减少动态效果"时，
+   transitionend 可能压根不派发，定时器更稳。350ms 略大于 CSS 里的 320ms。 */
+function hideLoadingMask() {
+  var mask = document.getElementById('ld-mask');
+  if (!mask || mask.classList.contains('is-gone')) return;   /* 已撤过就跳掉，防重复 */
+  mask.classList.add('is-hide');
+  setTimeout(function () { mask.classList.add('is-gone'); }, 350);
+}
+
 /* 主流程：读清单 → 铺卡片。三种显示状态都在这里收口 */
 function render() {
   var list = document.getElementById('boards');
@@ -86,6 +99,7 @@ function render() {
   list.innerHTML = '';
 
   loadJSON(BOARDS_URL).then(function (data) {
+    hideLoadingMask();                     /* 数据到手，遮罩下岗 */
     var boards = data.boards || [];
 
     /* 空状态：页面能打开、控制台干净、什么都不报 ——
@@ -100,6 +114,7 @@ function render() {
     list.innerHTML = boards.map(buildBoardHTML).join('');
     wireCards();                          /* Day 11：卡片刚铺好，立刻接上浮圆与扩散 */
   }).catch(function (err) {
+    hideLoadingMask();                     /* 报错也要撤 —— 下面会给出错提示和重试按钮 */
     /* 读不到数据也要给人话 ＋ 重试入口，不能白屏。
        Day 23：改调 common.js 的统一版 —— 必须传 what / action，
        否则按钮 data-action 会退成默认值、点重试找不到这个页面的处理函数。 */

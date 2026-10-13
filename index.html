@@ -11,8 +11,44 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>英语学习工具 · 首页</title>
   <link rel="stylesheet" href="assets/css/style.css">
+  <!-- 加载遮罩的样式。单独一个文件、且排在 style.css 之后：
+       一是这块随时能整包撤掉，二是万一将来有同名类，后引的能压住前者。
+       类名统一 ld- 前缀，已核实不与 style.css 里任何类重名。 -->
+  <link rel="stylesheet" href="assets/css/loading.css">
 </head>
 <body>
+  <!-- 【加载遮罩】data/boards.json 读到之前，页面上什么都没有（见 home.js 里
+       「加载中必须说话」那条注释）。这一层先用 logo 动画顶上，数据回来或读取失败
+       再由 home.js 淡出移除。
+       aria-hidden="true"：遮罩里的「加载中」不参与朗读 —— 那句话已由
+       #boards-status（role="status"）负责播报，两边都念会重复一遍。
+       四片用 <div> 而非 <img>：动画靠 background-image，切图路径写在 loading.css 里。 -->
+  <div class="ld-mask" id="ld-mask" aria-hidden="true">
+    <div class="ld-inner">
+      <div class="ld-logo">
+        <div class="ld-petal ld-petal--tl"></div>
+        <div class="ld-petal ld-petal--bl"></div>
+        <div class="ld-petal ld-petal--br"></div>
+        <div class="ld-rotor"><div class="ld-petal ld-petal--tr"></div></div>
+      </div>
+      <p class="ld-label">加载中</p>
+      <div class="ld-track"><div class="ld-fill"></div></div>
+    </div>
+  </div>
+
+  <script>
+  /* 【兜底】万一 home.js 没跑起来（语法报错、文件 404、被拦），8 秒后强制撤掉遮罩。
+     宁可看不到加载动画，也绝不能把整个页面永久挡住 —— 挡死了这一页就废了。
+     注意：这是安全网，正常路径由 home.js 接管，通常几百毫秒内就撤了。 */
+  setTimeout(function () {
+    var m = document.getElementById('ld-mask');
+    if (m && !m.classList.contains('is-gone')) {
+      m.classList.add('is-hide');
+      setTimeout(function () { m.classList.add('is-gone'); }, 350);
+    }
+  }, 8000);
+  </script>
+
   <!-- 顶部标题 = 站名；下面三张卡片就是「三个子标题」，桌面三栏并排、窄屏纵向堆叠 -->
   <header class="site-header">
     <!-- 品牌区：logo + 站名。
