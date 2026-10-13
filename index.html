@@ -49,6 +49,13 @@
     <ul class="boards" id="boards"></ul>
   </main>
 
+  <!-- Day 26：版本标记。
+       ⚠️ 它不是装饰，是"发布 → 回滚 → 恢复"这条链上唯一一处
+          【肉眼和 curl 都能一眼看出线上是哪一版】的东西。
+          没有它，"退回上一版"这一步在截图里根本看不出差别，
+          回滚演练就没法客观证明 —— 别顺手删掉。 -->
+  <footer class="site-foot">v1.0</footer>
+
   <!-- Day 23：先引 common.js（提供 loadJSON / failureHTML / escapeHTML），
        再引 home.js —— home.js 已改为引用共用版，顺序反了会报未定义。 -->
   <script src="assets/js/common.js"></script>
