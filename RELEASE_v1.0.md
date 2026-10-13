@@ -1,0 +1,199 @@
+# RELEASE_v1.0.md · EchoRead v1.0 发布清单
+
+> **用在哪**：每次要把线上站点更新成"某一个确定的版本"时，从「一」走到「六」，一格一格打勾。
+> **为什么要有它**：发布是**不可逆的信息出口** —— 这台平台上，上线过的文件删不掉（Day 14 实测：
+> 本地删了、线上照样 200）。所以"发布前我看过了"这句话必须留下能被人复核的痕迹，不能靠记忆。
+> **配套文档**：`RUN.md`（怎么跑起来）· `ROLLBACK.md`（出了事怎么退）· `ROLLBACK_DRILL.md`（演练记录）·
+> `skills/verify-project/SKILL.md`（每条检查"防的是哪次事故、怎么算过"）。
+
+---
+
+## 〇、本次发布登记表（发布点）
+
+| 项 | 值 |
+|---|---|
+| 版本号 | `v1.0.0` |
+| 版本标记（三个层次） | ① 代码内：`package.json` → `"version": "1.0.0"`（已存在）<br>② 版本控制：Git 标签 `v1.0.0`（**已打**，指向 `79134c1`）<br>③ 页面可见：首页页脚 `v1.0`（**已采用**，见「一」） |
+| 发布日期 | 2026-10-13 |
+| 发布提交 | `79134c1`（`Day 26｜发布 v1.0：首页加页脚版本标记`） |
+| 上一版（回滚目标） | `e2e5ddb`（`Day 25｜余力加练：把发布前检查的用法写进 RUN.md 第八节`） |
+| 线上前端地址 | `https://echoread.app.workbuddy.host/` |
+| 线上接口地址 | `https://echoread-d0g1b2ez6a369d11e-1502538433.ap-shanghai.app.tcloudbase.com` |
+| 发布目录 | 仓库根目录本身（`<仓库路径>`，即 `C:\Users\20769\Desktop\vibe-coding-30days`） |
+| 发布到哪个应用 | 由**目录**决定，不由人决定：该目录关联的应用是<br>`wbapp_QtA4nZE0AiTmjU19OyPRTV`「EchoRead 英语跟读」 |
+| 发布方式 | 走发布通道上传整个目录，**`language` 必须显式写成 `node`** |
+| 为什么必须写 `node` | 让它自己猜成 `static` 的话，静态托管**不给 Range**，音频跳播当场坏掉（`RUN.md` 第四节有实测） |
+| 发布后要记下来 | `shareLink` / `sandboxId` / `deployedAs`（正常应为 `http-service`） |
+
+---
+
+## 一、版本标记（为什么要有、怎么打）
+
+**版本标记是回滚演练能成立的前提。** 如果线上"新版"和"上一版"长得一模一样，
+你退回去之后拿什么证明退成功了？—— 截图里必须有一处**用眼睛就能看到**的差异。
+
+| 层次 | 怎么打 | 作用 | 现状 |
+|---|---|---|---|
+| ① 代码内 | `package.json` 的 `version` 字段 | 给人看、给工具读 | ✅ 已是 `1.0.0` |
+| ② 版本控制 | `git tag -a v1.0.0 -m "..."` | **机器可查、可 `checkout` 回到那个点**；回滚时"上一版"就有了唯一名字 | ✅ 已打（指向 `79134c1`） |
+| ③ 页面可见 | 首页页脚加一行 `v1.0` | **回滚演练肉眼可辨**；`curl` 也能一眼看出线上是哪一版 | ✅ 已采用（`index.html` 的 `.site-foot`） |
+
+> ⚠️ **2026-10-13 拍板：③ 选 A（页脚文字）。** 下表保留成决策记录，不删。
+> 落点与预期略有出入，如实记下：原方案写的是「页脚加一行字」，而**这个站四个页面原本都没有页脚**
+> （`style.css` 里也没有任何 `footer` 规则）→ 实际动作是**新开了一个页脚元素**（`index.html` 的
+> `<footer class="site-foot">` ＋ `style.css` 的 `.site-foot`，共 2 文件 +24 行）。
+> 结论没变：页面上现在有了一个肉眼和 `curl` 都看得见的版本痕迹。
+
+> **③ 的三个方案**（成本都很低，选一个）：
+>
+> | 方案 | 怎么改 | 好处 | 代价 |
+> |---|---|---|---|
+> | A 页脚文字 | `index.html` 页脚加 `<span class="site-version">v1.0</span>` | 截图上直接看得见，最直观 | 站点多一行字 |
+> | B 隐藏标记 | `<meta name="app-version" content="1.0.0">` | 不污染界面 | **截图看不出**，只能靠 `curl` 比对哈希 → 不算"肉眼可辨" |
+> | C 不改页面 | 只打 Git 标签 | 零改动 | 回滚前后页面对比**无差异**，"退回上一版"这一步没法客观验证 |
+>
+> **建议 A**：改动最小（一行），却让"退回上一版"这件事从"我觉得退了"变成"截图里它不见了"。
+
+---
+
+## 二、发布前验证项（八项，逐条打勾）
+
+在 cmd 里跑（`findstr` 是 cmd 的搜索工具，不是 `grep`）：
+
+```cmd
+cd /d <仓库路径>
+```
+
+| # | 检查项 | 命令 | 怎么算过 | 现在跑会看到 |
+|---|---|---|---|---|
+| 1 | 工作区干净 | `git status --short` | **无任何输出** | ✅ 无输出（2026-10-13 实测） |
+| 2 | 私有物没混进版本控制 | `git ls-tree -r HEAD --name-only` | 清单里**没有** `.env`、`.workbuddy/` | ✅ 无 |
+| 3 | 离线检查（密钥 / 发布包不夹带） | `node skills\verify-project\scripts\check-offline.mjs` | 退出码 `0`，10/10 全绿 | ✅ 10/10 |
+| 4 | 联网检查（跨域 / 契约 / 线上可达） | `node skills\verify-project\scripts\check-online.mjs` | 退出码 `0`；红项按下方放行表处理 | ⚠️ 12 PASS / 2 FAIL（C1、C2 跨域） |
+| 5 | 本地四个页面能开 | `curl -o /dev/null -w "%{http_code}\n" http://localhost:8000/` 等四条 | 四个都是 `200` | 待跑（先 `node dev-server.js`） |
+| 6 | 本地 Range 可用 | `curl -s -o /dev/null -D - -H "Range: bytes=1000-1999" http://localhost:8000/assets/audio/oh-im-really-sorry.mp3` | `206 Partial Content` + `Content-Range` | 待跑 |
+| 7 | 数据基线没动 | 记录当前库容（六表各多少条） | 与上次发布时一致 | 待填 |
+| 8 | 备份就位 | 见「五」 | 备份存在且能说清路径 | 待做 |
+
+### 2.1 第 4 项红了怎么办 —— 放行规则（写死，别每次重新纠结）
+
+| 红项 | 是什么 | 能带着发布吗 | 理由 |
+|---|---|---|---|
+| **C1 / C2 跨域** | CloudBase 安全域名白名单里没有发布站点域名 | ✅ **能** | 它和前端代码无关，是控制台的配置项（`CORS_FIX.md`）；代价是**修好之前发布站点调接口的功能不可用**，属已知问题 |
+| **任何其它红项** | —— | ❌ **不能** | 说明这次改动真的引入或触发了问题，先修再发 |
+
+> ⚠️ **一句话防坑**：`curl` 全绿 ≠ 线上可用。`curl` 不发预检、不校验跨域头，
+> 所以"接口坏了"和"跨域被拦"靠 `curl` 永远分不出来（Day 24 实测）。
+
+---
+
+## 三、发布步骤（七步）
+
+| 步 | 做什么 | 命令 / 动作 | 怎么算过 |
+|---|---|---|---|
+| 1 | 进目录 | `cd /d <仓库路径>` | 提示符在仓库目录 |
+| 2 | 确认干净 | `git status --short` | 无输出 |
+| 3 | 生成 git 历史快照 | `git log --all --diff-filter=A --name-only --pretty=format: > .git-history-snapshot.txt` | 文件生成（这是给离线检查 A3 那项喂数据；不生成它会**诚实报"跳过"**，不会假装通过） |
+| 4 | 跑离线检查 | `node skills\verify-project\scripts\check-offline.mjs` | 退出码 `0` |
+| 5 | 跑联网检查 | `node skills\verify-project\scripts\check-online.mjs` | 退出码 `0`（红项按 §2.1 处理） |
+| 6 | 打发布标签 | `git tag -a v1.0.0 -m "EchoRead v1.0 发布点"` | `git tag -l` 能看到 `v1.0.0`；`git show v1.0.0 --stat` 有输出 |
+| 7 | 发布 | AI 通过发布通道上传仓库根目录（`language: node`） | 返回 `shareLink`（应为 `https://echoread.app.workbuddy.host/`）、`sandboxId`、`deployedAs: http-service` |
+
+> ⚠️ **第 6 步必须在第 7 步之前**。标签必须打在"即将发布的那一个 commit"上，
+> 打完标签**不要再提交任何东西**（否则标签指的版本和线上不是同一个）。
+>
+> ⚠️ **第 7 步是覆盖式发布**：它替换掉线上现在的内容，**已有的分享链接不变**。
+> 发布前必须有人（就是你）明确说"发"，不接受 AI 自己决定发。
+
+---
+
+## 四、发布后验证（七项）
+
+```cmd
+:: 把线上首页抓下来跟本地比哈希 —— 这是"线上到底是不是这一版"最硬的证据
+curl -s -o wb-index.html https://echoread.app.workbuddy.host/index.html
+```
+
+> ⚠️ **比哈希有个陷阱（2026-10-13 实测抓到，别踩）**：本项目**没有 `.gitattributes`**，
+> 本机 `core.autocrlf=true` ⇒ **`git checkout <提交> -- index.html` 写出来的是 CRLF**，
+> 哈希与线上对不上（线上跑的一直是 LF）：
+>
+> | 取法 | 字节 | sha256 |
+> |---|---|---|
+> | `git show e2e5ddb:index.html`（raw blob，LF） | 3341 | `40bae9e7…` ✅ 与线上一致 |
+> | `git checkout e2e5ddb -- index.html`（转成 CRLF） | 3398 | `eb104634…` ❌ 对不上 |
+>
+> ⇒ **凡是要拿去发布、或要跟线上比哈希的内容，一律用 `git show <ref>:<路径> > <路径>`。**
+
+| # | 检查 | 命令 | 怎么算过 | 现在（发布前基线） |
+|---|---|---|---|---|
+| 1 | 线上首页 = 本地首页 | `curl` 抓下来比对 sha256 | 两个哈希一致 | ✅ `40bae9e7…`（本地 = 线上） |
+| 2 | 四个页面可开 | `curl -o /dev/null -w "%{http_code}\n" <地址>` ×4 | 全 `200` | ✅ 全 200 |
+| 3 | Range 仍可用 | 带 `Range` 打音频 | `206 Partial Content` | ✅ 206 |
+| 4 | 项目文档拿不到 | `/RUN.md` `/PRD.md` `/AGENTS.md` | `404` | ✅ 全 404 |
+| 5 | 机密 / 后端源码拿不到 | `/.env` `/cloudfunctions/…/index.js` `/db/schema.sql` | **不是 `200`** | ✅ `403` / `404` / `403` |
+| 6 | 后端接口活着 | `curl <接口>/api/health` | `200` + `{"ok":true,...}` | ✅ |
+| 7 | **浏览器真开一次** | 人工：F12 看 Console 有无红色报错 | 无红色报错（跨域那条除外，见下） | 待做 |
+
+> ⚠️ 第 6 项只证明**接口本体**活着，**不证明**浏览器能从发布站调它 —— 那是第 7 项的事。
+> 第 7 项现在的已知现象：Console 里会有一条 CORS 红字（`No 'Access-Control-Allow-Origin'`），
+> 这是 §2.1 里说过的**已知问题**，不是本次发布引入的。
+>
+> ⚠️⚠️ **2026-10-13（v1.0 发布当天）实测补注：上面那句"一条红字"说轻了。原文保留不删，这里补实测。**
+>
+> 从发布站点打开**首页**，看到的不是"一条红字"，而是**整块功能缺失**：
+> 页面中部显示「网络连不上，加载不了板块列表。请检查网络后点下面的「重试」。」＋一个重试按钮，
+> **三张板块卡片一张都不出来**。（截图见 `WorkBuddy/day26/evidence/`）
+>
+> | 2026-10-13 实测 | 结果 |
+> |---|---|
+> | `GET /api/boards` **不带** `Origin` | 200，正常返回三个板块 ⇒ **接口本体是活的** |
+> | 带 `Origin: https://echoread.app.workbuddy.host` | 200 但**零跨域头** ⇒ 浏览器必拦 |
+> | 对照组 `Origin: http://localhost:8000` | ✅ 有 `access-control-allow-origin` |
+>
+> 机制：`assets/js/home.js` 的板块清单指向**云函数接口**（Day 17 从本地 `data/boards.json` 改成走接口），
+> 跨域被拦 → `fetch` 被 reject → 走 `failureHTML` 的 network 分支 → 就是那句提示。
+>
+> ⇒ **所以「v1.0 公网可访问」要说清范围**：页面 / 样式 / 音频**可达且正常**，
+> 但**"从发布站点调接口"这一半受已知问题影响，在套餐升级前不会恢复**（`CORS_FIX.md` 四·补，🔒 封存）。
+> 这不是 v1.0 引入的，退回上一版**也不会**变好。
+
+---
+
+## 五、代码与数据备份方式
+
+### 5.1 代码备份（三层，缺一层都不踏实）
+
+| 层 | 手段 | 出事怎么用 | 现状 |
+|---|---|---|---|
+| ① 版本库 | `git`（本地 `.git/` + 远程 `origin/main`） | `git checkout` / `git revert` | ✅ 49 个提交，已推送 |
+| ② 发布点 | 打标签 `v1.0.0` | `git checkout v1.0.0` 拿回那一刻的全套文件 | ⚠️ 本次补上 |
+| ③ 离线快照 | 整目录打包（排除 `node_modules/`、`.git/`），存仓库外并记 `sha256` | 解压即用，不依赖网络 | 建议每次发布前做一次 |
+
+**机密单独备份**：`.env` 不在版本控制里（`.gitignore` 第 10 行挡住），
+所以要**单独抄一份到仓库外**（U 盘 / 另一个目录）。模板在 `.env.example`，可以给你重建形状，
+但**重建不出密钥本身** —— 这份丢了就得去 CloudBase 控制台重新生成。
+
+```cmd
+:: 打包快照（cmd 里跑）
+:: ⚠️ 别把 C:/... 这种路径喂给 tar，它会当成"远程主机"→ 报 Cannot connect to C:
+::    用 /c/... 写法，或给 tar 加 --force-local
+tar -cf /c/Users/20769/Desktop/echoread-v1.0-snapshot.tar --exclude=node_modules --exclude=.git -C /c/Users/20769/Desktop/vibe-coding-30days .
+```
+
+### 5.2 数据备份（**这里必须说实话**）
+
+| 项 | 现状 | 能用的备份手段 | 用不了的 |
+|---|---|---|---|
+| CloudBase PostgreSQL 六表<br>（levels / materials / segments / words / templates / boards） | 跑在共享集群上，**个人版无 VPC、无公网直连、应用角色全是 `NOLOGIN`** → 本机连不上库 | ① `db/schema.sql`（建表）＋ `db/seed.sql`（种子）**已在仓库里** → 结构随时可重建<br>② 走 PG REST 网关只读查询，导出成 JSON 留档<br>③ 写入侧已做**软删除**设计 → 单条误删可复活 | ❌ `pg_dump` / `pg_restore`（连不上）<br>❌ 控制台"一键导出/回滚"（个人版没有这个能力） |
+
+> **结论（要记住）**：**当前没有"整表回滚"能力**，只有「结构可重建 + 单条可复活」。
+> 这条限制也写进了 `ROLLBACK.md` 的通道 C，别到时候才发现。
+
+---
+
+## 六、发布记录（每发一次加一行）
+
+| 版本 | 日期 | commit | 发布人 | shareLink | deployedAs | 结果 |
+|---|---|---|---|---|---|---|
+| v1.0.0 | 待填 | 待填 | 斌哥 | `https://echoread.app.workbuddy.host/` | `http-service` | 待填 |
