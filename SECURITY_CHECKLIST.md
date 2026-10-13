@@ -118,3 +118,21 @@ node skills/frontend-guidelines/scripts/verify-day23-security.mjs --bad
 ```
 
 **最后一次实测结果**：真实代码 `5 项通过，0 项失败`；写坏副本 `0 项通过，5 项失败`。
+
+> ⚠️ **（Day 25 补注，2026-10-12）上面那个脚本已收编，路径失效。原文保留不删，只加本条标注。**
+>
+> `verify-day23-security.mjs` 已并入发布前检查 Skill，旧文件删除，逻辑不再有第二份实现。
+> 它原来那 5 项，在新入口里对应 **A1 / A2 / A3 / A4 / A6**（外加一条新建的 A5「密钥不下发浏览器」）：
+>
+> ```
+> # 生成 git 历史快照（一样：沙箱里 Node 起子进程会 EBUSY，所以由外部先跑）
+> git log --all --diff-filter=A --name-only --pretty=format: > .git-history-snapshot.txt
+>
+> # 真实代码：期望 A 组全 PASS
+> node skills\verify-project\scripts\check-offline.mjs
+> ```
+>
+> ⚠️ **`--bad` 那个用法被有意取消了。** 旧脚本的 `--bad` 是"脚本自己造一个假副本再自己抓"，
+> 验的其实是对自己的想象。改成**对真实文件注入缺陷、验完立刻 `git checkout` 还原** ——
+> 三个注入配方（改哪一行、该红哪条、怎么还原）写在 `skills/verify-project/SKILL.md`
+> 「双向验证」一节，照着做即可复现本节的"写坏副本必须 FAIL"。

@@ -13,6 +13,16 @@
 | 修复状态 | 🔒 **封存**：根因已定位，但**免费体验版无法添加安全域名**（见四·补）；升级付费套餐后按第四节执行即可 |
 | 回归脚本 | `skills/frontend-guidelines/scripts/verify-day24-cors.cjs`（已就绪，改前 5 PASS / 3 FAIL） |
 
+> ⚠️ **（Day 25 补注，2026-10-12）上表「回归脚本」那一行的路径已失效 —— 脚本被收编了。
+> 原文保留不删，只加本条标注。** 现在跑：
+>
+> ```
+> node skills\verify-project\scripts\check-online.mjs
+> ```
+>
+> C1 ~ C5 就是原先那 8 项断言（含「白名单外必须仍被拒」那条防改松的）。
+> 详见 `skills/verify-project/SKILL.md` 与 `skills/frontend-guidelines/scripts/README.md`。
+
 ---
 
 ## 一、现象
@@ -161,6 +171,10 @@ Day 24 按方案 A 去控制台加域名，反馈「无法添加跨域域名」�
 cd /d <仓库路径>
 node skills\frontend-guidelines\scripts\verify-day24-cors.cjs
 ```
+
+> ⚠️ **（Day 25 补注，2026-10-12）上面这条命令已失效（脚本被收编）。原文保留不删，只加本条标注。**
+> 换成 `node skills\verify-project\scripts\check-online.mjs` —— 下面 5.1 / 5.2 的判据一条没变，
+> 只是脚本换了个家、编号改成 C1 ~ C5。本次移动**没有改动任何检查口径**。
 
 ### 5.1 改前（2026-10-12 11:28，Bug 未修）
 

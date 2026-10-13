@@ -249,6 +249,20 @@ node skills\frontend-guidelines\scripts\verify-day23-live.cjs
 10 项断言（反例必须被拦 / 边界 64 过、65 拦 / 正例不被误伤 / 库容复核），**自己清理测试数据**，退出码 0 或 1。
 该脚本做过反向验证（拿一个故意模仿旧版行为的假服务器当对照组，必须大面积 FAIL），不是永远亮绿灯的橡皮章。
 
+> ⚠️ **（Day 25 补注，2026-10-12）上面那条路径已失效 —— 脚本被收编了。原文保留不删，只加本条标注。**
+>
+> `verify-day23-live.cjs` 已并入发布前检查 Skill，旧文件删除，检查逻辑只有一份实现。
+> 换路径即可，用法不变：
+>
+> | 场合 | 现在的命令 |
+> |---|---|
+> | 对应本节的长度校验 / 边界 / 库容复核 | `node skills\verify-project\scripts\check-online.mjs`（默认只读） |
+> | 真要写入库再清理（原脚本就是这么干的） | `node skills\verify-project\scripts\check-online.mjs --write` |
+> | 顺带把密钥 / 发布包那几组也一起查 | `node skills\verify-project\scripts\check-offline.mjs` |
+>
+> 承接的检查项：D3 / D4 / D6 + E1 / E2。去向总表见
+> `skills/verify-project/SKILL.md` 末节与 `skills/frontend-guidelines/scripts/README.md`。
+
 ### 7.5 跨域（CORS）回归脚本（Day 24 新增）
 
 ```
@@ -269,4 +283,16 @@ node skills\frontend-guidelines\scripts\verify-day24-cors.cjs
 
 ⚠️ 这个脚本的反向验证是**最硬的一种**：改前跑就是 5 PASS / 3 FAIL（红的全在第 1 组），
 加完白名单再跑应变成 8 PASS / 0 FAIL —— **这个"红→绿"的差值，就是修复生效的铁证**。
+
+> ⚠️ **（Day 25 补注，2026-10-12）上面那条路径已失效 —— 脚本被收编了。原文保留不删，只加本条标注。**
+>
+> `verify-day24-cors.cjs` 已并入发布前检查 Skill，旧文件删除。换路径即可，8 项断言一条没少
+> （C1 ~ C5，含「白名单外必须仍被拒」那条防改松的）：
+>
+> ```
+> node skills\verify-project\scripts\check-online.mjs
+> ```
+>
+> 界面地址仍可用 `ECHOREAD_API` / `ECHOREAD_SITE` 覆盖。自带的提示语也一起搬过去了 ——
+> 若 FAIL 全落在「发布站点」相关项、而对照组全过，脚本末尾会直接打印该往控制台填什么域名。
 
