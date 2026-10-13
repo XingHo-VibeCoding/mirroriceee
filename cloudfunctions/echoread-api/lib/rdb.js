@@ -75,11 +75,15 @@ var REST_TIMEOUT_MS = 2500;
    select  —— 要哪几列（PostgREST 的列选择语法，逗号分隔）
    order   —— 排序，如 sort_order.asc,id.asc
    filters —— 额外的「等值过滤」，形如 [['unit_tag', 'Unit 1']]，可空
+   limit   —— Day 28 新增：最多取几行（不传 = 网关默认，通常 1000 行封顶）。
+              排行榜「取前 N 名」靠它 —— 传了它，网关就只回前 N 行，
+              不用把整表拉回来再在函数里切。⚠️ 只接受正整数，
+              零 / 负数 / 非数字一律当作"没传"（宁可多取，不要拼出非法查询串）。
 
    返回：网关给的**数组**（注意不是 { data: [...] } 那种信封）。
    出错就抛 —— 由入口函数统一翻成 500。
    --------------------------------------------------------------------------- */
-async function rdbSelect(table, select, order, filters) {
+async function rdbSelect(table, select, order, filters, limit) {
   /* API Key（对应数据库的 service_role 角色，能绕过行级权限 RLS）。
      ⚠️ 它等于数据库的万能钥匙：只能从环境变量读，绝不写进代码、
         更绝不出现在任何返回给浏览器的内容里。 */
@@ -95,6 +99,11 @@ async function rdbSelect(table, select, order, filters) {
        不编码的话，值里一个 & 就能凭空多长出一条查询条件。 */
     qs.push(encodeURIComponent(f[0]) + '=eq.' + encodeURIComponent(f[1]));
   });
+  /* limit 是我们自己代码传进来的数字，不带用户输入 —— 但仍然过一道
+     Number.isInteger：拼查询串的地方不放任何不确定的东西进去。 */
+  if (Number.isInteger(limit) && limit > 0) {
+    qs.push('limit=' + limit);
+  }
 
   var url = REST_BASE + '/v1/rdb/rest/' + table + '?' + qs.join('&');
 

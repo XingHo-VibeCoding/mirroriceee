@@ -21,9 +21,11 @@ var SEGMENTS_URL = 'data/segments.json';    /* 对齐数据：每句从第几秒
                  ⚠️ 这是 Day 8 新加的一层：以前选中等级就直接把音频铺出来；
                     现在中间多了一层文件列表，必须点开具体文件才出音频与文本 */
 var levelList = [];
+var allLessons = [];                   /* Day 28：课程清单（L1 下的 Lesson1~Lesson23） */
 var allMaterials = [];
 var allSegments = [];
 var activeLevel = '';
+var activeLesson = '';                 /* 当前点进的课。空字符串＝还停在「课程列表页」 */
 var activeFileId = '';
 
 /* 秒数 → mm:ss，方便人一眼核对（6 → "00:06"） */
@@ -47,6 +49,33 @@ function materialsOfActiveLevel() {
   return allMaterials.filter(function (material) {
     return material.level === activeLevel;
   });
+}
+
+/* ---- Day 28：课程层（Lesson1~Lesson23）的两条取数捷径 ---- */
+
+/* 当前等级声明了哪些课。没声明（L2 / L3）→ 空数组 =
+   该等级没有「课程列表页」，行为跟以前一字不差 */
+function lessonsOfActiveLevel() {
+  if (!activeLevel) return [];
+  return allLessons.filter(function (lesson) {
+    return lesson.level === activeLevel;
+  });
+}
+
+/* 当前等级、当前课下的素材。没点进课（activeLesson 为空）时返回空数组 ——
+   ⚠️ 这是"两页互斥"的落点：课程列表页铺着的时候，音频页不该有内容。 */
+function lessonsActiveMaterials() {
+  if (!activeLesson) return [];
+  return materialsOfActiveLevel().filter(function (material) {
+    return material.lesson === activeLesson;
+  });
+}
+
+/* 现在显示的是不是「课程列表页」—— 整个界面的分页开关就看它。
+   两个渲染函数（renderFiles / renderMaterialView）都读这一个判断，
+   免得一处改了、另一处忘了。 */
+function showingLessonList() {
+  return lessonsOfActiveLevel().length > 0 && !activeLesson;
 }
 
 /* 某条素材的对齐数据；没配到就返回空数组，交给调用方决定怎么提示 */
@@ -100,39 +129,75 @@ function buildMaterialHTML(material, segments) {
     return attrs + head + '<p class="empty">这条素材还没有对齐数据</p></section>';
   }
 
-  /* 播放控制条：上面一条时间进度条，下面一排图标键（播放/停止 ＋ 单句重复），
-     跟音乐软件的排布一样。进度条上限先用「最后一句的终点」垫着，
-     播放器拿到音频真实时长后会改成真实时长 */
+  /* 播放控制条：上面一条时间进度条，下面一排键。
+     Day 28 晚改版（斌哥要求）：播放键左右各加一个箭头（上一个 / 下一个音频），
+     右侧再挂一个「A-B 复读」。
+     布局（见 style.css 的 .player-controls）：
+       中间一组 .player-transport = [◀] [播放/停止] [▶]  —— 三个一组，播放键仍然居中
+       右边一组 .player-modes     = [单句重复] [A-B 复读]
+     ⚠️ 箭头用 <button disabled> 表示"到头了"，不给一个点了没反应的键。 */
   var lastEnd = segments[segments.length - 1].end;
   var bar = '<div class="player">' +
               '<input type="range" class="progress" data-role="progress" ' +
                 'min="0" step="0.1" value="0" max="' + lastEnd + '" ' +
                 'aria-label="播放进度，拖动可跳到对应时间">' +
               '<div class="player-controls">' +
-                /* 播放/停止：两个图标都放在这一个按钮里，靠 CSS 按 aria-pressed 决定露哪一个
-                   （这样点一下只是切图标，不用重建按钮）。
-                   ⚠️ 第二个图标是「停止方块 ■」而不是「暂停两竖杠 ⏸」：
-                   这个键按下去的效果是停止（音频停 ＋ 播放头归位 ＋ 清高亮），图标必须照实。 */
-                '<button type="button" class="icon-btn" data-action="toggle-play" ' +
-                  'aria-pressed="false" aria-label="播放">' +
-                  '<svg class="ico ico-play" viewBox="0 0 24 24" aria-hidden="true" focusable="false">' +
-                    '<path d="M8 5v14l11-7z"></path>' +
-                  '</svg>' +
-                  '<svg class="ico ico-stop" viewBox="0 0 24 24" aria-hidden="true" focusable="false">' +
-                    '<path d="M6 6h12v12H6z"></path>' +
-                  '</svg>' +
-                '</button>' +
-                /* 单句重复：图标 + 文字。文字单独放进一个 span，
-                   因为播放器切开关时要改的是这几个字，不能把图标一起冲掉。
-                   aria-label 是兜底：窄屏会把文字藏起来，读屏软件得靠它念出名字 */
-                '<button type="button" class="btn item" data-action="toggle-repeat" ' +
-                  'aria-pressed="false" aria-label="单句重复">' +
-                  '<svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false">' +
-                    '<path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z"></path>' +
-                  '</svg>' +
-                  '<span data-role="repeat-label">单句重复</span>' +
-                '</button>' +
+                '<div class="player-transport">' +
+                  '<button type="button" class="icon-btn" data-action="prev-audio" aria-label="上一个音频">' +
+                    '<svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false">' +
+                      '<path d="M7 6h2.2v12H7zm11 0v12l-8.6-6z"></path>' +
+                    '</svg>' +
+                  '</button>' +
+                  /* 播放/停止：两个图标都放在这一个按钮里，靠 CSS 按 aria-pressed 决定露哪一个
+                     （这样点一下只是切图标，不用重建按钮）。
+                     ⚠️ 第二个图标是「停止方块 ■」而不是「暂停两竖杠 ⏸」：
+                     这个键按下去的效果是停止（音频停 ＋ 播放头归位 ＋ 清高亮），图标必须照实。 */
+                  '<button type="button" class="icon-btn" data-action="toggle-play" ' +
+                    'aria-pressed="false" aria-label="播放">' +
+                    '<svg class="ico ico-play" viewBox="0 0 24 24" aria-hidden="true" focusable="false">' +
+                      '<path d="M8 5v14l11-7z"></path>' +
+                    '</svg>' +
+                    '<svg class="ico ico-stop" viewBox="0 0 24 24" aria-hidden="true" focusable="false">' +
+                      '<path d="M6 6h12v12H6z"></path>' +
+                    '</svg>' +
+                  '</button>' +
+                  '<button type="button" class="icon-btn" data-action="next-audio" aria-label="下一个音频">' +
+                    '<svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false">' +
+                      '<path d="M14.8 6H17v12h-2.2zM6 6v12l8.6-6z"></path>' +
+                    '</svg>' +
+                  '</button>' +
+                '</div>' +
+                '<div class="player-modes player-modes--left">' +
+                  /* 单句重复：Day 28 晚从右侧移到【左侧】（斌哥指示）——
+                     两个模式键都堆在右边会和中间那组挤在一起、还会重合。
+                     现在三组各占网格一格：左（单句重复）/ 中（切歌+播放）/ 右（A-B 复读）。
+                     图标 + 文字，文字单独放进一个 span，
+                     因为播放器切开关时要改的是这几个字，不能把图标一起冲掉。
+                     aria-label 是兜底：窄屏会把文字藏起来，读屏软件得靠它念出名字 */
+                  '<button type="button" class="btn item" data-action="toggle-repeat" ' +
+                    'aria-pressed="false" aria-label="单句重复">' +
+                    '<svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false">' +
+                      '<path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z"></path>' +
+                    '</svg>' +
+                    '<span data-role="repeat-label">单句重复</span>' +
+                  '</button>' +
+                '</div>' +
+                '<div class="player-modes player-modes--right">' +
+                  /* A-B 复读：三态一个键（设 A → 设 B → 循环中再点关闭），
+                     状态文字由 player.js 的 syncABUI 改写；图标是两个点夹一条线（A…B）。 */
+                  '<button type="button" class="btn item" data-action="toggle-ab" ' +
+                    'aria-pressed="false" aria-label="A-B 复读">' +
+                    '<svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false">' +
+                      '<circle cx="6.6" cy="11.5" r="2.6"></circle>' +
+                      '<circle cx="17.4" cy="11.5" r="2.6"></circle>' +
+                      '<rect x="9.1" y="10.6" width="5.8" height="1.8" rx="0.9"></rect>' +
+                    '</svg>' +
+                    '<span data-role="ab-label">A-B 复读</span>' +
+                  '</button>' +
+                '</div>' +
               '</div>' +
+              /* A/B 两个点的时刻写在这儿（比塞进按钮文字更好读） */
+              '<p class="ab-readout" data-role="ab-readout"></p>' +
             '</div>';
 
   /* 每句带一个 --i（第几句），给 CSS 用来做「一句一句依次浮现」的延迟。
@@ -180,21 +245,26 @@ function render() {
   /* R6：加载中要有状态提示。重试时也先回到这一句，用户才知道点下去有反应了 */
   box.innerHTML = '<p class="empty">正在加载素材…</p>';
   setLevelsHTML('');                       /* 重试时先收掉旧目录，免得新旧按钮混在一起 */
+  setLessonsHTML('');
   setFilesHTML('');
 
   Promise.all([loadJSON(MATERIALS_URL), loadJSON(SEGMENTS_URL)])
     .then(function (result) {
       levelList = result[0].levels || [];
+      allLessons = result[0].lessons || [];   /* Day 28：课程清单，与素材同一份文件 */
       allMaterials = result[0].materials || [];
       allSegments = result[1];
 
       /* 默认落在第一个等级上，但【不自动打开任何文件】——
          「点开文件才出音频」是这一层的意义所在，自动打开就等于把这一层跳过了。
-         清单没声明等级时 activeLevel 留空字符串，走 materialsOfActiveLevel 的兜底 */
+         清单没声明等级时 activeLevel 留空字符串，走 materialsOfActiveLevel 的兜底。
+         ⚠️ activeLesson 也跟着清空：进页面停在「课程列表页」（有课目录的等级）。 */
       activeLevel = levelList.length ? levelList[0] : '';
+      activeLesson = '';
       activeFileId = '';
 
       renderLevels();
+      renderLessons();
       renderFiles();
       renderMaterialView();
     })
@@ -202,6 +272,7 @@ function render() {
       /* 坏路径：读不到数据也要给人话 ＋ 重试入口，不能白屏（B1 / R6）。
          Day 23：改调 common.js 的统一版，参数（what / action）必须给全。 */
       setLevelsHTML('');
+      setLessonsHTML('');
       setFilesHTML('');
       box.innerHTML = failureHTML(err, '素材', 'retry-load');
       console.error(err);
@@ -227,9 +298,47 @@ function setLevelsHTML(html) {
   if (nav) nav.innerHTML = html;
 }
 
+function setLessonsHTML(html) {
+  var nav = document.getElementById('lessons');
+  if (nav) nav.innerHTML = html;
+}
+
 function setFilesHTML(html) {
   var nav = document.getElementById('files');
   if (nav) nav.innerHTML = html;
+}
+
+/* Day 28：铺「课程列表页」—— Lesson1~Lesson23。
+   ⚠️ 结构与音频行【完全同源】：两者都挂 .file-btn 那身皮（白底卡片、名称 + 小字两行、
+      整宽、同样的内边距）——「尺寸都一样」不是靠对齐参数维持的，是同一套皮。
+      唯一不同的名字：data-action="pick-lesson" 与 data-lesson。
+   ⚠️ 只在「停在课程列表页」时铺；点进某一课后整页收起（斌哥要的是换页，不是叠页）。 */
+function renderLessons() {
+  var box = document.getElementById('lessons');
+  var back = document.getElementById('lesson-back');
+  if (!box) return;
+
+  var lessons = lessonsOfActiveLevel();
+  var listMode = lessons.length > 0 && !activeLesson;
+
+  if (listMode) {
+    box.innerHTML = lessons.map(function (lesson) {
+      var n = materialsOfActiveLevel().filter(function (m) {
+        return m.lesson === lesson.id;
+      }).length;
+      return '<button type="button" class="lesson-btn file-btn item" data-action="pick-lesson" ' +
+               'data-lesson="' + escapeHTML(lesson.id) + '">' +
+               '<span class="file-name">' + escapeHTML(lesson.title) + '</span>' +
+               '<span class="file-meta">' + (n ? n + ' 个音频' : '暂无素材') + '</span>' +
+             '</button>';
+    }).join('');
+  } else {
+    box.innerHTML = '';                    /* 不在列表页 → 整页收起（CSS .lessons:empty 不占位） */
+  }
+
+  /* 回路：「← Lesson 列表」只在"课程目录存在、且已经点进某一课"时露出来。
+     进了 Lesson1 就再没别的路挑课 —— 那是死胡同，不是简洁。 */
+  if (back) back.hidden = !(lessons.length > 0 && activeLesson);
 }
 
 /* 铺「文件列表」—— 当前等级下的音频文件，一条一行。
@@ -251,10 +360,21 @@ function renderFiles() {
     return;
   }
 
-  var list = materialsOfActiveLevel();
+  /* Day 28：课程列表页铺着的时候，音频页整块让位 —— 两页互斥（斌哥要的换页） */
+  if (showingLessonList()) {
+    nav.innerHTML = '';
+    return;
+  }
+
+  /* 点进了某一课 → 只看这一课里的音频；没点课（L2 / L3 这种没有课程目录的等级）
+     → 看整个等级下的音频，行为与以前一字不差 */
+  var list = activeLesson ? lessonsActiveMaterials() : materialsOfActiveLevel();
   if (!list.length) {
-    /* 空状态：说清「是这个等级没有」，而不是让人以为整站挂了 */
-    nav.innerHTML = '<p class="empty">' + escapeHTML(activeLevel) + ' 暂无素材</p>';
+    /* 空状态：说清是哪一个范围没有内容，而不是让人以为整站挂了 */
+    nav.innerHTML = '<p class="empty">' +
+      escapeHTML(activeLesson ? activeLevel + ' · ' + activeLesson + ' 暂无素材'
+                              : activeLevel + ' 暂无素材') +
+      '</p>';
     return;
   }
 
@@ -284,7 +404,12 @@ function renderMaterialView() {
   var box = document.getElementById('reader');
   if (!box) return;
 
-  if (!allMaterials.length || !materialsOfActiveLevel().length) {
+  /* Day 28：课程列表页铺着 / 这一课里没有素材 → 素材区整块留空
+     （空状态已经在文件列表那边说过了，这里再说一遍就是重复） */
+  if (!allMaterials.length ||
+      !materialsOfActiveLevel().length ||
+      showingLessonList() ||
+      (activeLesson && !lessonsActiveMaterials().length)) {
     box.innerHTML = '';
     return;
   }
@@ -294,12 +419,62 @@ function renderMaterialView() {
   })[0];
 
   if (!material) {
-    box.innerHTML = '<p class="empty">请从上面的列表里点开一个文件，音频和文本才会出现。</p>';
+    /* Day 28 晚（斌哥指示）：这里原来挂着一句「请从上面的列表里点开一个文件…」，
+       整块白面板又大又空，删掉 —— 文件列表就紧贴在上面，怎么操作一眼就看得出来，
+       不需要再写一句提示。留空即可，CSS 的 #reader:empty 会把整块面板收掉。 */
+    box.innerHTML = '';
     return;
   }
 
   box.innerHTML = buildMaterialHTML(material, segmentsOf(material.id));
   probeAllAudio(box);
+  syncAudioNav();
+}
+
+/* ---- Day 28：上一个 / 下一个音频 ----
+   箭头是"在当前这一份列表里前后挪一格"，列表的算法与文件列表完全同一套：
+   点进了某一课就只在那一课里挪；没点课（L2 / L3）就在整个等级里挪。
+   ⚠️ 抽成 currentFileList() 一处：列表来源只此一份，
+      免得"文件的顺序"和"箭头的顺序"哪天各走各的。 */
+function currentFileList() {
+  return activeLesson ? lessonsActiveMaterials() : materialsOfActiveLevel();
+}
+
+/* 箭头到头了就禁用 —— 点一个没反应的键比没有键更让人疑惑 */
+function syncAudioNav() {
+  var list = currentFileList();
+  var idx = -1;
+  for (var i = 0; i < list.length; i++) {
+    if (list[i].id === activeFileId) { idx = i; break; }
+  }
+  var prev = document.querySelector('#reader [data-action="prev-audio"]');
+  var next = document.querySelector('#reader [data-action="next-audio"]');
+  if (prev) prev.disabled = !(idx > 0);
+  if (next) next.disabled = !(idx >= 0 && idx < list.length - 1);
+}
+
+/* 切到前一条 / 后一条音频：换 activeFileId → 重铺素材区 → 自动开始播放。
+   ⚠️ 自动播是有意的：箭头的用途就是"连着听下一条"，换过去还等用户再点一次播放键，
+      等于把这个功能做了一半。 */
+function switchAudio(step) {
+  var list = currentFileList();
+  if (!list.length) return;
+
+  var idx = -1;
+  for (var i = 0; i < list.length; i++) {
+    if (list[i].id === activeFileId) { idx = i; break; }
+  }
+  var target = (idx < 0 ? 0 : idx + step);
+  if (target < 0 || target >= list.length) return;      /* 到头了：按钮本来就是禁用的，这里是双保险 */
+
+  if (window.Player && window.Player.stop) window.Player.stop();   /* 先把旧的停干净，别叠音 */
+  activeFileId = list[target].id;
+
+  renderFiles();                       /* 让文件列表那条的选中态跟着走 */
+  renderMaterialView();
+
+  var bar = document.querySelector('#reader .material');
+  if (bar && window.Player && window.Player.togglePlay) window.Player.togglePlay(bar);
 }
 
 /* 渲染完顺手探一遍音频在不在（B2：不用等用户点下去才发现缺失）。
@@ -322,6 +497,7 @@ function pickLevel(level) {
   if (window.Player && window.Player.stop) window.Player.stop();
 
   activeLevel = level;
+  activeLesson = '';                 /* 换了等级 → 退回该等级的「课程列表页」 */
   activeFileId = '';                 /* 换了等级，原来打开的文件要合上 */
 
   /* 只改 aria-pressed，不重铺整排按钮 —— 重铺会把用户刚点的那个按钮换掉，
@@ -332,6 +508,36 @@ function pickLevel(level) {
       btns[i].getAttribute('data-level') === level ? 'true' : 'false');
   }
 
+  renderLessons();
+  renderFiles();
+  renderMaterialView();
+}
+
+/* Day 28：点进某一课 —— 从「课程列表页」换到「音频选择页」。
+   先停播（同 pickLevel 的道理）：换页会把播放控件从画面上抹掉，
+   player.js 缓存的 Audio 还在响，就成了"看不见的播放器"。 */
+function pickLesson(id) {
+  if (!id || id === activeLesson) return;
+  if (window.Player && window.Player.stop) window.Player.stop();
+
+  activeLesson = id;
+  activeFileId = '';                 /* 换课 → 原来打开的文件要合上 */
+
+  renderLessons();                   /* 课程列表收起 + 回路露出来 */
+  renderFiles();
+  renderMaterialView();
+}
+
+/* Day 28：回「课程列表页」。就是 pickLesson 的逆操作 ——
+   清掉 activeLesson，课程列表重新铺、音频页收起。 */
+function backToLessons() {
+  if (!activeLesson) return;
+  if (window.Player && window.Player.stop) window.Player.stop();
+
+  activeLesson = '';
+  activeFileId = '';
+
+  renderLessons();
   renderFiles();
   renderMaterialView();
 }
@@ -369,6 +575,23 @@ document.addEventListener('click', function (e) {
     pickLevel(pick.getAttribute('data-level'));
     return;
   }
+
+  /* Day 28：点进某一课 */
+  var lesson = el.closest('[data-action="pick-lesson"]');
+  if (lesson) {
+    pickLesson(lesson.getAttribute('data-lesson'));
+    return;
+  }
+
+  /* Day 28：从音频页回课程列表页 */
+  if (el.closest('[data-action="back-lessons"]')) {
+    backToLessons();
+    return;
+  }
+
+  /* Day 28：上一个 / 下一个音频（列表在 app.js 手里，所以这两个键也由这里接） */
+  if (el.closest('[data-action="prev-audio"]')) { switchAudio(-1); return; }
+  if (el.closest('[data-action="next-audio"]')) { switchAudio(1);  return; }
 
   var file = el.closest('[data-action="pick-file"]');
   if (file) pickFile(file.getAttribute('data-file'));

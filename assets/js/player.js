@@ -21,11 +21,163 @@ var Player = (function () {
   var barsBySrc = {};         /* 音频路径 → 它那块素材的容器，用来在时长到手后修正进度条上限 */
   var current = null;         /* 当前载入的这一句／这一段；null = 什么都没在播 */
   var repeatOn = false;       /* 单句重复开关（R5） */
+
+  /* ---- Day 28：A-B 复读的状态 ----
+     ab.bar 记着"这套 A/B 是哪块素材上的"：换素材后旧标记自动作废（对不上号）。
+     b === null 表示"设了 A、还在等 B"；a/b 都是秒数。
+     ⚠️ 与单句重复【互斥】：两个都是"循环"模式，同时开着会互相抢播放头。
+        开 A-B 自动关单句重复，开单句重复自动清 A-B（见 toggleAB / toggleRepeat）。 */
+  var ab = { bar: null, a: null, b: null };
   var tickId = null;          /* rAF 句柄 */
   var seekCheckTimer = null;  /* 跳播结果复查定时器（见 verifySeek） */
   var dragging = false;       /* 用户正按着进度条：这时候不要让代码去覆盖他拖到的位置 */
   var reachedTail = false;    /* 上一次收尾是不是因为播到了整段末尾
                                  （决定播放键下次按下时"从头播"还是"从当前位置播"） */
+
+  /* ---------- Day 28：A-B 复读 ---------- */
+
+  /* 已设 A 且已设 B（真正在循环） / 只设了 A（还在等 B） */
+  function abActive() { return !!(ab.bar && ab.a !== null && ab.b !== null); }
+  function abArmed()  { return !!(ab.bar && ab.a !== null); }
+
+  /* 时刻显示：复用 app.js 的 formatClock（同在一个页面作用域里，它先加载） */
+  function clock(sec) {
+    return (typeof formatClock === 'function') ? formatClock(sec) : String(sec);
+  }
+
+  /* 按钮文字 + 时刻读出，一处改两处生效。
+     三态文案：
+       没设      → 「A-B 复读」
+       设了 A    → 「已设 A · 再点设 B」
+       在循环    → 「A-B 复读 · 开」 */
+  function syncABUI() {
+    var btns = document.querySelectorAll('[data-action="toggle-ab"]');
+    var text = abActive() ? 'A-B 复读 · 开'
+             : (abArmed() ? '已设 A · 再点设 B' : 'A-B 复读');
+    for (var i = 0; i < btns.length; i++) {
+      btns[i].setAttribute('aria-pressed', abActive() ? 'true' : 'false');
+      btns[i].setAttribute('aria-label', abActive()
+        ? ('A-B 复读开着：' + clock(ab.a) + ' 到 ' + clock(ab.b) + '，再点一次关闭')
+        : (abArmed() ? ('已设 A 点 ' + clock(ab.a) + '，再点一次设 B 点') : 'A-B 复读'));
+      /* ⚠️ 只改文字那个 span，别用 textContent 整个覆盖 —— 那会把按钮里的图标一起冲掉 */
+      var label = btns[i].querySelector('[data-role="ab-label"]');
+      if (label) label.textContent = text;
+    }
+
+    var read = document.querySelector('[data-role="ab-readout"]');
+    if (read) {
+      read.textContent = abActive()
+        ? ('A ' + clock(ab.a) + ' → B ' + clock(ab.b) + ' · 在这一段里循环')
+        : (abArmed() ? ('A ' + clock(ab.a) + ' · 播到终点时再点一次「设 B」') : '');
+    }
+  }
+
+  /* 清掉 A/B 标记。挂在哪都安全（没设过就什么都不做）。
+     ⚠️ 顺手把 current.mode 从 'ab' 退回 'free'：否则播放头走到 B 之后
+        再也没人管边界判断，会一路播到底、也不收尾。 */
+  function clearAB(bar, note) {
+    var had = abArmed();
+    ab = { bar: null, a: null, b: null };
+    if (current && current.mode === 'ab') current.mode = 'free';
+    if (had) {
+      syncABUI();
+      if (note && bar) setStatus(note, bar);
+    }
+  }
+
+  /* 把播放头搬进 [A,B] 并进入 'ab' 模式（循环由 checkBoundary 执行） */
+  function enterABRange(bar, audio) {
+    var el = segAtTime(bar, ab.a);
+    current = {
+      el: el, bar: bar, audio: audio, mode: 'ab', inWindow: false,
+      start: ab.a, end: ab.b
+    };
+    reachedTail = false;
+    highlight(el);
+
+    if (audio.paused) {
+      audio.currentTime = ab.a;
+      startAudio(audio, '没能开始播放，请再按一次播放', bar);
+      startTicking();
+    } else if (audio.currentTime < ab.a - 0.2 || audio.currentTime > ab.b) {
+      /* 正在播但不在区间里 → 拨到 A 点 */
+      audio.currentTime = ab.a;
+    }
+    syncProgress(bar, ab.a);
+  }
+
+  /* A-B 键：三态一个键（设 A → 设 B → 关闭） */
+  function toggleAB(bar) {
+    if (!bar) return;
+    var src = bar.getAttribute('data-audio');
+    if (!src) return;
+    if (blockedByUnavailable(bar)) return;
+
+    var audio = getAudio(src);
+    registerBar(src, bar);
+
+    /* 换了素材 → 旧的 A/B 对不上号了，先归零重来 */
+    if (ab.bar && ab.bar !== bar) clearAB();
+
+    /* "此刻"是哪一刻：正在播就用播放头，否则用进度条的位置（没播时它以 0 兜底） */
+    var here = (current && current.bar === bar && !audio.paused)
+      ? audio.currentTime
+      : progressValue(bar);
+
+    /* ① 还没设 A → 设 A */
+    if (!abArmed()) {
+      ab.bar = bar;
+      ab.a = here;
+      ab.b = null;
+      setStatus('已设 A 点 ' + clock(ab.a) + '。播到这一段终点时，再点一次「A-B 复读」设 B 点。', bar);
+      syncABUI();
+      return;
+    }
+
+    /* ② 设了 A 还没设 B → 设 B 并开始循环 */
+    if (ab.b === null) {
+      if (here - ab.a < 0.5) {
+        setStatus('B 点要比 A 点晚至少半秒。先往后播一点，再点这个键。', bar);
+        return;
+      }
+      ab.b = here;
+      /* 与单句重复互斥：两个循环模式同时开会互相抢播放头 */
+      if (repeatOn) toggleRepeat();
+      enterABRange(bar, audio);
+      setStatus('A-B 复读已开启：' + clock(ab.a) + ' → ' + clock(ab.b) + ' 之间循环。再点一次关闭。', bar);
+      syncABUI();
+      return;
+    }
+
+    /* ③ 已在循环 → 关闭（播放照常继续，只是不再拉回来） */
+    clearAB();
+    setStatus('A-B 复读已关闭。', bar);
+  }
+
+  /* ---------- Day 28：复读时长累计 ----------
+     口径（斌哥拍板）：**只在音频真的在响的时候累加**，页面挂着不算。
+
+     ⚠️ 为什么在每帧的 tick 里按时间差累加，而不是在播放键上挂"开始/结束"事件：
+        暂停可能来自任何地方（切后台、系统打断、浏览器拒绝播放、拖动进度），
+        挂事件得挂一串，漏一个就把时间算歪；
+        每帧问一句"这一刻音频在响吗"，天然覆盖全部情况 —— 这也是本项目
+        一贯的判据方式（syncPlayButtons 也是直接问 audio.paused，不另存状态）。
+
+     ⚠️ 单帧时间差封顶 2 秒：标签页被浏览器节流时，一帧可能隔好几十秒才来，
+        不封顶就会把"根本没在听的时间"也算进去。**宁少算，不多算** ——
+        排行榜是要给人看的，虚报时长等于把榜做废。 */
+  var usageSeconds = 0;        /* 已累计、还没上报的秒数（保留小数，取整才交付） */
+  var usageMark = 0;           /* 上一次记账的时刻 */
+
+  function accumulateUsage() {
+    var nowMs = (window.performance && performance.now) ? performance.now() : Date.now();
+    if (!usageMark) { usageMark = nowMs; return; }
+    var dt = (nowMs - usageMark) / 1000;
+    usageMark = nowMs;
+
+    if (!current || !current.audio || current.audio.paused) return;
+    if (dt > 0 && dt <= 2) usageSeconds += dt;
+  }
 
   /* ---------- 取音频对象 ---------- */
 
@@ -192,6 +344,29 @@ var Player = (function () {
     var audio = current.audio;
     var t = audio.currentTime;
 
+    /* ⓪ Day 28：A-B 复读 —— 播放头碰到 B 点就拉回 A 点。
+       放在最前面，因为它是"比单句更外层的循环"；两条同时生效会互相抢播放头，
+       所以 toggleAB / toggleRepeat 里做了互斥（开一个自动关另一个）。 */
+    if (current.mode === 'ab' && current.bar === ab.bar && abActive()) {
+      if (!current.inWindow) {
+        if (t < current.start - 1.0) return;      /* seek 还在路上，等下一帧 */
+        current.inWindow = true;
+      }
+      var elAB = segAtTime(current.bar, t);
+      if (elAB && elAB !== current.el) {
+        highlight(elAB);
+        current.el = elAB;
+      }
+      if (t >= current.end) {
+        audio.currentTime = current.start;
+        current.inWindow = false;                 /* 回拨后重新等 seek 落地 */
+      }
+      return;
+    }
+    /* 还挂着 'ab' 模式但 A-B 已经被清掉（用户点了句/拖了进度）→ 退回自由播放，
+       否则下面那些分支一条都不会命中，播放就"失管"了 */
+    if (current.mode === 'ab') current.mode = 'free';
+
     /* ① 闸门：还没确认到过位置，就只试着开闸 */
     if (!current.inWindow) {
       var arrived = current.mode === 'free'
@@ -236,6 +411,7 @@ var Player = (function () {
   function tick() {
     if (!current) return;
 
+    accumulateUsage();                       /* Day 28：先记时长，再判边界 */
     checkBoundary();
     if (!current) return;                    /* checkBoundary 里可能已经 stop() 掉了 */
 
@@ -308,6 +484,11 @@ var Player = (function () {
     var end = parseFloat(segEl.getAttribute('data-end'));
     if (!src || isNaN(start) || isNaN(end)) return;
 
+    /* Day 28：点句子 = 改听单句，与 A-B 复读互斥 —— 把 A/B 标记关掉，
+       否则「点第 3 句」和「在 A-B 区间循环」两个意图会打架，用户看到的随机是哪一个。
+       关掉时给一句话说明，不然用户会以为 A/B 标记"凭空消失"了。 */
+    if (ab.bar === bar) clearAB(bar, '已关闭 A-B 复读（改成单句播放）。');
+
     /* 先停旧的再起新的：R2 连点同一句、R3 切句、R7 切素材，全靠这一行防叠音 */
     if (current) current.audio.pause();
 
@@ -340,6 +521,9 @@ var Player = (function () {
     var src = bar.getAttribute('data-audio');
     if (!src) return;
     if (blockedByUnavailable(bar)) return;
+
+    /* Day 28：拖进度 = 手动定位，与 A-B 复读互斥（同上，关掉并说明） */
+    if (ab.bar === bar) clearAB(bar, '已关闭 A-B 复读（手动拖了进度）。');
 
     var audio = getAudio(src);
     registerBar(src, bar);
@@ -408,6 +592,15 @@ var Player = (function () {
       return;
     }
 
+    /* ①.5 Day 28：A-B 复读开着 → 从 A 点重新进入循环。
+       ⚠️ 停止键【不】销毁 A/B 标记是有意的：学生按下停止往往是"歇一下再听这一小段"，
+          再按播放就该回到 A 点继续循环，而不是让标记凭空消失、还得重设一遍。
+       ⚠️ 必须在 ③ 之前拦下 —— ③ 走的是 seekByProgress，而它会把 A-B 关掉。 */
+    if (abActive() && ab.bar === bar) {
+      enterABRange(bar, audio);
+      return;
+    }
+
     /* ② 兜底：还留着 current 但音频没在响（例如上一次 play() 被浏览器拒了），
        再点一次就原地接着播。正常流程走不到这里 —— 因为 ① 已用 stop() 把 current 清空了。 */
     var atEnd = audio.duration && isFinite(audio.duration) &&
@@ -438,9 +631,12 @@ var Player = (function () {
     syncPlayButtons();                        /* 停了，图标得变回「播放」 */
   }
 
-  /* 单句重复开关（R5） */
+  /* 单句重复开关（R5）
+     Day 28：与 A-B 复读互斥 —— 打开单句重复时清掉 A/B 标记（两个循环模式
+     同时开着会互相抢播放头，谁都听不清）。 */
   function toggleRepeat() {
     repeatOn = !repeatOn;
+    if (repeatOn && abArmed()) clearAB(current ? current.bar : null, '已关闭 A-B 复读（改用单句重复）。');
     var text = repeatOn ? '单句重复 · 开' : '单句重复';
     var btns = document.querySelectorAll('[data-action="toggle-repeat"]');
     for (var i = 0; i < btns.length; i++) {
@@ -495,6 +691,7 @@ var Player = (function () {
     var action = btn.getAttribute('data-action');
     if (action === 'toggle-play') togglePlay(btn.closest('.material'));
     else if (action === 'toggle-repeat') toggleRepeat();
+    else if (action === 'toggle-ab') toggleAB(btn.closest('.material'));
   });
 
   /* Day 9：句子行现在能 Tab 到了（见 app.js 里给它补的 tabindex / role），
@@ -522,6 +719,21 @@ var Player = (function () {
     togglePlay: togglePlay,
     stop: stop,
     toggleRepeat: toggleRepeat,
+    toggleAB: toggleAB,              /* Day 28：A-B 复读（三态一个键） */
+    clearAB: function () { clearAB(); },
+    abState: function () {           /* 给验证脚本看当前 A/B 状态，别去猜 DOM */
+      return { armed: abArmed(), active: abActive(), a: ab.a, b: ab.b };
+    },
+    /* ---- Day 28：时长累计的三个口子（上报是 app-shell.js 的事，这里只管记账）---- */
+    takeUsageSeconds: function () {  /* 取走整秒（零头留着，长跑不丢精度） */
+      var whole = Math.floor(usageSeconds);
+      usageSeconds -= whole;
+      return whole;
+    },
+    addBackUsage: function (sec) {   /* 上报失败时退回本地，别把用户的时长丢了 */
+      if (typeof sec === 'number' && sec > 0) usageSeconds += sec;
+    },
+    usageSeconds: function () { return usageSeconds; },
     current: function () { return current; }
   };
 })();

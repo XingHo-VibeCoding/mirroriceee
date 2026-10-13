@@ -62,6 +62,14 @@
    --------------------------------------------------------------------------- */
 var boardsRepo = require('./repositories/boards.repo');
 var wordsRepo = require('./repositories/words.repo');
+/* Day 28：认证的两个新住户 ——
+   authRepo 负责碰 users / sessions 两张表（走老路 rdb.js）；
+   auth（lib/auth.js）只管"算"：密码哈希、随机 token、验证码签发校验。
+   ⚠️ 依赖方向不变，还是一条直线：index.js → repositories / lib → rdb.js。 */
+var authRepo = require('./repositories/auth.repo');
+var auth = require('./lib/auth');
+/* Day 28 晚：学习时长（复读时长）—— 一个人一行累计，供排行榜读。 */
+var usageRepo = require('./repositories/usage.repo');
 
 /* 统一的 JSON 响应构造器。
    注意 body 必须是「字符串」：集成响应不会帮你二次序列化，
@@ -107,6 +115,74 @@ function checkLen(label, value, max) {
     return label + '太长（最多 ' + max + ' 个字符，当前 ' + value.length + ' 个）';
   }
   return null;
+}
+
+/* ===========================================================================
+   Day 28 · 认证的常量与工具
+   =========================================================================== */
+
+/* ---- 登录态参数 ----
+   ⚠️ AUTH_SECRET 不在文件里、不在仓库里：它是签名密钥（验证码包靠它防篡改），
+      只能配在云函数的【环境变量】里（控制台 → 函数配置 → 环境变量）。
+      谁拿到它谁就能伪造验证码包，所以按密钥对待：不发群、不截图、不写文档。 */
+function authSecret() {
+  var s = process.env.AUTH_SECRET;
+  if (!s || String(s).length < 16) {
+    /* 长度也拦一道：太短的密钥等于没锁。报错进控制台日志，对外只说 500。 */
+    throw new Error('未配置 AUTH_SECRET 环境变量（或长度不足 16 位）');
+  }
+  return s;
+}
+
+var TOKEN_TTL_DAYS  = 30;      /* 登录态有效期：30 天。到期后 /me 会回 401，重新登录即可 */
+var CAPTCHA_TTL_MS  = 120000;  /* 验证码 2 分钟有效 —— 够人看清并输入，长了只会帮倒忙 */
+
+/* 用户名 / 密码的规矩。
+   用户名 3~20 位、字母数字下划线（中文不收：URL 和展示层对它的处理差别太多，本期不趟）；
+   密码至少 8 位 —— 再低就是摆设；上限 64 位是防"一个 1MB 的密码"这种纯恶意的输入。 */
+var USERNAME_RE = /^[A-Za-z0-9_]{3,20}$/;
+
+/* 从请求头里取 Bearer token。
+   ⚠️ 头名可能是 'Authorization' 也可能被平台统一成小写 'authorization' ——
+      两个都看，别赌。值形如 "Bearer abc.def"，只取 token 本身。 */
+function bearerToken(event) {
+  var h = (event && event.headers) || {};
+  var raw = h.Authorization || h.authorization || '';
+  var m = /^Bearer\s+(.+)$/.exec(String(raw).trim());
+  return m ? m[1].trim() : '';
+}
+
+/* 把「token → 当前用户」这条链收成一个函数 —— /me 和 logout 都要先验，
+   写一处，两处行为永远不会不一致。
+   返回 { ok:true, session, user } 或 { ok:false, res }（res 是现成的 401 响应）。 */
+async function authByToken(event) {
+  var token = bearerToken(event);
+  if (!token) {
+    return { ok: false, res: fail(401, 'not_logged_in', '请先登录') };
+  }
+
+  var sessions = await authRepo.findSession(token);
+  if (!sessions || sessions.length === 0) {
+    /* 查不到：token 从来没发过，或者已经被退出登录删掉了。 */
+    return { ok: false, res: fail(401, 'not_logged_in', '登录状态已失效，请重新登录') };
+  }
+
+  var session = sessions[0];
+  if (new Date(session.expires_at).getTime() <= Date.now()) {
+    /* 过期了。顺手把这行死会话删掉（懒清理）——
+       不删它也能用（反正比对时间拦住了），但留着它，sessions 表只会越积越厚。 */
+    try { await authRepo.deleteSession(token); } catch (e) { /* 清不掉不影响判定 */ }
+    return { ok: false, res: fail(401, 'token_expired', '登录已过期，请重新登录') };
+  }
+
+  var users = await authRepo.findUserById(session.user_id);
+  if (!users || users.length === 0) {
+    /* 会话在、人没了（账号被删）→ 这个会话作废，删掉。 */
+    try { await authRepo.deleteSession(token); } catch (e) { /* 同上 */ }
+    return { ok: false, res: fail(401, 'not_logged_in', '登录状态已失效，请重新登录') };
+  }
+
+  return { ok: true, session: session, user: users[0] };
 }
 
 /* 解析 POST 请求体 → 普通对象
@@ -537,6 +613,308 @@ async function deleteWords(query, event) {
 }
 
 /* ===========================================================================
+   Day 28 · 认证接口（GET captcha / POST register,login,logout / GET me）
+   ------------------------------------------------------------
+   ⚠️ 响应形状沿用全站约定：成功 = {ok:true, data:{...}}，失败 = {ok:false, error, message}。
+   ⚠️ 纯新增，不动 /api/words 的任何行为（契约冻结）。
+   =========================================================================== */
+
+/* ---- GET /api/auth/captcha —— 发一张验证码 ----
+   返回 { ok:true, data:{ captchaId, svg, expiresInMs } }
+   前端把 svg 直接 innerHTML 进容器；注册时把 captchaId 和用户抄的码一起交回来。
+   ⚠️ 答案本身只存在于 SVG 图里 —— captchaId 里只有答案的 HMAC（lib/auth.js），
+      就算把 captchaId 解开也读不出答案。 */
+async function getCaptcha() {
+  var answer = auth.genCaptchaText();
+  var signed = auth.signCaptcha(answer, authSecret(), CAPTCHA_TTL_MS);
+  return json(200, {
+    ok: true,
+    data: {
+      captchaId: signed.captchaId,
+      svg: auth.renderCaptchaSvg(answer),
+      expiresInMs: CAPTCHA_TTL_MS
+    }
+  });
+}
+
+/* ---- POST /api/auth/register —— 注册 ----
+   请求体 { username, password, captchaId, captchaCode }
+   成功 201 { ok:true, data:{ id, username } }
+   错误 400 invalid_captcha / 400 invalid_field / 409 username_taken
+   ⚠️ 注册成功【不自动登录】—— 前端紧接着调 login 走一遍完整流程。
+      多一次往返，换来"注册和登录是两条路"这件事始终清晰。 */
+async function postRegister(query, event) {
+  var parsed = parseBody(event);
+  if (!parsed.ok) return fail(400, parsed.error, parsed.message);
+  var body = parsed.data;
+
+  /* ① 先验验证码 —— 它不查库、不耗数据库往返（纯本地算 HMAC），
+        把机器流量拦在最便宜的一步。 */
+  var cap = auth.verifyCaptcha(body.captchaId, body.captchaCode, authSecret());
+  if (!cap.ok) {
+    console.log('[echoread-api] 注册被拒：验证码未通过（' + cap.reason + '）');
+    return fail(400, 'invalid_captcha', '验证码不对或已过期，请换一张再试');
+  }
+
+  /* ② 校验用户名 / 密码。一次收集齐再报，同 words 那套「不挤牙膏」的规矩。 */
+  var problems = [];
+  var username = (typeof body.username === 'string') ? body.username.trim() : '';
+  var password = (typeof body.password === 'string') ? body.password : '';
+
+  if (!USERNAME_RE.test(username)) {
+    problems.push('用户名要 3~20 位，只能是字母、数字或下划线');
+  }
+  if (password.length < 8) {
+    problems.push('密码至少 8 位');
+  } else if (password.length > 64) {
+    problems.push('密码最多 64 位');
+  }
+  if (problems.length > 0) {
+    return fail(400, 'invalid_field', problems.join('；'));
+  }
+
+  /* ③ 查重：先查一遍是为了给人话（409 username_taken）；
+        真撞了唯一约束（竞态兜底）在插入那里再接一道。 */
+  var existed = await authRepo.findUserByUsername(username);
+  if (existed && existed.length > 0) {
+    return fail(409, 'username_taken', '这个用户名已经被注册了，换一个试试');
+  }
+
+  /* ④ 建号。⚠️ 明文密码到此为止：hashPassword 之后，明文只活在这个函数的局部变量里，
+        请求一返回就没了 —— 库里只有哈希（SELECT 肉眼可查），日志里永远没有它。 */
+  var rows;
+  try {
+    rows = await authRepo.createUser({ username: username, password_hash: auth.hashPassword(password) });
+  } catch (err) {
+    if (err && err.conflict) {
+      return fail(409, 'username_taken', '这个用户名已经被注册了，换一个试试');
+    }
+    throw err;
+  }
+
+  var u = (rows && rows[0]) || { id: null, username: username };
+  console.log('[echoread-api] 注册成功：id =', u.id, 'username =', u.username);
+  return json(201, { ok: true, data: { id: u.id, username: u.username } });
+}
+
+/* ---- POST /api/auth/login —— 登录 ----
+   请求体 { username, password }
+   成功 200 { ok:true, data:{ token, expiresAt, user:{ id, username } } }
+   错误 400 invalid_field / 401 bad_credentials
+   ⚠️ 「用户不存在」和「密码不对」回【同一句】话、同一个码 ——
+      分开说等于帮人探测"这个用户名注册过没有"，那是漏洞不是贴心。 */
+async function postLogin(query, event) {
+  var parsed = parseBody(event);
+  if (!parsed.ok) return fail(400, parsed.error, parsed.message);
+  var body = parsed.data;
+
+  var username = (typeof body.username === 'string') ? body.username.trim() : '';
+  var password = (typeof body.password === 'string') ? body.password : '';
+  if (!username || !password) {
+    return fail(400, 'invalid_field', '用户名和密码都要填');
+  }
+
+  var found = await authRepo.findUserByUsername(username);
+  var user = (found && found[0]) || null;
+
+  /* ⚠️ 用一个固定结尾统一两个失败路径：用户没查到也要"验一次密码"
+     （跟一个假哈希比，必输）—— 让「没这个用户」和「密码错了」的耗时长得一样，
+     耗时差异也是能被探测的信息。 */
+  var hash = user ? user.password_hash : auth.hashPassword('placeholder-not-a-real-password');
+  var passOk = auth.verifyPassword(password, hash);
+  if (!user || !passOk) {
+    return fail(401, 'bad_credentials', '用户名或密码不对');
+  }
+
+  /* 发 token、写会话。 */
+  var token = auth.newToken();
+  var expiresAt = new Date(Date.now() + TOKEN_TTL_DAYS * 24 * 60 * 60 * 1000);
+  await authRepo.createSession({ token: token, user_id: user.id, expires_at: expiresAt.toISOString() });
+
+  console.log('[echoread-api] 登录成功：id =', user.id, 'username =', user.username);
+  return json(200, {
+    ok: true,
+    data: {
+      token: token,
+      expiresAt: expiresAt.toISOString(),
+      user: { id: user.id, username: user.username }
+    }
+  });
+}
+
+/* ---- GET /api/auth/me —— 我是谁（token 换用户信息）----
+   请求头 Authorization: Bearer <token>
+   成功 200 { ok:true, data:{ user:{ id, username } } }
+   错误 401 not_logged_in / 401 token_expired */
+async function getMe(query, event) {
+  var authed = await authByToken(event);
+  if (!authed.ok) return authed.res;
+
+  return json(200, {
+    ok: true,
+    data: { user: { id: authed.user.id, username: authed.user.username } }
+  });
+}
+
+/* ---- POST /api/auth/logout —— 退出登录 ----
+   请求头 Authorization: Bearer <token>
+   成功 200 { ok:true }
+   ⚠️ 幂等：token 已经不在了（重复退出）也回成功 —— 两次退出的结果都是"不在了"，
+      与 DELETE /api/words 对已删 id 再删一次的容忍是同一个道理。 */
+async function postLogout(query, event) {
+  var token = bearerToken(event);
+  if (!token) {
+    return fail(401, 'not_logged_in', '请先登录');
+  }
+  await authRepo.deleteSession(token);
+  console.log('[echoread-api] 退出登录：token 已作废');
+  return json(200, { ok: true });
+}
+
+/* ===========================================================================
+   Day 28 晚 · 学习时长（复读时长）—— 上报 + 排行榜
+   ---------------------------------------------------------------------------
+   口径（斌哥拍板）：**只算复读功能真正在放音的时间**。
+     由前端在"音频在播"时累计秒数，心跳式上报；服务端只负责"收多少算多少"，
+     不去猜用户在干什么（猜不准，还会把"挂着不听"算成学习）。
+
+   为什么是心跳而不是"进页面记一笔、退页面记一笔"：
+     关页 / 断网 / 手机切后台被杀 —— 最后一笔根本发不出去，时长就丢了。
+     心跳 = 每 60 秒报一次"这一段我确实在听"，丢了最多丢一个周期。
+
+   ⚠️ 榜单口径：只回"前 N 名 + 我自己"，不回全榜 ——
+      前端要的是一眼看懂，少传一份就少泄露一份（谁排第几，同班可见够了）。
+   =========================================================================== */
+
+/* 一次心跳最多认多少秒。前端心跳周期 60 秒，这里给到 180（3 个周期）——
+   留足"标签页被浏览器节流、心跳迟了两拍"的余量，又不至于一次刷出几小时。 */
+var MAX_BEAT_SECONDS = 180;
+
+/* 宽限：本次可接受的秒数 = min(180, 距上次上报的秒数 + 90)。
+   ⚠️ 这一条才是真正的防刷 —— 只卡 180 的绝对值，脚本一秒调一次、每次报 180，
+      照样能凭空刷出天文数字。加上"不能比我实际等的时间多太多"之后，
+      刷榜速度被压回真实时长附近（90 秒补偿网络往返与节流）。 */
+var BEAT_GRACE_SECONDS = 90;
+
+/* 榜单条数上限（挡 ?limit=999999 把整表拖回来） */
+var LEADERBOARD_MAX = 50;
+var LEADERBOARD_DEFAULT = 5;
+
+/* 算"我的名次"时最多往下扫多少名；超出范围回 rank:null（前端显示"榜外"）。
+   为什么不去扫全表：免费版云函数 3 秒超时锁死，为一个名次拉全表不划算。
+   用户量真上来之后，换成"统计比我高的人数"的计数查询（网关要开 gt 过滤）。 */
+var RANK_SCAN = 200;
+
+/* ---- POST /api/usage/beat —— 上报一段复读时长 ----
+   请求头 Authorization: Bearer <token>
+   请求体 { seconds: <正整数> }
+   成功 200 { ok:true, data:{ added, totalSeconds } }
+   错误 401 not_logged_in / 400 invalid_field */
+async function postUsageBeat(query, event) {
+  var authed = await authByToken(event);
+  if (!authed.ok) return authed.res;
+
+  var parsed = parseBody(event);
+  if (!parsed.ok) return fail(400, parsed.error, parsed.message);
+
+  var seconds = parsed.data.seconds;
+  /* ⚠️ Number.isInteger 卡死：'60' 这种字符串、1.5 这种小数、NaN 一律挡在外面。
+     数字就是数字，不接受"看起来像数字"的东西 —— 这条规矩在 /api/words 也这么用。 */
+  if (!Number.isInteger(seconds) || seconds <= 0) {
+    return fail(400, 'invalid_field', 'seconds 必须是正整数（秒）');
+  }
+
+  var now = new Date();
+  var rows = await usageRepo.findTotalByUserId(authed.user.id);
+  var row = rows[0];
+
+  /* 封顶：先按"距上次上报过了多久 + 宽限"算上限，再压到绝对值上限里 */
+  var delta = seconds;
+  if (row && row.last_beat_at) {
+    var elapsed = (now.getTime() - new Date(row.last_beat_at).getTime()) / 1000;
+    var cap = Math.min(MAX_BEAT_SECONDS, Math.max(0, elapsed) + BEAT_GRACE_SECONDS);
+    if (delta > cap) delta = Math.floor(cap);
+  } else if (delta > MAX_BEAT_SECONDS) {
+    delta = MAX_BEAT_SECONDS;
+  }
+
+  /* 封顶后剩 0 秒（同一瞬间重复上报）→ 什么都不写，把现状原样回给他。
+     ⚠️ 不写库是有意的：让重复请求无害，也少一次数据库往返。 */
+  if (delta <= 0) {
+    return json(200, {
+      ok: true,
+      data: { added: 0, totalSeconds: row ? row.total_seconds : 0 }
+    });
+  }
+
+  var total = (row ? row.total_seconds : 0) + delta;
+  var patch = {
+    total_seconds: total,
+    last_beat_at: now.toISOString(),
+    updated_at: now.toISOString()
+  };
+
+  if (row) {
+    await usageRepo.updateTotal(authed.user.id, patch);
+  } else {
+    patch.user_id = authed.user.id;
+    try {
+      await usageRepo.createTotal(patch);
+    } catch (err) {
+      /* ⚠️ 竞态兜底：同一个人两个设备同时"第一次心跳"，两边都没读到行、
+         都走插入 → 第二个撞主键。这里接住它改成更新，别把可自动化解的
+          冲突抛成 500（跟注册时用唯一约束兜底是同一个思路）。 */
+      if (err && err.conflict) {
+        await usageRepo.updateTotal(authed.user.id, patch);
+      } else {
+        throw err;
+      }
+    }
+  }
+
+  return json(200, { ok: true, data: { added: delta, totalSeconds: total } });
+}
+
+/* ---- GET /api/usage/leaderboard?limit=5 —— 复读时长榜 ----
+   请求头 Authorization: Bearer <token>（要看"我的名次"，必须登录）
+   成功 200 { ok:true, data:{
+              me:  { totalSeconds, rank },              rank 为 null = 榜外
+              top: [ { rank, username, totalSeconds } ]
+            } }
+   错误 401 not_logged_in */
+async function getUsageLeaderboard(query, event) {
+  var authed = await authByToken(event);
+  if (!authed.ok) return authed.res;
+
+  var limit = parseInt(query.limit, 10);
+  if (!Number.isInteger(limit) || limit <= 0) limit = LEADERBOARD_DEFAULT;
+  if (limit > LEADERBOARD_MAX) limit = LEADERBOARD_MAX;
+
+  /* 一次取"够算名次"的量：前 limit 名一定在内，另外多扫一些好找我自己 */
+  var rows = await usageRepo.listTopTotals(Math.max(limit, RANK_SCAN));
+  var users = await usageRepo.listAllUsersBrief();
+
+  var nameById = {};
+  users.forEach(function (u) { nameById[String(u.id)] = u.username; });
+
+  var top = [];
+  var me = { totalSeconds: 0, rank: null };
+  for (var i = 0; i < rows.length; i++) {
+    var entry = {
+      rank: i + 1,
+      username: nameById[String(rows[i].user_id)] || '已注销账号',
+      totalSeconds: rows[i].total_seconds
+    };
+    if (i < limit) top.push(entry);
+    if (String(rows[i].user_id) === String(authed.user.id)) {
+      me = { totalSeconds: rows[i].total_seconds, rank: i + 1 };
+    }
+  }
+
+  return json(200, { ok: true, data: { me: me, top: top } });
+}
+
+/* ===========================================================================
    路由表：路径 → { 方法: 处理函数 }
    ⚠️ Day 18 改了形状：原来是「路径 → 函数」（隐含只支持 GET），
       现在一个路径可以挂多个方法（如 /api/words 既有 GET 又有 POST）。
@@ -547,7 +925,16 @@ async function deleteWords(query, event) {
 var ROUTES = {
   '/api/health': { GET: getHealth },
   '/api/boards': { GET: getBoards },
-  '/api/words':  { GET: getWords, POST: postWords, PATCH: patchWords, DELETE: deleteWords }
+  '/api/words':  { GET: getWords, POST: postWords, PATCH: patchWords, DELETE: deleteWords },
+  /* Day 28：认证五个端点，纯新增。⚠️ /api/words 一行没动（契约冻结）。 */
+  '/api/auth/captcha':  { GET: getCaptcha },
+  '/api/auth/register': { POST: postRegister },
+  '/api/auth/login':    { POST: postLogin },
+  '/api/auth/me':       { GET: getMe },
+  '/api/auth/logout':   { POST: postLogout },
+  /* Day 28 晚：学习时长两个端点，纯新增（老接口一行没动，契约依旧冻结） */
+  '/api/usage/beat':        { POST: postUsageBeat },
+  '/api/usage/leaderboard': { GET: getUsageLeaderboard }
 };
 
 /* ===========================================================================

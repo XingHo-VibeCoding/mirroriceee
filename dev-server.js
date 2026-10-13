@@ -133,7 +133,19 @@ const API_ORIGIN = 'https://echoread-d0g1b2ez6a369d11e-1502538433.ap-shanghai.ap
 /* 把 /api/** 原样转发到云函数，再把云函数的响应原样送回浏览器。
    ⚠️ 转发时要【摘掉 Origin 头】：网关是拿它比对白名单的，
       不带则不进入白名单判断（CORS_FIX.md 第五节实测：无 Origin 一律 200）。
-      这也正是"同源"能解决问题的地方 —— 浏览器那侧压根没有跨域请求要发生。 */
+      这也正是"同源"能解决问题的地方 —— 浏览器那侧压根没有跨域请求要发生。
+
+   ⚠️⚠️ Day 28 晚补的一层（线上登录一直显示未登录的真凶）：
+      线上多了一层【平台反向代理】，它会把 Authorization 头吃掉 ——
+      实测证据（同一条 token）：
+        · 直连云函数 /api/auth/me           → 200
+        · 走 https://echoread.app.../api/auth/me → 401
+        · 加随机查询串破缓存后仍是 401      → 不是缓存问题
+        · POST /api/auth/login 一路正常     → 请求本身到得了云函数
+      ⇒ 结论：能过去，但"身份"过不去。于是 token 改走【cookie】——
+        浏览器会自动带上它，而 cookie 是独立于 header 的通道，平台代理不会动它。
+        这一层就是"把 cookie 里的 token 补回成 Authorization 头"的地方：
+        浏览器那侧照旧（对云函数而言契约完全没变），补头发生在我们自己的服务器上。 */
 function proxyToApi(req, res) {
   let target;
   try {
@@ -146,6 +158,27 @@ function proxyToApi(req, res) {
   delete headers.origin;      /* 见上：带了反而会被白名单拦 */
   delete headers.referer;
 
+  /* ⚠️⚠️ 身份这一块是整个线上登录的命门，两版才修对，把实证留在这儿：
+     平台反向代理【会把 Authorization 头换成它自己的 JWT】——
+     诊断端点实测：我们前端发的是 64 位十六进制 token，
+     到达本服务器的却是 `Bearer eyJhb...`、长度 395（JWT 形状）。
+     ⇒ 所以：
+       ① 【cookie 里的 token 拥有最高优先级，无条件覆盖 Authorization】——
+          它只可能由我们自己的前端写入，是唯一可信的来源。
+          上一版写成"头缺失时才用 cookie"，结果平台塞了个头进来，
+          cookie 那条路永远不触发 —— 线上依旧 401。教训：判断"自己的凭据在不在"，
+          不能拿"有没有头"当依据，得看"有没有我们的值"。
+       ② 头里那个 JWT 不是我们的东西，【绝不转发给云函数】——
+          既不认（会被判失效），还等于把平台的身份令牌外传给第三方。
+          只有形如 `Bearer <64位十六进制>` 的头才认（本地开发/直连调试走这条）。 */
+  const cookieToken = readTokenCookie(req);
+  if (cookieToken) {
+    headers.authorization = 'Bearer ' + cookieToken;
+  } else {
+    const m = /^Bearer\s+([0-9a-f]{64})$/i.exec(headers.authorization || '');
+    if (!m) delete headers.authorization;      /* 不是我们的 token → 丢掉，不外传 */
+  }
+
   const upstream = https.request(target, { method: req.method, headers: headers }, function (up) {
     res.writeHead(up.statusCode || 502, up.headers);
     up.pipe(res);
@@ -157,6 +190,24 @@ function proxyToApi(req, res) {
   });
 
   req.pipe(upstream);         /* 请求体（POST 等）也一并转发 */
+}
+
+/* 从 Cookie 头里取 echoread_token。
+   ⚠️ 手写解析而不是引第三方库：只需要取一个值，多一个依赖不值当。
+      decodeURIComponent 兜住值里的特殊字符（token 是十六进制，本来就干净，
+      但别把"本来就干净"当作"永远干净"来写）。 */
+const TOKEN_COOKIE = 'echoread_token';
+function readTokenCookie(req) {
+  const raw = req.headers.cookie || '';
+  const parts = raw.split(';');
+  for (let i = 0; i < parts.length; i++) {
+    const piece = parts[i].trim();
+    if (piece.indexOf(TOKEN_COOKIE + '=') === 0) {
+      const v = piece.slice(TOKEN_COOKIE.length + 1);
+      try { return decodeURIComponent(v); } catch (e) { return v; }
+    }
+  }
+  return '';
 }
 
 const server = http.createServer((req, res) => {

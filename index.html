@@ -6,95 +6,168 @@
        Chrome 做这项检查时不保证等外部样式表解析完，而这条规则原先在 style.css
        的 1800 行之后 —— 实测 6 次跳转只有 1~2 次生效，时好时坏。
        挪到 <head> 靠前的位置之后 6/6 稳定。详见 style.css 里同名注释。
-       跟读页（reader.html）里有一份同样的，两页都声明才生效。 -->
+       ⚠️ 站内【每个页面】都要各声明一份，少一页那条链路就不生效。 -->
   <style>@view-transition { navigation: auto; }</style>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>英语学习工具 · 首页</title>
+  <title>文本跟读 · 星禾星穗</title>
   <link rel="stylesheet" href="assets/css/style.css">
-  <!-- 加载遮罩的样式。单独一个文件、且排在 style.css 之后：
-       一是这块随时能整包撤掉，二是万一将来有同名类，后引的能压住前者。
-       类名统一 ld- 前缀，已核实不与 style.css 里任何类重名。 -->
-  <link rel="stylesheet" href="assets/css/loading.css">
+  <!-- 外壳层（顶栏 / 左导航 / 右账号栏）。⚠️ 必须排在 style.css【之后】——
+       它靠顺序压住 style.css 里 body / main / .site-header 那几条单列页面的规则。
+       详见 app-shell.css 开头的说明。 -->
+  <link rel="stylesheet" href="assets/css/app-shell.css">
 </head>
-<body>
-  <!-- 【加载遮罩】data/boards.json 读到之前，页面上什么都没有（见 home.js 里
-       「加载中必须说话」那条注释）。这一层先用 logo 动画顶上，数据回来或读取失败
-       再由 home.js 淡出移除。
-       aria-hidden="true"：遮罩里的「加载中」不参与朗读 —— 那句话已由
-       #boards-status（role="status"）负责播报，两边都念会重复一遍。
-       四片用 <div> 而非 <img>：动画靠 background-image，切图路径写在 loading.css 里。 -->
-  <div class="ld-mask" id="ld-mask" aria-hidden="true">
-    <div class="ld-inner">
-      <div class="ld-logo">
-        <div class="ld-petal ld-petal--tl"></div>
-        <div class="ld-petal ld-petal--bl"></div>
-        <div class="ld-petal ld-petal--br"></div>
-        <div class="ld-rotor"><div class="ld-petal ld-petal--tr"></div></div>
-      </div>
-      <p class="ld-label">加载中</p>
-      <div class="ld-track"><div class="ld-fill"></div></div>
-    </div>
-  </div>
+<body class="app page-reader">
+  <!-- ============================================
+       顶栏
+       ------------------------------------------------------------
+       ⚠️ 品牌（logo + 星禾星穗）为什么放在这里，而不是像参考图那样放在左栏顶部：
+          手机端左栏默认收起，品牌要是只挂在左栏里，首屏就一个 logo 都看不见。
+          顶栏两边都得用（左边品牌、右边头像），所以品牌上移到这里；
+          左栏保留参考图那套底色/圆角项/底部打卡徽章的样式。
+       ============================================ -->
+  <header class="appbar">
+    <!-- ☰：只服务窄屏（桌面端左栏常驻，CSS 里整条隐藏）。
+         aria-expanded 由 app-shell.js 跟着状态改 —— 读屏软件靠它知道抽屉开没开 -->
+    <button type="button" class="iconbtn appbar__menu" id="btn-left"
+            aria-expanded="false" aria-controls="panel-left" aria-label="打开板块导航">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+           stroke-linecap="round" aria-hidden="true"><path d="M4 7h16"/><path d="M4 12h16"/><path d="M4 17h16"/></svg>
+    </button>
 
-  <script>
-  /* 【兜底】万一 home.js 没跑起来（语法报错、文件 404、被拦），8 秒后强制撤掉遮罩。
-     宁可看不到加载动画，也绝不能把整个页面永久挡住 —— 挡死了这一页就废了。
-     注意：这是安全网，正常路径由 home.js 接管，通常几百毫秒内就撤了。 */
-  setTimeout(function () {
-    var m = document.getElementById('ld-mask');
-    if (m && !m.classList.contains('is-gone')) {
-      m.classList.add('is-hide');
-      setTimeout(function () { m.classList.add('is-gone'); }, 350);
-    }
-  }, 8000);
-  </script>
-
-  <!-- 顶部标题 = 站名；下面三张卡片就是「三个子标题」，桌面三栏并排、窄屏纵向堆叠 -->
-  <header class="site-header">
-    <!-- 品牌区：logo + 站名。
-         ⚠️ 这四个字用的**不是系统字体**，而是【从原创 logo 图里取出来的字形本身】。
-            理由：图里那种「方块几何黑」系统里根本没有；就算找个近似的替代，
-            也等于把品牌字改掉了，而且这是个公开站点 —— 别人的设备上没装那字体，
-            会掉回默认字体，等于白设。所以直接拿字形图来用，任何设备上长得都一样。
-         实现：四个空 span，各自拿同一张字形图当蒙版（mask）开了四扇「窗」。
-            为什么要开窗而不是把图切成四块：开窗时四个字共享同一张图，
-            笔画天然连续、绝不会在接缝处断开，但每扇窗又能各自单独做动效。
-         无障碍：外层 role="img" ＋ aria-label 提供名称，
-            四个空 span 不参与朗读（它们本来就没文字）。 -->
-    <div class="brand">
-      <img class="brand-logo" src="assets/img/logo.png" alt="" width="40" height="40">
+    <!-- 品牌：四个空 span 是「字形蒙版」的四扇窗，写法与 style.css 里的 .brand-name 一致。
+         用同一张 wordmark.png 当蒙版，形状锁死、颜色交给 CSS，任何设备上长得都一样。
+         无障碍：外层 role="img" + aria-label 提供名称，四个空 span 不参与朗读。 -->
+    <a class="appbar__brand" href="index.html">
+      <img class="brand-logo" src="assets/img/logo.png" alt="" width="30" height="30">
       <span class="brand-name" role="img" aria-label="星禾星穗">
         <span class="brand-char" aria-hidden="true"></span>
         <span class="brand-char" aria-hidden="true"></span>
         <span class="brand-char" aria-hidden="true"></span>
         <span class="brand-char" aria-hidden="true"></span>
       </span>
-    </div>
-    <h1>英语学习工具</h1>
+    </a>
+
+    <span class="appbar__spacer"></span>
+
+    <!-- 头像：要求「不管在哪个板块，右上角始终显示」—— 所以它不挂在某一页里，
+         而是跟着外壳走。窄屏点它开右栏；宽屏右栏常驻。
+         ⚠️ 这里的字【不写死】（斌哥 2026-10-13 指示）：
+            由 app-shell.js 的 paintAvatar() 按登录态填 ——
+            登录 = 用户名首字，未登录 = 小人图标。页面加载前它就是空的。 -->
+    <button type="button" class="avatarbtn" id="btn-right"
+            aria-expanded="false" aria-controls="panel-right" aria-label="打开个人账号"></button>
   </header>
 
-  <main>
-    <!-- 状态位：加载中 / 暂无板块 / 读取失败＋重试，都写在这一个地方。
-         role="status" 是给读屏软件的：内容一变它就会念出来，不用用户自己去发现。
-         正常有数据时它是空的，不占版面 -->
-    <div id="boards-status" role="status"></div>
+  <div class="shell">
+    <!-- ============================================
+         左栏：板块导航（参考图那套：薄荷底 / 圆角药丸项 / 当前项亮底 / 底部打卡徽章）
+         ⚠️ 三条导航的 href：文本跟读指向 index.html —— 首页已经取消，
+            「根路径打开就是跟读页」这条要在文件层面成立（静态托管只认 index.html）。
+         ============================================ -->
+    <aside class="side side--left" id="panel-left" aria-label="板块导航">
+      <nav class="sidenav">
+        <!-- 当前板块挂 aria-current="page"：「你现在打开的就是它」—— 链接的正确说法。
+             ⚠️ 别写成 aria-current="true"：那个值在 style.css 里是"当前打开的文件"的意思，
+                两者语义不同，只是视觉像。 -->
+        <a class="sidenav__item" href="index.html" aria-current="page">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
+               stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 6.6v13"/>
+            <path d="M12 6.6C10.6 5.4 8.7 4.6 6.2 4.6H3.6v13h2.6c2.5 0 4.4.8 5.8 2"/>
+            <path d="M12 6.6c1.4-1.2 3.3-2 5.8-2h2.6v13h-2.6c-2.5 0-4.4.8-5.8 2"/>
+          </svg>
+          文本跟读
+        </a>
 
-    <!-- 板块卡片由 assets/js/home.js 读 data/boards.json 渲染。
-         Day 8 之前这三张卡是【写死在这个文件里】的，现在改成数据驱动：
-         改标题、改说明、加第四个板块，都只改 JSON，这个文件不用动 -->
-    <ul class="boards" id="boards"></ul>
-  </main>
+        <a class="sidenav__item" href="vocab.html">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
+               stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="3.5" y="8.5" width="13" height="11" rx="2.4"/>
+            <path d="M7.5 8.5V6.6A2.6 2.6 0 0 1 10.1 4h8.5A2.6 2.6 0 0 1 21.2 6.6v8.5a2.6 2.6 0 0 1-2.6 2.6h-1.9"/>
+          </svg>
+          词汇速记
+        </a>
 
-  <!-- Day 26：版本标记。
-       ⚠️ 它不是装饰，是"发布 → 回滚 → 恢复"这条链上唯一一处
-          【肉眼和 curl 都能一眼看出线上是哪一版】的东西。
-          没有它，"退回上一版"这一步在截图里根本看不出差别，
-          回滚演练就没法客观证明 —— 别顺手删掉。 -->
-  <footer class="site-foot">v1.0</footer>
+        <a class="sidenav__item" href="writing.html">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
+               stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M13.6 3.5H7.2A2.2 2.2 0 0 0 5 5.7v12.6a2.2 2.2 0 0 0 2.2 2.2h9.6a2.2 2.2 0 0 0 2.2-2.2V8.6l-5.4-5.1Z"/>
+            <path d="M13.4 3.7v5.2h5.4"/>
+          </svg>
+          作文模板
+        </a>
+      </nav>
 
-  <!-- Day 23：先引 common.js（提供 loadJSON / failureHTML / escapeHTML），
-       再引 home.js —— home.js 已改为引用共用版，顺序反了会报未定义。 -->
+      <!-- 等级目录（L1 / L2 / L3）—— Day 28 晚从主区搬进左栏（斌哥指示），
+           紧跟三个板块条目之下，尺寸与它们一致。
+           ⚠️ id 仍是 levels：app.js 按 id 找容器，搬家对它透明。
+           ⚠️ 只有本页（跟读页）有这个容器 —— 等级数据来自 materials.json，
+              别的页面没它，这一层自然不存在。 -->
+      <nav class="levels side-levels" id="levels" aria-label="等级目录"></nav>
+    </aside>
+
+    <!-- ============================================
+         主内容区
+         ============================================ -->
+    <main class="appmain">
+
+      <!-- 等级目录（L1 / L2 / L3）已搬到左栏（见上方 .side-levels）——
+           由 app.js 按 data/materials.json 里的 levels 渲染，页面上不写死 -->
+
+      <!-- ============================================
+           Day 28 晚：主区是【两页互斥】的，不是叠着铺。
+           ------------------------------------------------------------
+           ① 课程列表页（#lessons）：点了 L1 先看到这一页 —— Lesson1~Lesson23，
+              每条与音频行【同尺寸同结构】（都挂 .file-btn 那身皮），只是文字不同。
+           ② 音频选择页（#lesson-back + #files + #reader）：点进某个 Lesson 后，
+              课程列表整页收起、这一页铺出来 —— 上面一条「← Lesson 列表」回路，
+              下面才是这条课里的音频。
+           ⚠️ 两页【不同时出现】是有意为之：它们长得一样（同尺寸），
+              叠在一起会读成"同一个页面出现了两遍"（这一版之前踩过的坑）。
+           ⚠️ 没有课目录的等级（L2 / L3）两页都不出现，直接就是音频选择页。
+           ============================================ -->
+      <nav class="lessons" id="lessons" aria-label="课程列表"></nav>
+
+      <!-- 回路：只在"已经点进某一课"时出现（app.js 控制 hidden）。
+           没有它，进了 Lesson1 就再没法挑别的课 —— 那不是简洁，是死胡同。
+           结构沿用站内既有的 .back-link 组件（Day 7 起就在，一直没被用上）。
+           ⚠️ 文案 Day 28 晚按斌哥指示由「Lesson 列表」改成「返回」——
+              箭头本身已经说明是往回走，不用再写清回到哪儿 -->
+      <div class="lesson-back" id="lesson-back" hidden>
+        <button type="button" class="back-link" data-action="back-lessons">
+          <svg class="back-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+               stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M19 12H5"/><path d="M11 6l-6 6 6 6"/>
+          </svg>返回
+        </button>
+      </div>
+
+      <!-- 文件列表：选中等级（或选中课）下的音频文件，一条一行。
+           这一层【必须点开具体某个文件】，下面的音频与文本才出现 -->
+      <nav class="files" id="files" aria-label="文件列表"></nav>
+
+      <div id="reader" class="panel">
+        <p class="empty">正在加载素材…</p>
+      </div>
+    </main>
+
+    <!-- 右栏：个人账号。内容由 app-shell.js 读 data/profile.json 渲染，
+         三个页面共用同一个空壳，不复制三份（改一处三页同时生效）。
+         ⚠️ 目前【没有】登录后端，里面是占位数据，详见 assets/js/app-shell.js 末尾的说明。 -->
+    <aside class="side side--right" id="panel-right" aria-label="个人账号"></aside>
+  </div>
+
+  <!-- 遮罩：窄屏抽屉打开时铺在内容上，点它收起。宽屏整块 display:none -->
+  <div class="scrim" id="scrim" aria-hidden="true"></div>
+
+  <!-- ⚠️ 引入顺序不能动：
+       common.js（loadJSON / failureHTML / escapeHTML）
+         → app-shell.js（依赖上面那三个）
+         → app.js / player.js（同样引用 common.js 里的工具）
+       顺序反了就是「xxx is not defined」。 -->
   <script src="assets/js/common.js"></script>
-  <script src="assets/js/home.js"></script>
+  <script src="assets/js/app-shell.js"></script>
+  <script src="assets/js/app.js"></script>
+  <script src="assets/js/player.js"></script>
 </body>
 </html>

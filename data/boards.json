@@ -5,7 +5,7 @@
       "title": "文本跟读",
       "desc": "按句切分，点某一句即播放该句片段",
       "status": "available",
-      "href": "reader.html"
+      "href": "index.html"
     },
     {
       "id": "vocab",

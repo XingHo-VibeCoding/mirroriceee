@@ -833,10 +833,22 @@ main {
   color: var(--text);
   font-size: var(--text-base);
   text-decoration: none;
+  /* Day 28 晚：它从 <a> 换成了 <button>（当时的 #back-btn，已随"删掉返回键"退场）——
+     button 自带一层 UA 灰边框，再叠上键盘焦点环（绿，:focus-visible），
+     两圈颜色不同、圆角也不同，就是当时"描边有两种颜色"的来源。
+     这里把 UA 那层剥掉：无边框、无底色，回到纯文字药丸的样子。
+     ⚠️ 焦点环保留 —— 那是无障碍（键盘用户必须看得见焦点）；
+        鼠标点击不会触发 :focus-visible，所以平时看不到那圈绿。 */
+  border: 0;
+  background: none;
+  cursor: pointer;
   transition: background-color var(--duration-fast) var(--ease-out),
               box-shadow var(--duration-fast) var(--ease-out),
               transform var(--duration-fast) var(--ease-out);
 }
+
+/* ⚠️ Day 28 晚：`.back-link .back-arrow` 的规则已随「← 返回」键一起删除
+   （见本文件「等级目录」节后的墓碑说明）。 */
 
 .back-link:active {
   opacity: .6;
@@ -896,22 +908,147 @@ main {
   color: var(--text-faint);
 }
 
-/* ---- 跟读页顶部的等级目录：L1 / L2 / L3 ---- */
+/* ---- 等级目录：L1 / L2 / L3 ----
+   Day 28 晚搬家（斌哥指示）：从主区顶部搬进【左栏】，紧跟三个板块条目之下，
+   尺寸与它们逐项对齐 —— 同一个栏里做"另一类控件"是自找的割裂。
+   ⚠️ 容器仍叫 .levels：app.js 按 id 找它，搬家对它是透明的。
+   ⚠️ 主区那套布局（.reader-top 的左右分栏、.levels 的横向换行）连同
+      「← 返回」键一起退场 —— 见下方墓碑说明。 */
 
 .levels {
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 12px;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: var(--space-4);       /* 与上面三个板块条目拉开一档，看得出是另一组 */
 }
 
+/* 没渲染出等级时（别的页面没有这个容器，或数据里没 levels）整层不占位置 */
 .levels:empty {
   display: none;
 }
 
-.level-btn {
-  min-width: 64px;
-  justify-content: center;
+/* 一条等级按钮。⚠️ 这里是在【覆盖】.item 那身皮（白底 / 描边 / 浮起阴影）：
+   侧栏条目是"贴着底"的一行，浮起的小卡片摆在栏里会显脏。
+   高度 48 / 圆角 14 / 左右 12 内边距 / 字号 18 —— 与上面三个板块逐项对齐。 */
+.side-levels .level-btn {
+  justify-content: flex-start;
+  width: 100%;
+  min-width: 0;
+  min-height: 48px;
+  padding: 0 var(--space-3);
+  border: 0;
+  border-radius: 14px;
+  background: transparent;
+  box-shadow: none;
+  color: var(--text-muted);
+  font-size: var(--text-lg);
+  text-align: left;
+}
+
+@media (hover: hover) {
+  .side-levels .level-btn:hover {
+    background: var(--nav-hover-bg);
+    color: var(--accent);
+  }
+}
+
+/* 当前等级：亮薄荷底 + 强调绿 —— 与 .sidenav__item[aria-current='page'] 同一套观感 */
+.side-levels .level-btn[aria-pressed='true'] {
+  background: var(--nav-active-bg);
+  color: var(--accent);
+  font-weight: 500;
+}
+
+/* ============================================
+   Day 28 晚（重做版）：主区的「课程列表页」与回路
+   ------------------------------------------------------------
+   与上一版的关键差别：上一版把「课程列表」和「音频列表」【同屏叠着】铺，
+   两条都长一样 ⇒ 读起来像同一个页面出现了两遍（已被斌哥打回并删除）。
+   这一版按他明确的要求做成【两页互斥、点一下换一页】：
+     点 L1 → 主区整页换成 Lesson1~Lesson23（每条与音频行同尺寸同结构）
+     点 Lesson1 → 课程列表整页收起，换成"← Lesson 列表 + 音频列表"
+   ⚠️ 「尺寸都一样」不靠对齐参数堆——条目直接挂 .file-btn 那身皮，
+      与音频行是同一套盒子（白底卡片 / 名称+小字两行 / 整宽 / 同内边距）。
+   历史那版（药丸式 lesson-btn + .lessons 横排）已删，教训记在上面。
+   ============================================ */
+
+/* 课程列表容器：与 .files 同一套排布（纵列、同间距），因为条目同源 */
+.lessons {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+/* 不在课程列表页时整层收起，不占位置（同 .files:empty 的约定） */
+.lessons:empty {
+  display: none;
+}
+
+/* 回路所在的容器。hidden 属性由 app.js 控制显隐；
+   平时它是"音频页的第一行"，所以要给一点下边距，别贴着音频条目 */
+.lesson-back {
+  margin-bottom: 12px;
+}
+.lesson-back[hidden] {
+  display: none;
+}
+
+/* Day 28 晚（斌哥指示）：把「返回」做成一张【真按钮】——
+   加大尺寸 ＋ 白底，与下面的板块（课程条目 / 音频条目）同一身皮：
+   白底、浅描边、16px 圆角、一层极浅的浮起阴影。三处都对齐 .item，观感才连得上。
+   ⚠️ 只在这一个上下文里加皮，不动 .back-link 的基础定义 ——
+      那条是 Day 7 的「内页返回」通用组件（透明底 + 悬停一圈绿光），
+      别处将来可能还要用那种"纯文字药丸"的样子。
+   ⚠️ margin-left 归零：基础样式里那个 -8px 是为了让箭头和大标题左对齐设计的，
+      这里上面没有大标题，留着会让按钮比下面的卡片往左凸出 8px。 */
+.lesson-back .back-link {
+  min-height: 48px;
+  padding: 0 18px;
+  margin-left: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+  box-shadow: var(--shadow-xs);
+  font-size: var(--text-base);
+}
+
+/* 悬停 / 键盘焦点：换成"卡片被点亮"的反馈（描边转绿、阴影加深），
+   而不是基础样式那圈薄荷底 + 绿光晕 —— 白底卡片上再糊一层薄荷会脏。 */
+@media (hover: hover) {
+  .lesson-back .back-link:hover {
+    background: var(--surface);
+    border-color: var(--accent);
+    color: var(--accent);
+    box-shadow: var(--shadow-sm);
+    transform: none;
+  }
+}
+.lesson-back .back-link:focus-visible {
+  background: var(--surface);
+  border-color: var(--accent);
+  box-shadow: var(--shadow-sm);
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* 回路的箭头：SVG 图形（字符「←」跟汉字基线不齐，这个坑踩过一次）。
+   尺寸跟着按钮一起放大一档（16 → 18）。 */
+.back-link .back-arrow {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  margin-right: 8px;
+}
+
+/* 入场：课程列表页也是主区的一页，跟着同一套节奏上浮 */
+.page-reader #lessons {
+  animation: riseIn .45s var(--ease-out) both;
+  animation-delay: .08s;
+}
+.page-reader .lesson-back {
+  animation: riseIn .45s var(--ease-out) both;
+  animation-delay: .08s;
 }
 
 /* ---- 跟读页第二层的文件列表（Day 8 新增）：每条音频一行 ----
@@ -1139,20 +1276,66 @@ main {
 
 .player-controls {
   display: grid;
+  /* 三列：左右两条空白 + 中间一列。三组各自归位，播放键永远停在正中 */
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
   gap: 12px;
   margin-top: 2px;
 }
 
-.player-controls .icon-btn {
+/* 中间那组：上一个 / 播放 / 下一个 —— Day 28 晚把播放键从"单打独斗"改成三件套，
+   左右箭头贴着它（斌哥要的"方便切到别的音频"）。
+   ⚠️ 原来这里有两条 `.player-controls .icon-btn { grid-column: 2 }` 和
+      `.player-controls .btn { grid-column: 3 }` —— 现在按钮被包进两个组里，
+      那两条会让组内的每个按钮各自去抢网格列，布局当场散架，所以一并删掉。 */
+.player-transport {
   grid-column: 2;
-  justify-self: center;
+  /* ⚠️ grid-row: 1 不能省 —— Day 28 晚踩到的坑，实测数据摆在这儿：
+     三组都只写了 grid-column，没写行号，而网格的【自动排布不会往回走】。
+     标记里中间那组写在最前 → 它先占第 1 行第 2 列；接着左组要回到第 1 列，
+     于是被推到第 2 行（实测：容器 100px 高 = 两行 44px，中间组 top=358.4、
+     左右两组 top=414.4 —— 上下错开 56px，看着就是"没在同一排"）。
+     钉死行号之后，DOM 顺序怎么写都不影响排布。 */
+  grid-row: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
-.player-controls .btn {
+/* 模式开关（单句重复 / A-B 复读）
+   Day 28 晚二改（斌哥指示）：单句重复从右侧移到【左侧】——
+   原来两个模式键挤在同一格，和中间那组（切歌＋播放）挤到重合。
+   现在一格一组：左（单句重复）/ 中（切歌＋播放）/ 右（A-B 复读），
+   三组各占一格，中间的播放键依旧钉在正中。 */
+.player-modes {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.player-modes--left {
+  grid-column: 1;
+  grid-row: 1;              /* 见 .player-transport 上那条注释：行号必须显式钉死 */
+  justify-self: start;
+}
+
+.player-modes--right {
   grid-column: 3;
+  grid-row: 1;
   justify-self: end;
+}
+
+/* A/B 两个点的时刻读出（比塞进按钮文字好读）。
+   没设 A 时是空的 —— 空元素不占版面的老规矩（同 .player-status:empty） */
+.ab-readout {
+  margin-top: 6px;
+  font-size: var(--text-xs);
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;      /* 时刻等宽，读数不跳 */
+}
+
+.ab-readout:empty {
+  display: none;
 }
 
 .ico {
@@ -1349,7 +1532,9 @@ main {
   }
 }
 
-/* 窄屏（手机）：单句重复键只留图标，文字收起来 */
+/* 窄屏（手机）：模式开关只留图标，文字收起来。
+   Day 28 晚：多了 A-B 复读键 + 播放键左右各一个箭头 —— 一行放不下五件套，
+   所以两个模式键都缩成圆圈图标，箭头本来就是圆圈（.icon-btn），不用额外处理。 */
 @media (max-width: 599px) {
   .player-controls .btn {
     width: var(--tap-size);
@@ -1357,7 +1542,16 @@ main {
     justify-content: center;
   }
 
-  .player-controls .btn [data-role='repeat-label'] {
+  .player-modes {
+    gap: 6px;
+  }
+
+  .player-transport {
+    gap: 6px;
+  }
+
+  .player-controls .btn [data-role='repeat-label'],
+  .player-controls .btn [data-role='ab-label'] {
     display: none;
   }
 }
@@ -1635,9 +1829,11 @@ main {
       renderFiles / renderMaterialView 重建了它们的 innerHTML，新节点自然重跑动画。
       .levels 那排按钮【不重播】—— pickLevel 只改 aria-pressed、不重铺按钮
       （为了不丢键盘焦点），所以它稳住不动，正好合意。
-   ⚠️ 依旧用 riseIn（translate），不用 transform，理由见本节开头的取舍说明。 */
+   ⚠️ 依旧用 riseIn（translate），不用 transform，理由见本节开头的取舍说明。
+   ⚠️ Day 28 晚：`.page-reader .levels` 那一条【已删除】—— 等级目录搬进左栏，
+      它不再属于主区的"依次上浮"队列；侧栏是常驻骨架，跟着内容一起动会显得散。
+      延迟链随之收成 0 → .16 → .24（剩下的三块）。 */
 .page-reader .site-header { animation: riseIn .45s var(--ease-out) both; }
-.page-reader .levels      { animation: riseIn .45s var(--ease-out) both; animation-delay: .08s; }
 .page-reader .files       { animation: riseIn .45s var(--ease-out) both; animation-delay: .16s; }
 .page-reader #reader > *  { animation: riseIn .5s  var(--ease-out) both; animation-delay: .24s; }
 
@@ -1709,6 +1905,12 @@ main {
 /* ============================================================
    Day 10 · 全站动态背景（变体 A「品牌绿雾」）
    ------------------------------------------------------------
+   ⚠️⚠️ Day 28 晚整段改版：升级为「方案 B · 高斯模糊交融」——
+      斌哥看了预览页（WorkBuddy/day28/bg-preview.html）后拍板 B 方案，
+      并要求加快色块流速。下面「性能三条约束」里那条
+      「柔边用 radial-gradient 自带，不用 filter: blur()」【已被有意推翻】，
+      新实现与性能取舍见下方 1744 行起的说明。历史推理保留不删（留尸规矩）。
+   ------------------------------------------------------------
    参考：QQ 电脑端登录界面那种"大面积柔光缓慢流动"的观感。
    要求（斌哥 10:16）：「不管手机还是电脑，要在网站内的所有页面都有效」
                      ＋「缩短电脑端的空白距离」＝把背景里没铺到色的白区压下去。
@@ -1741,20 +1943,41 @@ main {
          （Day 10 更正：这里早先写的是"三个光斑时长各不相同 64 / 79 / 93 秒"，
            那套做法已被弃用 —— 时长不同步的观感像呼吸机，而且撞不撞车控制不住。） */
 
-/* 全站底色。
-   ⚠️ 底色只能有一个来源：挂在 html 上，z-index:-1 的 4 个光斑才透得上来。
+/* 全站底色 ＋ 中央那道"融化的高光"。
+   ⚠️ 底色只能有一个来源：挂在 html 上，z-index:-1 的 4 个色块才透得上来。
    Day 10 之前它是写在 body 上的（radial-gradient 光晕 ＋ --bg 两层），
    加动态背景时整段搬到 html —— body 一旦有自己的背景，就会把光斑盖住。
    搬走之后 body 不再声明任何 background，所以也不再需要
-   一条 body{background:none} 去"覆盖"它（那条已随本次清理删除）。 */
+   一条 body{background:none} 去"覆盖"它（那条已随本次清理删除）。
+   Day 28 晚：中央叠一层静态白光 —— 参考图（QQ 登录页）正中那道亮带。
+     它住进 html 的 background 里而不是占一个色块槽位：伪元素只有 4 个，
+     白光几乎不动，占一个彩色槽位不划算；静态白心 + 四色漂移，观感等价。 */
 html {
-  background: var(--bg);
+  background:
+    radial-gradient(circle at 50% 42%,
+      rgba(255, 255, 255, .8) 0%, rgba(255, 255, 255, 0) 36%),
+    var(--bg);
 }
 
-/* 四个光斑共用的骨架
-   ⚠️ html 与 body 各有两个伪元素槽位，一共 4 个，正好一个光斑占一个 ——
-      所以才能做到"零 HTML 改动"。第 4 个（body::after）是 12:2x 他要求
-      「加第四个光斑」时才启用的，之前一直空着。 */
+/* ---- 流速总开关（Day 28 晚新增）----
+   原来四块的周期写死在各自的 animation 里（20s）。改流速得改四处、
+   漏一处就"四块不同周期"—— 那是 Day 10 用血泪换来的大忌（见关键帧段的教训①）。
+   收成一个变量：想再快再慢，只改这一行，四块天然同步。 */
+html {
+  --bg-flow: 14s;      /* 原版 20s → 14s（斌哥要求"增加色块流速"）；想调就改这里 */
+}
+
+/* 四个色块共用的骨架
+   ⚠️ html 与 body 各有两个伪元素槽位，一共 4 个，正好一个色块占一个 ——
+      所以才能做到"零 HTML 改动"。
+   ⚠️⚠️ Day 28 晚核心改动：加 filter: blur(90px) —— 液体交融的灵魂就在这一行。
+      硬边实色块被 90px 的高斯模糊熔开，色与色之间不再有"圆斑边界"，
+      这才是参考图那种"液体流动"的观感；原版只有径向渐变软边，色块之间是"相邻"，不是"相融"。
+   ⚠️ 性能取舍（有意识的，不是没看见）：Day 10 当年避开 blur 正是因为它逐帧重绘。
+      这次用它换真液感，代价已向斌哥言明。降级路径也埋在结构里 ——
+      色块填的不是实色，而是【先 plateau 后软落】的径向渐变（0~38% 全色，80% 透明）：
+      真机上若掉帧，把下面那行 filter 删掉即可优雅退回"软边光斑"观感，不用重做。
+      prefers-reduced-motion 的用户本来就静止，那群人不受 blur 动画影响。 */
 html::before,
 html::after,
 body::before,
@@ -1767,49 +1990,38 @@ body::after {
   pointer-events: none;                    /* 绝不挡点击 */
   transform: translate3d(0, 0, 0);
   will-change: transform;
-  background: radial-gradient(circle at 50% 50%, var(--c) 0%, transparent 78%);
+  background: radial-gradient(circle at 50% 50%, var(--c) 0%, var(--c) 38%, transparent 80%);
+  filter: blur(90px);
 }
 
-/* ---- 四个光斑：尺寸 / 位置 / 颜色 / 时长 ----
-   Day 10 11:5x：他说「背景里的空白」太多 → 柔边落点从 70% 推到 **78%**，透明度各提一档。
-   Day 10 12:3x：他说「适当的增加光斑间的距离」。
-
-   ⚠️ 为什么要改成 `calc(象限% − 半径)` 这种写法 —— 这是量出来的问题：
-      原来用 left/right/top/bottom 的 vw/vh 偏移，而光斑直径（105vmax）比视口还大，
-      于是"偏移"几乎不起作用，四块全被挤到中下部：
-      实测中心点是 (466,339) (920,544) (792,694) (920,569) ——
-      **琥珀与青色的中心只差 25px，基本叠在一起**（最小中心距 25 / 平均 315）。
-      现在把中心钉死在四个象限（25% / 75%），直径同时适当收小，让它们真的分开。
-      用 calc(% − vmax) 的好处：中心在任何屏幕形状下都是同一个相对位置，
-      手机与电脑只是"画布大小"不同，布局比例不变。
-
-   ⚠️ 为什么敢把直径收小：当前白区只占 **0.5%**（空间几乎全被铺到色），余量很大。
-      收小之后会再量一次白区占比，超了就再把柔边落点往后推。 */
+/* ---- 四个色块：尺寸 / 位置 / 颜色 / 流速 ----
+   Day 28 晚配色按参考图（QQ 登录页）重排：蓝 → 青 → 紫，品牌绿留一角，
+   琥珀橙退役（它和紫/青叠在一起会脏）；中心白光已并入 html 底色（见上）。
+   中心仍钉在四个象限（Day 10 量出来的教训：偏移写法会让色块挤成一团），
+   直径 55~68vmax：blur 会把视觉尺寸撑大约一个模糊半径，故比原版略收。 */
 html::before {
-  width: 72vmax; height: 72vmax;
-  left: calc(25% - 36vmax); top: calc(25% - 36vmax);      /* 左上 */
-  --c: rgba(22, 138, 108, .36);            /* 品牌深绿，往亮里提了一档 */
-  animation: bgDriftA 20s linear infinite;
+  width: 68vmax; height: 68vmax;
+  left: calc(30% - 34vmax); top: calc(22% - 34vmax);      /* 左上：深蓝 */
+  --c: rgba(45, 92, 196, .40);
+  animation: bgDriftA var(--bg-flow) linear infinite;
 }
 html::after {
-  width: 66vmax; height: 66vmax;
-  left: calc(75% - 33vmax); top: calc(75% - 33vmax);      /* 右下 */
-  --c: rgba(237, 175, 50, .36);            /* 品牌琥珀橙 */
-  animation: bgDriftB 20s linear infinite;
+  width: 60vmax; height: 60vmax;
+  left: calc(74% - 30vmax); top: calc(16% - 30vmax);      /* 右上：青 */
+  --c: rgba(56, 168, 196, .36);
+  animation: bgDriftB var(--bg-flow) linear infinite;
 }
 body::before {
-  width: 58vmax; height: 58vmax;
-  left: calc(25% - 29vmax); top: calc(75% - 29vmax);      /* 左下 */
-  --c: rgba(45, 92, 196, .28);             /* 原深蓝 → 往亮里提，跟绿/橙拉开色差 */
-  animation: bgDriftC 20s linear infinite;
+  width: 62vmax; height: 62vmax;
+  left: calc(22% - 31vmax); top: calc(86% - 31vmax);      /* 左下：紫 */
+  --c: rgba(124, 96, 224, .34);
+  animation: bgDriftC var(--bg-flow) linear infinite;
 }
 body::after {
-  width: 62vmax; height: 62vmax;
-  left: calc(75% - 31vmax); top: calc(25% - 31vmax);      /* 右上 */
-  /* 第 4 个光斑：青色。现有三块是绿／琥珀／蓝，缺一段"青"；
-     而他最初给的参考就是 QQ 登录页 —— 那套渐变本来就是蓝→青一路，青色最贴。 */
-  --c: rgba(56, 168, 196, .30);
-  animation: bgDriftD 20s linear infinite;
+  width: 55vmax; height: 55vmax;
+  left: calc(84% - 27vmax); top: calc(82% - 27vmax);      /* 右下：品牌绿 */
+  --c: rgba(22, 138, 108, .28);
+  animation: bgDriftD var(--bg-flow) linear infinite;
 }
 
 /* ---- 关键帧：矩形轨道，四块【同周期 · 同相位 · 同方向】----
@@ -2054,3 +2266,104 @@ body:has(.boards) .empty {
 .page-list .view-nav    { animation: riseIn .45s var(--ease-out) both; animation-delay: .08s; }
 .page-list #list-status,
 .page-list #list        { animation: riseIn .5s  var(--ease-out) both; animation-delay: .16s; }
+
+/* ============================================
+   Day 28：跟读页的「课目录」层 —— 【已整层删除】
+   ------------------------------------------------------------
+   ⚠️⚠️ 这条记录已被同一天更晚的版本推翻，保留原文只为留痕：
+      上面说的"整层回退"只维持了很短一段；斌哥随后明确要求把课目录做回来，
+      但做法换成了【两页互斥、点一下换一页】（课程列表页 ⇄ 音频选择页），
+      而不是当初那种"两个列表同屏叠着"。
+      ⇒ 生效的实现见本文件上面「Day 28 晚（重做版）：主区的课程列表页与回路」那一段。
+      留下这段的原因是它是"为什么第一版会失败"的唯一现场记录：
+
+   第一版为什么被打回：课条目改到「与音频行同尺寸」之后，
+   Lesson 列表和点开后的文件列表长得一模一样 —— 同一个页面读起来像出现了两遍。
+   于是整层回退：目录回到「等级 → 文件 → 音频文本」三层，课层的
+   HTML 挂点 / app.js 逻辑 / 本节样式 / materials.json 的 lessons 数据全部清干净。
+   （撞了才知道：给"目录层"和"内容层"做一模一样的行，本身就是个坏主意 ——
+     两条路长得一样，用户会以为自己没点动；第二版的解法是让它们永远不同屏。）
+   ============================================ */
+
+/* ============================================
+   Day 28 晚 · 全站悬停反馈（统一增强，斌哥要求）
+   ------------------------------------------------------------
+   要求：光标浮在任何"板块"上时，下方产生阴影 + 周围加一圈浅描边。
+
+   做法上只写【一处】，挂共享皮 .item（站内绝大多数卡片/按钮都带它：
+   .file-btn / .lesson-btn / .list-item / .btn / .acct-card …），
+   再加几个不挂 .item 的"边缘住户"（图标键、头像键、左栏条目）。
+   ⚠️ 为什么不逐个组件写：那样改一处漏一处，永远对不齐 ——
+      这和 Day 8 把"点击条目的皮"收进 .item 是同一个道理。
+
+   ⚠️ 两条技术约束（都是踩过的坑）：
+     ① 描边一律走【已有边框改颜色】或【box-shadow 的 0 0 0 1px 环】，
+        绝不新增 border 宽度 —— 加 1px 边框会让元素尺寸跳一下，鼠标扫过去
+        整列会轻微抖动（"扫过时页面在喘气"）。
+     ② 位移用 transform（合成器线程），配合 .item 里已有的 transition，
+        鼠标移开能平滑归位，不触发重排。
+     ③ 选中态（aria-current / aria-pressed）不改悬停观感 —— 它本来就该"稳"，
+        再抬一下会让"已选中"看起来像"又要被点走"。
+   ============================================ */
+
+@media (hover: hover) {
+  /* ① 所有带 .item 皮的卡片 / 按钮 / 列表行
+        Day 28 晚二改（斌哥指示）：悬停要「颜色加深 + 描边」——
+          · 底色：白 → 淡薄荷（比选中态的 --ok-bg 浅一档，两者不会看混）
+          · 描边：边框转强调绿（不是"加深一档灰"，要一眼看得出有圈线）
+          · 再叠一圈 3px 的浅绿外环：卡片底下有阴影时，单靠 1px 边框
+            在花色背景上边界会发虚，外环把"这个板块被点亮了"说清楚
+        ⚠️ 自定义色值就地写十六进制，没有塞进 :root —— 它是这一处悬停的专用色，
+           挂全局会让人以为别处也能用。 */
+  .item:hover:not([aria-current='true']):not([aria-pressed='true']) {
+    background-color: #f2faf6;
+    border-color: var(--accent);
+    box-shadow: var(--shadow-md), 0 0 0 3px rgba(15, 110, 86, .12);
+    transform: translateY(-2px);
+  }
+
+  /* ② 圆形图标键（播放器的箭头 / 播放键）+ 两个不挂 .item 的可点元素
+        （登录页的验证码图、登录/注册 tab）—— 同样的"加深 + 描边"：
+        底色转淡薄荷、描边转绿并加外环。
+        ⚠️ 验证码图 / tab 的样式住在 app-shell.css 里（那份后加载），
+           但那边没写 background/box-shadow/transform 的悬停态，所以这几条照样生效。 */
+  .icon-btn:not([disabled]):hover,
+  .captcha-box:hover,
+  .auth-tab:hover:not([aria-selected='true']) {
+    background-color: #f2faf6;
+    border-color: var(--accent);
+    box-shadow: var(--shadow-md), 0 0 0 3px rgba(15, 110, 86, .12);
+    transform: translateY(-2px);
+  }
+
+  /* ③ 顶栏头像键：它本来就是绿的，只加深一点 + 描边加亮 */
+  .avatarbtn:hover {
+    border-color: var(--accent);
+    box-shadow: var(--shadow-md), 0 0 0 3px rgba(15, 110, 86, .14);
+    transform: translateY(-2px);
+  }
+
+  /* ④ 左栏的三板块条目 + L1/L2/L3 —— 它们本身"透明底"、悬停时已经是薄荷底
+        （那一步就是"颜色加深"），这里把描边补上：绿环 + 下阴影。 */
+  .sidenav__item:hover:not([aria-current='page']),
+  .side-levels .level-btn:hover {
+    box-shadow: 0 0 0 1px var(--accent),
+                0 0 0 4px rgba(15, 110, 86, .12),
+                0 4px 10px -4px rgba(16, 24, 40, .22);
+    transform: translateY(-1px);
+  }
+}
+
+/* 系统开了「减少动态效果」→ 只保留"描边 + 阴影"（那是静态的可视反馈），
+   去掉位移。移动带来的不适感对这部分用户是实打实的。 */
+@media (hover: hover) and (prefers-reduced-motion: reduce) {
+  .item:hover:not([aria-current='true']):not([aria-pressed='true']),
+  .icon-btn:not([disabled]):hover,
+  .captcha-box:hover,
+  .auth-tab:hover:not([aria-selected='true']),
+  .avatarbtn:hover,
+  .sidenav__item:hover:not([aria-current='page']),
+  .side-levels .level-btn:hover {
+    transform: none;
+  }
+}

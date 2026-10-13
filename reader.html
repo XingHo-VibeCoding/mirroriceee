@@ -2,49 +2,33 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
-  <!-- ⚠️ 跨页过渡的 opt-in，【必须】留在这里 —— 首页（index.html）里有一份同样的，
-       两页都声明才生效。为什么不能挪进 style.css：见该文件里的同名注释。 -->
-  <style>@view-transition { navigation: auto; }</style>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>文本跟读 · 英语学习工具</title>
+  <!-- ============================================
+       ⚠️ 这个文件已经不是页面了，只剩一个「跳转」的作用。
+       ------------------------------------------------------------
+       背景（2026-10-13，首页取消那天）：
+         原来的 index.html 是「三张板块卡片」的入口页，谁也不会盯着它看，
+         所以把跟读页整个搬进了 index.html —— 静态托管只认 index.html 当根路径，
+         这样「打开网址直接进文本跟读」才成立。
+         reader.html 这个文件名在文档（RUN.md / api-contract.md）和老书签里出现过，
+         直接删掉的话，谁还用老地址进来就是 404。
+         所以留了这一页：进来就立刻跳到 index.html。
+
+       ⚠️ 什么时候可以删：确认站内 / 文档 / 书签里没人再引用 reader.html，
+          就整个删掉。它不再承载任何功能。
+
+       为什么用 meta refresh 不用 JS 跳转：
+         JS 没跑起来（被拦、报错）时 meta refresh 照样跳，不依赖任何脚本。
+         content="0" 是「0 秒后跳」，用户基本无感。
+       ============================================ -->
+  <meta http-equiv="refresh" content="0; url=index.html">
+  <meta name="robots" content="noindex">
+  <title>已搬到首页 · 星禾星穗</title>
   <link rel="stylesheet" href="assets/css/style.css">
 </head>
-<body class="page-reader">
-  <header class="site-header">
-    <a class="back-link" href="index.html">&larr; 返回首页</a>
-    <h1>文本跟读</h1>
-  </header>
-
+<body>
+  <!-- meta refresh 失效时的兜底（比如个别浏览器禁了自动跳转）：给一条人话和一个手动的门 -->
   <main>
-    <!-- 视图间平级切换（Day 13）：和词汇速记 / 作文模板两页共用同一条导航。
-         三个内页互相直达，不必先绕回首页再点进来。
-         每一项都挂 class="btn item" —— 药丸形与那身皮复用现成组件，不另写一套 -->
-    <nav class="view-nav" aria-label="视图切换">
-      <a class="btn item" href="reader.html" aria-current="page">文本跟读</a>
-      <a class="btn item" href="vocab.html">词汇速记</a>
-      <a class="btn item" href="writing.html">作文模板</a>
-    </nav>
-
-    <!-- 等级目录（Day 8 新增）：L1 / L2 / L3。
-         这一坨按钮由 app.js 按 data/materials.json 里的 levels 渲染，页面上不写死 ——
-         以后加 L4、改名，都只改 JSON，不动这个文件 -->
-    <nav class="levels" id="levels" aria-label="等级目录"></nav>
-
-    <!-- 文件列表（Day 8 新增的第二层）：选中等级下的音频文件，一条一行。
-         这一层【必须点开具体某个文件】，下面的音频与文本才出现 ——
-         以前是"选中等级就出音频"，等于少了一级目录。
-         和等级目录一样，内容全部由 app.js 按 data/materials.json 渲染，这里只留空壳 -->
-    <nav class="files" id="files" aria-label="文件列表"></nav>
-
-    <div id="reader" class="panel">
-      <p class="empty">正在加载素材…</p>
-    </div>
+    <p>文本跟读已经搬到<a href="index.html">首页</a>，点一下就过去。</p>
   </main>
-
-  <!-- Day 23：common.js 先引（提供 loadJSON / failureHTML / escapeHTML），
-       app.js 已改为引用共用版 —— 顺序反了会报未定义。 -->
-  <script src="assets/js/common.js"></script>
-  <script src="assets/js/app.js"></script>
-  <script src="assets/js/player.js"></script>
 </body>
 </html>

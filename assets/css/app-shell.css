@@ -1,0 +1,776 @@
+/* ============================================
+   app-shell.css —— 应用外壳（顶栏 / 左侧板块导航 / 右侧个人账号）
+   ------------------------------------------------------------
+   为什么【单独一个文件】，不去改 style.css：
+     style.css 那 2056 行是「首页 + 跟读页 + 列表页」按 PRD 第六节
+     验收跑通过的东西。往里塞外壳，等于把已验证的部分拉回风险里。
+     本文件排在 style.css 【之后】加载，规则全部收在 body.app 之下 ——
+     只覆盖「外壳这一层」，页面内部的组件（音频条、句子行、列表项）一个字都不动。
+
+   ⚠️ 只写继承：页面 HTML 上不加 body.app 的话，本文件整份不生效。
+      旧页面（check.html 检查台）不挂这个 class，就还是原样。
+
+   ---- 两档布局 ----
+     · 窄屏（< 1080px，手机 / 平板竖屏）：两边侧栏都是【抽屉】，默认收起。
+           左边点顶栏 ☰ 打开，右边点头像打开，两者【互斥】（同时只开一个），
+           点遮罩 / 按 Esc 关掉。
+     · 宽屏（≥ 1080px，桌面）：两边侧栏【常驻展开】，顶栏不显示 ☰，
+           遮罩整块失效。头像仍然显示（要求：右上角始终有头像）。
+   ============================================ */
+
+/* ---- 外壳自己的变量 ---- */
+body.app {
+  /* 顶栏高度。窄屏 56、桌面 64 —— 下面两处媒体查询各改一次，
+     所有「避开顶栏」的计算都引用它，不写字面量 */
+  --bar-h: 56px;
+
+  /* 两栏宽度。桌面三列网格直接吃这两个值 */
+  --side-left-w: 224px;
+  --side-right-w: 296px;
+
+  /* 左栏的薄荷色系（取自参考图 K12 学习台那张：
+     浅薄荷底 + 更亮一档的「当前项」药丸底）。
+     ⚠️ 存成 RGB 三元组而不是色值：底下要按不同透明度多次取用
+        （顶栏/侧栏/移动端抽屉各一层 rgba），写死色值就得抄三份。
+     ⚠️ 这几个色【不进 :root】，因为它们只服务外壳这几处；
+        提到全局会让人以为全站都能用，那是误导。 */
+  --side-mint-rgb: 234, 246, 240;
+  --side-mint-line: rgba(15, 110, 86, .12);
+  --nav-active-bg: #c9f0dd;
+  --nav-hover-bg: rgba(15, 110, 86, .07);
+
+  /* ⚠️ 覆盖 style.css 的 body { padding: 24px 16px 40px }。
+     外壳自己管四周留白（顶栏固定、主区自带内边距），
+     留着那 24px 会让固定顶栏和内容之间多出一条缝。
+     padding-top 用来把内容从固定顶栏底下推出来。 */
+  padding: 0;
+  padding-top: var(--bar-h);
+}
+
+/* ============================================
+   顶栏
+   ============================================ */
+.appbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 60;
+  height: var(--bar-h);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0 clamp(12px, 3vw, 20px);
+  /* 半透明白 + 背景模糊：底下滚动的内容能透出来，细节被磨掉。
+     Day 28 晚二改（斌哥指示）：顶栏和中心区衔接处发白、有缝 —— 两个来源都处理：
+       ① border-bottom（1px 灰线）删掉：它是"缝"的本体，删了顶栏和内容之间
+          就是同一片被磨糊的背景，无缝可挑；
+       ② 白色占比 .72 → .62：白得越少，透出来的背景色越连贯，
+          顶栏不再读成"贴上去的一条白带"。
+     ⚠️ 可读性兜底还在：blur(14px) 把底下磨成色块，文字压得住。 */
+  background: rgba(255, 255, 255, .38);
+  -webkit-backdrop-filter: saturate(1.5) blur(14px);
+          backdrop-filter: saturate(1.5) blur(14px);
+  /* 原来这里有一条 border-bottom: 1px solid var(--rule) —— 已删，见上。 */
+}
+
+/* 品牌区：直接复用 style.css 里那套「字形蒙版」写法（logo + 四个空 span），
+   只在顶栏里把它压小一档 —— 顶栏只有 56/64 高，40px 的 logo 撑不住。
+   ⚠️ 尺寸压小的同时必须把 --wm-h（字形高度）也压下去，否则字会比 logo 还高。
+   Day 28 晚（斌哥指示）：logo 30 → 36、字 18 → 20，顶栏品牌再醒目一点。 */
+.appbar__brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  text-decoration: none;
+  border-radius: 10px;
+}
+.appbar__brand .brand-logo {
+  width: 36px;
+  height: 36px;
+}
+.appbar__brand .brand-name {
+  --wm-h: 20px;
+}
+
+/* 把右侧两个按钮顶到最右边 */
+.appbar__spacer {
+  flex: 1;
+}
+
+/* 通用图标按钮（☰ 用） */
+.iconbtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--tap-size);
+  height: var(--tap-size);
+  padding: 0;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  transition: background-color var(--duration-fast) var(--ease-out);
+}
+.iconbtn svg {
+  width: 22px;
+  height: 22px;
+}
+@media (hover: hover) {
+  .iconbtn:hover {
+    background: var(--nav-hover-bg);
+  }
+}
+
+/* 头像按钮：右上角【始终】显示（不限屏宽） */
+.avatarbtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border: 1px solid var(--border-strong);
+  border-radius: 50%;
+  background: var(--nav-active-bg);
+  color: var(--accent);
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  cursor: pointer;
+  transition: box-shadow var(--duration-fast) var(--ease-out),
+              transform var(--duration-fast) var(--ease-out);
+}
+@media (hover: hover) {
+  .avatarbtn:hover {
+    box-shadow: var(--shadow-sm);
+  }
+}
+.avatarbtn:active {
+  transform: scale(.95);
+}
+
+/* ============================================
+   三列骨架
+   ============================================ */
+.shell {
+  min-height: calc(100vh - var(--bar-h));
+}
+
+/* ---- 左栏：板块导航 ---- */
+.side {
+  display: flex;
+  flex-direction: column;
+}
+
+/* ⚠️ Day 28 晚：左栏顶部的「学习板块」小字标签已删（斌哥指示）——
+   导航项自己会说话，这行字在半透明底上反而多余。规则一并清掉，不留死码。 */
+
+.sidenav {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* 一条导航项。参考图里是「整行药丸 + 图标 + 文字」，
+   当前项整块换成亮薄荷底、文字转强调绿；
+   ⚠️ 字体粗细只在当前项抬到 500（作者约定只有 400/500 两档），
+      不用加粗之外的花招 —— 底色已经够醒目了 */
+.sidenav__item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 48px;
+  padding: 0 var(--space-3);
+  border-radius: 14px;
+  color: var(--text-muted);
+  /* Day 28 晚：斌哥指示「三个板块的文字适当变大」—— 16 → 18。
+     ⚠️ 只动这一处字号，等级目录 / 文件列表等正文仍是 16，不跟着涨。 */
+  font-size: var(--text-lg);
+  text-decoration: none;
+  transition: background-color var(--duration-fast) var(--ease-out),
+              color var(--duration-fast) var(--ease-out);
+}
+.sidenav__item svg {
+  flex: none;
+  width: 20px;
+  height: 20px;
+}
+@media (hover: hover) {
+  .sidenav__item:hover {
+    background: var(--nav-hover-bg);
+    color: var(--accent);
+  }
+}
+.sidenav__item:active {
+  background: var(--nav-hover-bg);
+}
+/* 当前板块。语义用 aria-current="page"（「当前打开的就是它」，链接的正确说法）——
+   ⚠️ 别跟 .item 那套 aria-current="true" 混：那个是「当前打开的文件」，
+      两个值语义不同，样式看着像但含义两回事，不能互相顶替 */
+.sidenav__item[aria-current='page'] {
+  background: var(--nav-active-bg);
+  color: var(--accent);
+  font-weight: 500;
+}
+
+/* ⚠️ Day 28 晚：左栏底部的「18 天」打卡徽章整块删除（斌哥指示"显得很突兀"）。
+   它本来就是写死的占位数字，没有数据来源 —— 删干净，不留死 CSS。
+   哪天真做了打卡统计，再以真实数据回来。 */
+
+/* ---- 右栏：个人账号 ---- */
+.acct-card {
+  padding: var(--space-4);
+}
+.acct-card + .acct-card {
+  margin-top: var(--space-3);
+}
+
+.acct-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+.acct-avatar {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--nav-active-bg);
+  color: var(--accent);
+  font-size: var(--text-lg);
+  font-weight: 500;
+}
+/* 未登录时头像格里放的是小人图标（SVG），不是字 —— 尺寸单独给 */
+.acct-avatar svg {
+  width: 26px;
+  height: 26px;
+}
+/* Day 28 晚：登录后头像统一换成那张图（顶栏 + 账号卡共用）。
+   object-fit: cover —— 图的形状要是和格子不是正圆，裁齐不变形。 */
+.acct-avatar img,
+.avatarbtn img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+}
+.acct-name {
+  font-size: var(--text-base);
+  font-weight: 500;
+}
+/* 账号名下面那行小字（「未登录」的说明 / 「登录保持 30 天」） */
+.acct-sub {
+  margin-top: 2px;
+  font-size: var(--text-xs);
+  color: var(--text-faint);
+}
+
+/* 面板主按钮：通栏绿（登录页的提交钮也是它 —— 同一个动作层级，同一身皮） */
+.acct-btn {
+  width: 100%;
+  justify-content: center;
+  margin-top: var(--space-3);
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: #fff;
+}
+@media (hover: hover) {
+  .acct-btn:hover {
+    background: var(--accent-strong);
+    border-color: var(--accent-strong);
+  }
+}
+.acct-btn:active {
+  background: var(--accent-strong);
+  border-color: var(--accent-strong);
+}
+
+/* 未登录卡上的「登录 / 注册」—— <a> 也要有按钮的皮（链接自带下划线要摘） */
+.acct-cta {
+  width: 100%;
+  justify-content: center;
+  margin-top: var(--space-3);
+  text-decoration: none;
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: #fff;
+}
+@media (hover: hover) {
+  .acct-cta:hover {
+    background: var(--accent-strong);
+    border-color: var(--accent-strong);
+  }
+}
+
+/* 退出登录：和主按钮同一个位置、反过来的一身皮 —— 它是"往回退"的动作，
+   不该长得像"往前进"的那个绿钮。 */
+.acct-logout {
+  width: 100%;
+  justify-content: center;
+  margin-top: var(--space-3);
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--text);
+}
+@media (hover: hover) {
+  .acct-logout:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+}
+
+/* ============================================
+   主内容区
+   ============================================ */
+/* ⚠️ 覆盖 style.css 的 main { max-width: 720px }：
+   那 720 是「长文阅读」的宽度，是单列页面的值。
+   进了三列骨架后，主区宽度由网格给，自己只封一个上限、在列内居中。
+   Day 28 晚二改：左右两条边框线删掉 —— 两栏色带本身的边缘就是分界，
+   再压一条线就成了"缝"（斌哥指的白缝，这就是其中一道）。 */
+body.app .appmain {
+  /* ⚠️⚠️ 这一行是必须的，不是装饰 —— 2026-10-13 晚实测抓到的 bug：
+     主区在桌面端是【网格项】（.shell 三列网格），同时又靠 margin: 0 auto 居中。
+     网格项一旦带了 auto 外边距，交叉轴/主轴的 stretch 就被顶掉，宽度退回
+     **内容宽**（浏览器实测：main 宽只剩 127.5px，Lesson 卡片被捏成窄条）。
+     width: 100% 把它撑回来，封顶交给 max-width。
+     ⇒ 同一个坑 style.css 里 Day 10 早就记过一遍（当年是 flex 项的 main 出问题），
+        搬进新外壳时我把这条漏了 —— 这次补上，并在两处都留了字。 */
+  width: 100%;
+  max-width: 820px;
+  margin: 0 auto;
+  padding: var(--space-5) var(--space-4) var(--space-8);
+}
+
+/* 页面内的大标题区。沿用 .site-header 这个类名 ——
+   ⚠️ 是有意的：style.css 里「入场动画」（riseIn）就是挂在 .page-reader .site-header
+      和 .page-list .site-header 上的。换个新类名，动画会一起失效。
+      这里只把宽度和边距改成主区该有的样子，其余原样。 */
+body.app .site-header {
+  max-width: none;
+  margin: 0 0 var(--space-5);
+}
+/* ⚠️ Day 28 晚：标题下那条渐隐分割线（style.css 的 .site-header::after）
+   在半透明界面上读成一条"白边"（斌哥截图指认）—— 整条藏掉。
+   界面已经靠毛玻璃分层了，这条线是单列白底时代的产物，留着就是缝。 */
+body.app .site-header::after {
+  display: none;
+}
+body.app .page-sub {
+  margin-top: 2px;
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+
+/* ============================================
+   遮罩（只在窄屏用得上）
+   ============================================ */
+.scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: rgba(10, 24, 20, .42);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--duration-normal) var(--ease-out);
+}
+body.left-open .scrim,
+body.right-open .scrim {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* ============================================
+   窄屏：两边侧栏都是抽屉（< 1080px）
+   ============================================ */
+@media (max-width: 1079px) {
+  /* 抽屉打开时锁住页面滚动。
+     ⚠️ 锁在 html 上而不是 body：style.css 里 html{overflow-y:scroll}，
+       滚动容器是根元素，写在 body 上锁不住。 */
+  html.drawer-open {
+    overflow: hidden;
+  }
+
+  .side {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    z-index: 50;
+    width: min(82vw, 300px);
+    overflow-y: auto;
+    /* 顶部留出固定顶栏的高度 —— 抽屉从顶栏底下开始，不盖住 ☰ 和头像 */
+    padding: calc(var(--bar-h) + var(--space-3)) var(--space-3) var(--space-5);
+    transition: transform var(--duration-normal) var(--ease-out);
+  }
+  .side--left {
+    left: 0;
+    /* Day 28 晚：抽屉也改半透明 + 毛玻璃 —— 它压在内容上，透出来的就是
+       被模糊掉的页面，视觉上"浮"在内容之上而不是挡住内容 */
+    background: rgba(var(--side-mint-rgb), .58);
+    -webkit-backdrop-filter: blur(14px);
+            backdrop-filter: blur(14px);
+    transform: translateX(-101%);
+    box-shadow: var(--shadow-lg);
+  }
+  .side--right {
+    right: 0;
+    padding: calc(var(--bar-h) + var(--space-3)) var(--space-4) var(--space-6);
+    /* Day 28 晚二改：实底色 → 半透明 + 模糊，和左抽屉同一个毛玻璃语言
+       （原本是实底 --bg，压在内容上像一块不透明的板子） */
+    background: rgba(255, 255, 255, .52);
+    -webkit-backdrop-filter: blur(14px);
+            backdrop-filter: blur(14px);
+    transform: translateX(101%);
+    box-shadow: var(--shadow-lg);
+  }
+  body.left-open  .side--left  { transform: none; }
+  body.right-open .side--right { transform: none; }
+
+  .appmain {
+    padding: var(--space-5) var(--space-4) var(--space-8);
+    /* 边框线已随桌面端一起删除（见 base 的 .appmain 注释），这里不再需要清零 */
+  }
+}
+
+/* ============================================
+   宽屏：两边常驻（≥ 1080px）
+   ============================================ */
+@media (min-width: 1080px) {
+  body.app {
+    --bar-h: 64px;
+  }
+
+  .shell {
+    display: grid;
+    grid-template-columns: var(--side-left-w) minmax(0, 1fr) var(--side-right-w);
+    /* 左右两栏的底色，都用整块背景画出来，不靠侧栏自己的高度 ——
+       ⚠️ 侧栏是 sticky 的（高度只够裹住内容），让背景挂它身上，
+          页面一长底下的色带就断在半空中了。
+       Day 28 晚二改：右栏也改成侧边栏形式（斌哥指示）——
+         左边薄荷带 + 右边半透明白带，两条色带一层渐变各画一边；
+         右栏不再是一列"浮在页面上"的卡片，而是和左栏对等的第三根柱子。 */
+    background:
+      linear-gradient(
+        to right,
+        rgba(var(--side-mint-rgb), .55) 0,
+        rgba(var(--side-mint-rgb), .55) var(--side-left-w),
+        transparent var(--side-left-w)
+      ),
+      linear-gradient(
+        to left,
+        rgba(255, 255, 255, .45) 0,
+        rgba(255, 255, 255, .45) var(--side-right-w),
+        transparent var(--side-right-w)
+      );
+  }
+
+  /* 侧栏跟着页面滚动"钉"在视口里。
+     align-self: start 让侧栏不被网格拉成整行高（拉高了 sticky 就没得粘），
+     max-height 兜住「导航比视口还长」的极端情况，自己内部滚动。
+     Day 28 晚二改（斌哥指出"侧边栏没有模糊效果"）：
+       手机抽屉那侧写了 backdrop-filter，桌面这边【漏了】—— 锅我背。
+       现在补上：blur 作用在侧栏身后的东西（底色 + 彩色光斑 + 色带）上，
+       半透明 + 模糊叠在一起才是完整的"毛玻璃"；只透不糊等于只有一半。 */
+  .side {
+    position: sticky;
+    top: var(--bar-h);
+    align-self: start;
+    max-height: calc(100vh - var(--bar-h));
+    overflow-y: auto;
+    padding: var(--space-4) var(--space-3) var(--space-5);
+    -webkit-backdrop-filter: blur(14px);
+            backdrop-filter: blur(14px);
+  }
+  .side--left {
+    padding-left: var(--space-3);
+    padding-right: var(--space-3);
+  }
+  .side--right {
+    padding: var(--space-5) var(--space-4) var(--space-6);
+  }
+
+  /* 桌面端左栏一直在，☰ 没有存在的意义 —— 收掉，别留一个点了没反应的按钮 */
+  .appbar__menu {
+    display: none;
+  }
+  .scrim {
+    display: none;
+  }
+}
+
+/* ============================================
+   登录 / 注册页（Day 28）
+   ============================================ */
+
+/* 顶栏头像里塞的是 SVG 小人（未登录态）—— 尺寸单独给 */
+.avatarbtn svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* 入场：页头 → 表单卡，和其它页同一套节奏（riseIn 定义在 style.css）。
+   ⚠️ 必须用 .page-auth 限定 —— .site-header 每个页面都有。 */
+.page-auth .site-header { animation: riseIn .45s var(--ease-out) both; }
+.page-auth .auth-wrap   { animation: riseIn .5s  var(--ease-out) both; animation-delay: .08s; }
+
+/* 表单区收窄：登录框太宽了空，420 是"一眼看完"的宽度 */
+.auth-wrap {
+  max-width: 420px;
+}
+
+.auth-tabs {
+  display: flex;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+}
+.auth-tab {
+  min-height: var(--tap-size);
+  padding: 0 var(--space-5);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  color: var(--text-muted);
+  font: inherit;
+  font-size: var(--text-sm);
+  cursor: pointer;
+  transition: border-color var(--duration-fast) var(--ease-out),
+              background-color var(--duration-fast) var(--ease-out),
+              color var(--duration-fast) var(--ease-out);
+}
+@media (hover: hover) {
+  .auth-tab:hover {
+    border-color: var(--border-strong);
+  }
+}
+/* 当前 tab。语义 aria-selected（tab 的正确说法），视觉和全站"选中"同一套皮 */
+.auth-tab[aria-selected='true'] {
+  border-color: var(--accent);
+  background: var(--ok-bg);
+  color: var(--accent);
+  font-weight: 500;
+}
+
+/* 状态位：默认占住一行高度（话说多了不把表单顶得跳），出错转红 */
+.form-status {
+  min-height: 24px;
+  margin-bottom: var(--space-3);
+  font-size: var(--text-sm);
+  color: var(--text-faint);
+}
+.form-status--error {
+  color: #b42318;
+  font-weight: 500;
+}
+.form-status--ok {
+  color: var(--accent);
+  font-weight: 500;
+}
+
+.auth-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-5);
+}
+.auth-label {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+.auth-field {
+  min-height: var(--tap-size);
+  padding: 0 var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: var(--text-base);
+}
+/* :focus-visible 是"键盘才亮"的全站规矩；输入框用 :focus ——
+   点进去也要看得见光标落点，鼠标用户同样需要 */
+.auth-field:focus {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 1px;
+  border-color: var(--accent);
+}
+
+/* 验证码图：固定尺寸（后端画的 SVG 就是 132×46），点一下换一张 */
+.captcha-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 46px;
+  width: 132px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-sunken);
+  cursor: pointer;
+  overflow: hidden;
+}
+.captcha-box svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.captcha-box .empty {
+  padding: var(--space-2);
+  font-size: var(--text-xs);
+  text-align: center;
+}
+
+/* ============================================
+   Day 28 · 账号卡里的「复读时长 + 榜单」
+   ------------------------------------------------------------
+   位置：右栏账号卡内，头像/用户名之下、退出按钮之上。
+   数据来源：GET /api/usage/leaderboard?limit=5（app-shell.js 负责拉与填）。
+   ⚠️ 数字一律 font-variant-numeric: tabular-nums —— 时长随时长变化位数会变，
+      不等宽的话每次刷新数字会左右跳。
+   ============================================ */
+
+.usage {
+  margin-top: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px dashed var(--rule);
+}
+
+.usage-mine {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 6px 8px;
+}
+
+.usage-label {
+  font-size: var(--text-xs);
+  color: var(--text-faint);
+}
+
+.usage-value {
+  font-size: var(--text-lg);
+  font-weight: 500;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.usage-rank {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.usage-top {
+  list-style: none;
+  margin: var(--space-2) 0 0;
+  padding: 0;
+}
+
+.usage-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 0;
+  font-size: var(--text-sm);
+}
+
+.usage-row__rank {
+  flex: none;
+  width: 18px;
+  text-align: center;
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 用户名可能很长（3~20 位都合法）→ 超出省略，别把时长挤没了 */
+.usage-row__name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.usage-row__time {
+  flex: none;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.usage-empty {
+  font-size: var(--text-xs);
+  color: var(--text-faint);
+}
+
+/* ⚠️ Day 28 晚：`.acct-privacy` 的规则已随那句告知一起删除
+   （「会统计复读时长并公开展示」，斌哥指示删）。
+   留这条注释是因为它有朝一日可能回来：那是一句隐私告知 ——
+   "你的学习时长会被统计、且榜上公开用户名"。
+   要恢复时，按下面的老值重建即可：
+     .acct-privacy { margin-top: var(--space-3); font-size: var(--text-xs);
+                     line-height: 1.5; color: var(--text-faint); } */
+
+/* ============================================
+   Day 28 深夜 · 排行榜单独成卡 + 名次分档（斌哥要求）
+   ------------------------------------------------------------
+   要求三件：
+     ① 个人信息与排行榜【分开】—— 一张卡回答"我"，一张卡回答"班里"
+     ② 榜单【固定 5 个栏位】，哪怕一个人都没有（位次本身是信息）
+     ③ 名次的强弱要有【亮色 / 加粗】的变化
+   ⚠️ ③ 的实现刻意做了两路并行：颜色 + 字重。
+      只用颜色，色觉差异或黑白屏幕上就读不出名次 ——
+      颜色可以当装饰，不能当唯一的信息载体。
+   ============================================ */
+
+/* 榜单卡：与上面的个人信息卡同皮同尺寸。
+   ⚠️ 内边距与两卡间距【不在这里写】—— 它同时挂着 .acct-card，
+      那两件事由 `.acct-card` 与 `.acct-card + .acct-card` 统一给。
+      这里只放"榜单卡独有"的东西（标题）。 */
+.board-title {
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+/* 名次徽标：平时是淡淡的一个数字；前三名才给它底色 */
+.usage-row__rank {
+  min-width: 20px;
+  height: 20px;
+  line-height: 20px;
+  border-radius: 999px;
+}
+
+/* 第 1 名：亮薄荷底 + 强调绿 + 加粗（榜首要一眼看得见） */
+.usage-row.is-rank-1 .usage-row__rank {
+  background: var(--nav-active-bg);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.usage-row.is-rank-1 .usage-row__name {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.usage-row.is-rank-1 .usage-row__time {
+  color: var(--accent);
+}
+
+/* 第 2 / 3 名：名字提亮一档 + 中等字重（不上色，避免和第 1 名抢） */
+.usage-row.is-rank-2 .usage-row__name,
+.usage-row.is-rank-3 .usage-row__name {
+  color: var(--text);
+  font-weight: 500;
+}
+
+/* 空位：名字与时长都退回最淡的一档，且不参与"名次强调" */
+.usage-row.is-empty .usage-row__name {
+  color: var(--text-faint);
+  font-weight: 400;
+}

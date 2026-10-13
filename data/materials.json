@@ -1,9 +1,35 @@
 {
   "levels": ["L1", "L2", "L3"],
+  "lessons": [
+    { "level": "L1", "id": "Lesson1",  "title": "Lesson1"  },
+    { "level": "L1", "id": "Lesson2",  "title": "Lesson2"  },
+    { "level": "L1", "id": "Lesson3",  "title": "Lesson3"  },
+    { "level": "L1", "id": "Lesson4",  "title": "Lesson4"  },
+    { "level": "L1", "id": "Lesson5",  "title": "Lesson5"  },
+    { "level": "L1", "id": "Lesson6",  "title": "Lesson6"  },
+    { "level": "L1", "id": "Lesson7",  "title": "Lesson7"  },
+    { "level": "L1", "id": "Lesson8",  "title": "Lesson8"  },
+    { "level": "L1", "id": "Lesson9",  "title": "Lesson9"  },
+    { "level": "L1", "id": "Lesson10", "title": "Lesson10" },
+    { "level": "L1", "id": "Lesson11", "title": "Lesson11" },
+    { "level": "L1", "id": "Lesson12", "title": "Lesson12" },
+    { "level": "L1", "id": "Lesson13", "title": "Lesson13" },
+    { "level": "L1", "id": "Lesson14", "title": "Lesson14" },
+    { "level": "L1", "id": "Lesson15", "title": "Lesson15" },
+    { "level": "L1", "id": "Lesson16", "title": "Lesson16" },
+    { "level": "L1", "id": "Lesson17", "title": "Lesson17" },
+    { "level": "L1", "id": "Lesson18", "title": "Lesson18" },
+    { "level": "L1", "id": "Lesson19", "title": "Lesson19" },
+    { "level": "L1", "id": "Lesson20", "title": "Lesson20" },
+    { "level": "L1", "id": "Lesson21", "title": "Lesson21" },
+    { "level": "L1", "id": "Lesson22", "title": "Lesson22" },
+    { "level": "L1", "id": "Lesson23", "title": "Lesson23" }
+  ],
   "materials": [
     {
       "id": "oh-im-really-sorry",
       "level": "L1",
+      "lesson": "Lesson1",
       "title": "Oh, I'm really sorry",
       "audio": "assets/audio/oh-im-really-sorry.mp3"
     }

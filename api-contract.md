@@ -1,10 +1,14 @@
 # API 契约 —— echoread 英语学习工具
 
 > **项目**：echoread（面向机构学生的英语学习网页工具）
-> **文档阶段**：Day 15 · 第 3 周｜前后端接口契约（**v1：占位登记**）
-> **日期**：2026-10-09
+> **文档阶段**：Day 15 · 第 3 周｜前后端接口契约（~~v1：占位登记~~ → **现已到 v1.7，且 16 个接口全部实现**）
+> **日期**：2026-10-09（首版）｜**最近更新：2026-10-13 Day 28（v1.7：认证 + 学习时长）**
 > **依据**：`PRD.md`（Day 4）+ `TECH_DESIGN.md`（Day 5）+ 第 2 周前端四个页面与 `data/*.json`
 > **本文档给谁看**：自己（Day 16 建表、Day 17–19 写接口的**唯一依据**）、老师与同学（验收对照物）、AI（写代码时的输入）
+
+> ⚠️ **Day 28 提示**：首版登记时 8 个接口只有 1 个实现（health）；现在 **3.1 总览里 16 条全部 ✅**。
+> 三处最需要留意的更新：**1.5 认证**（从"无认证"改为 token 会话 + 线上 cookie 通道）、
+> **2.1 表清单**（6 张 → 9 张）、**3.2 第 10~16 条**（认证 5 个 + 学习时长 2 个）。
 
 ---
 
@@ -83,7 +87,50 @@
 
 ### 1.5 认证
 
-**本期无认证。** 所有接口匿名可调（依据 `PRD.md` 3.4：网页改为公开访问，不按人识别）。
+> **Day 28 更新（原第 15 天的「本期无认证」已被推翻，原文保留见下方墓碑）**
+
+采用 **token 会话**：登录成功拿一个 64 位十六进制的 token，之后每次请求都要带上它。
+
+| 项 | 约定 |
+|---|---|
+| 请求头 | `Authorization: Bearer <token>` |
+| token 长相 | 32 字节随机数的十六进制，**定长 64 位** |
+| 有效期 | 30 天（`sessions.expires_at`；过期即失效，服务端会顺手删掉那行） |
+| 落库 | `sessions` 表，一行 = 一个登录态；「退出登录」= 删掉那一行 |
+| 失败形状 | 一律 `401 { "ok": false, "error": "not_logged_in", ... }` |
+
+**⚠️⚠️ 线上有一条必须知道的额外约定：token 同时放在 cookie 里。**
+
+为什么（实测结论，不是设计洁癖）：线上站点前面多了一层**平台反向代理**，
+它会把 `Authorization` 头**替换成它自己的 JWT**（实测：我们发的 64 位 token，
+到达站点服务器的是 `Bearer eyJhb…`、长度 395）。症状是"登录成功、之后每次都是未登录"。
+
+所以线上链路是：
+
+```
+浏览器  ──(Authorization: 自己的 token + cookie: echoread_token)──▶  平台反向代理
+                                                                      │  Authorization 被换成平台 JWT
+                                                                      ▼
+                                           站点服务器 dev-server.js 的 /api 代理
+                                              · cookie 里的 token 优先，覆盖 Authorization
+                                              · 平台的 JWT 一律丢弃（不外传给云函数）
+                                                                      ▼
+                                                        云函数 echoread-api（认 64 位 token）
+```
+
+⇒ 对**接口契约**而言：云函数这一侧从未变过（只认 `Authorization: Bearer <64位>`）；
+    变化全部发生在"站点自己的代理"里。前端只需保证 **token 同时写进 localStorage 和 cookie**
+    （实现见 `app-shell.js` 的 `setToken`，登录页通过 `window.EchoToken.set` 复用同一份实现）。
+
+<details>
+<summary>墓碑：Day 15 的原文（已失效，保留以便对照）</summary>
+
+> **本期无认证。** 所有接口匿名可调（依据 `PRD.md` 3.4：网页改为公开访问，不按人识别）。
+
+⚠️ 该结论已被 Day 28 推翻：`PRD.md` 3.4 的前提是"不按人识别"，
+而 Day 28 的登录 + 学习时长排行榜**必须按人识别**。改动是**增量**的 ——
+老接口（`/api/health`、`/api/boards`、`/api/words`）依然匿名可调，契约一行没动。
+</details>
 
 ---
 
@@ -103,6 +150,15 @@
 | `words` | 词表 | `data/words.json` |
 | `templates` | 作文模板 | `data/templates.json` |
 | `boards` | 首页板块入口 | `data/boards.json` |
+| `users` | 账号本体（用户名 + 密码哈希） | —— **Day 28 新增**，不是 mock「竖起来」的 |
+| `sessions` | 登录态（一行一个 token） | —— **Day 28 新增** |
+| `usage_totals` | 每人一行的复读时长累计 | —— **Day 28 新增**（排行榜的依据） |
+
+> **Day 28 的三张新表与前六张不是一回事**：前六张来自第 2 周的 mock JSON，是"把数据文件竖起来"；
+> 后三张是**新功能**（登录 / 学习时长）带来的。
+> 建表脚本也刻意分开：`db/schema.sql`（六张旧表，**开头会 DROP**，重跑=清库）与
+> `db/schema-auth.sql` + `db/schema-usage.sql`（三张新表，**只 CREATE IF NOT EXISTS，永不 DROP**）。
+> ⇒ 库里已有真数据之后，能跑的只有后两份。
 
 ### 2.2 逐表定义
 
@@ -206,6 +262,16 @@ words / templates / boards   —— 各自独立，不与其他表关联
 | 7 | `GET` | `/api/templates` | 作文模板列表 | `writing.html` | 📝 待实现 |
 | 8 | `GET` | `/api/templates/{id}` | 单篇模板详情 | `writing.html`（未做） | 📝 待实现 |
 | 9 | `GET/POST` | `/api/mastered-words` | 标记「已掌握」 | `vocab.html`（未做） | ⛔ **本期不做**（见第五节） |
+| 10 | `GET` | `/api/auth/captcha` | 取一张图形验证码（注册用） | `login.html` | ✅ **已实现**（Day 28） |
+| 11 | `POST` | `/api/auth/register` | 注册（需验证码） | `login.html` | ✅ **已实现**（Day 28） |
+| 12 | `POST` | `/api/auth/login` | 登录，换 token | `login.html` | ✅ **已实现**（Day 28） |
+| 13 | `GET` | `/api/auth/me` | token 换"我是谁" | 右栏账号卡（全站） | ✅ **已实现**（Day 28） |
+| 14 | `POST` | `/api/auth/logout` | 退出登录（作废 token） | 右栏账号卡 | ✅ **已实现**（Day 28） |
+| 15 | `POST` | `/api/usage/beat` | 上报一段复读时长 | 跟读页（后台心跳） | ✅ **已实现**（Day 28 晚） |
+| 16 | `GET` | `/api/usage/leaderboard` | 学习时长榜（前 N + 我的名次） | 右栏账号卡 | ✅ **已实现**（Day 28 晚） |
+
+> **10~16 是 Day 28 一天内加完的**（上午认证、晚上学习时长），全部走认证规则（见 1.5）。
+> ⚠️ **老的 1~9 一个都没动**：新增接口只往路由表里加行，不改已有路径/字段/错误码 —— 契约冻结照旧。
 
 > **共同的读接口在哪儿**：第 2、3、4、6、7 条都是「**读一份清单**」——这正是任务清单里点名的
 > 「别忘了列表读取接口」。少了它，页面就只能靠 mock 数据活着。
@@ -672,7 +738,227 @@ GET /api/mastered-words?studentKey=<匿名标识>
 ```
 
 ⚠️ 注意 `studentKey` 是**匿名标识**（比如浏览器本地生成的一串随机码），**不是账号** ——
-本期没有用户体系。这条路真要开，得先决定「谁是谁」，那是另一个话题。
+~~本期没有用户体系~~。这条路真要开，得先决定「谁是谁」，那是另一个话题。
+
+> ⚠️ **Day 28 追加**：上面那句"本期没有用户体系"**已经过时**（见 1.5 认证）——
+> 现在有 `users` / `sessions` 两张表与 5 个认证接口，**"谁是谁"这件事已经解决了**。
+> 所以这个占位接口将来真要做，可以直接用**登录态**代替 `studentKey`（就不必自造匿名标识了）。
+> 登记的形状保留原文不删，作为"当时的想法"留痕。
+
+---
+
+#### 10. `GET /api/auth/captcha` ✅ 已实现（Day 28）
+
+**用途**：注册前拿一张图形验证码。`login.html` 注册页用。
+
+**请求参数**：无（**匿名可调**，不需要 token）
+
+**响应 200**
+
+```json
+{ "ok": true, "data": { "captchaId": "<签名过的 id>.", "svg": "<svg …>", "expiresInMs": 300000 } }
+```
+
+**说明**
+
+- 前端把 `svg` 直接塞进容器显示；用户抄下的码 + `captchaId` 一起交给注册接口。
+- ⚠️ **答案只存在于 SVG 图里**：`captchaId` 里只有答案的 HMAC，拿到它也算不出答案。
+- 验证码有时效（`expiresInMs`），过期即失效。
+
+**实测状态**：线上 `200` ✓（Day 28 联调）
+
+---
+
+#### 11. `POST /api/auth/register` ✅ 已实现（Day 28）
+
+**用途**：注册新账号。
+
+**请求**（**匿名可调**）
+
+```json
+{ "username": "test28_2552", "password": "Passw0rd28!", "captchaId": "<上一步拿到的>", "captchaCode": "ERSQ" }
+```
+
+**字段约束**：`username` 3~20 位，只能是字母 / 数字 / 下划线；`password` 8~64 位。
+
+**响应 201**
+
+```json
+{ "ok": true, "data": { "id": 1, "username": "test28_2552" } }
+```
+
+**错误**
+
+| 码 | 场景 | error |
+|---|---|---|
+| `400` | 字段不合法（用户名格式 / 密码长度） | `invalid_field` |
+| `400` | 验证码不对或过期 | `invalid_captcha` |
+| `409` | 用户名已被占用 | `username_taken` |
+
+**实测状态**：线上 `201` ✓；重复用户名 → `409 username_taken` ✓；错验证码 → `400 invalid_captcha` ✓（Day 28）
+
+---
+
+#### 12. `POST /api/auth/login` ✅ 已实现（Day 28）
+
+**用途**：登录，换一个 token。
+
+**请求**（**匿名可调**）
+
+```json
+{ "username": "test28_2552", "password": "Passw0rd28!" }
+```
+
+**响应 200**
+
+```json
+{
+  "ok": true,
+  "data": {
+    "token": "<64 位十六进制>",
+    "expiresAt": "2026-11-12T14:43:50.782Z",
+    "user": { "id": 1, "username": "test28_2552" }
+  }
+}
+```
+
+**错误**
+
+| 码 | 场景 | error |
+|---|---|---|
+| `400` | 用户名或密码没填 | `invalid_field` |
+| `401` | 用户名或密码不对 | `bad_credentials` |
+
+> ⚠️ **两种失败给同一句话**（`bad_credentials`）是刻意的：区分"用户不存在"与"密码错"
+> 等于把"哪些用户名已注册"告诉外人（用户名探测）。
+
+**实测状态**：线上 `200` + token（长度 64）✓；错密码 → `401 bad_credentials` ✓（Day 28）
+
+---
+
+#### 13. `GET /api/auth/me` ✅ 已实现（Day 28）
+
+**用途**：token 换"我是谁"。全站右栏账号卡打开时就调它。
+
+**请求头**：`Authorization: Bearer <token>`
+
+**响应 200**
+
+```json
+{ "ok": true, "data": { "user": { "id": 1, "username": "test28_2552" } } }
+```
+
+**错误**
+
+| 码 | 场景 | error |
+|---|---|---|
+| `401` | 没带 token | `not_logged_in` |
+| `401` | token 查不到（已退出 / 被清理） | `not_logged_in` |
+| `401` | token 已过期 | `token_expired` |
+
+**实测状态**：直连云函数 `200` ✓；线上走站点代理 `200`（cookie 通道，见 1.5）✓（Day 28）
+
+---
+
+#### 14. `POST /api/auth/logout` ✅ 已实现（Day 28）
+
+**用途**：退出登录（作废 token）。请求体为空。
+
+**请求头**：`Authorization: Bearer <token>`
+
+**响应 200**：`{ "ok": true }`
+
+**错误**：`401 not_logged_in`（没带 token）
+
+> ⚠️ **幂等**：token 已经不在了（重复退出）也回 `200` —— 两次退出的结果都是"不在了"，
+> 与 `DELETE /api/words` 对已删 id 再删一次的容忍是同一个道理。
+
+**实测状态**：线上 `200` ✓（Day 28）
+
+---
+
+#### 15. `POST /api/usage/beat` ✅ 已实现（Day 28 晚）
+
+**用途**：上报"刚才这一段时间我在复读"，累加到本人名下。
+
+**请求头**：`Authorization: Bearer <token>`
+
+**请求**
+
+```json
+{ "seconds": 60 }
+```
+
+`seconds` 必须是**正整数**（前端每 60 秒报一次，交整秒，零头留本地）。
+
+**响应 200**
+
+```json
+{ "ok": true, "data": { "added": 60, "totalSeconds": 120 } }
+```
+
+`added` 是**实际记了多少**，可能与请求值不同（见下方封顶）。
+
+**错误**
+
+| 码 | 场景 | error |
+|---|---|---|
+| `400` | `seconds` 不是正整数（字符串 / 0 / 负数 / 小数都拒） | `invalid_field` |
+| `401` | 未登录 | `not_logged_in` |
+
+**⚠️ 封顶规则（防刷，服务端说了算）**
+
+```
+本次最多认：min(180, 距上次上报的秒数 + 90)
+```
+
+- 绝对值 180 秒 = 3 个心跳周期（留给"标签页被浏览器节流、心跳迟了两拍"的余量）；
+- 只卡绝对值没用 —— 脚本一秒调一次、每次报 180 照样能刷出天文数字，
+  所以再加"不能比我实际等的时间多太多"（90 秒补偿网络往返与节流）。
+- 封顶后剩 0 秒 → **不写库**，原样返回现状（让重复请求无害）。
+
+**实测状态**（Day 28 晚，公网）：首次报 60 → `added=60, totalSeconds=60` ✓；
+紧接着再报 60 → `added=60, totalSeconds=120` ✓；
+**报 999999 → `added=91`（被压回）** ✓；
+`seconds` 传 `"60"` / `0` / `-5` → 全部 `400 invalid_field` ✓；未登录 → `401` ✓
+
+---
+
+#### 16. `GET /api/usage/leaderboard?limit=5` ✅ 已实现（Day 28 晚）
+
+**用途**：学习时长榜 —— 前 N 名 + 我的名次。右栏「学习时长榜」卡片用。
+
+**请求头**：`Authorization: Bearer <token>`（要看"我的名次"，必须登录）
+
+**参数**：`limit`（可选，默认 `5`，上限 `50`；非法值或超限一律收敛，不报错）
+
+**响应 200**
+
+```json
+{
+  "ok": true,
+  "data": {
+    "me":  { "totalSeconds": 291, "rank": 1 },
+    "top": [
+      { "rank": 1, "username": "test28_2552", "totalSeconds": 291 },
+      { "rank": 2, "username": "111", "totalSeconds": 3 }
+    ]
+  }
+}
+```
+
+**错误**：`401 not_logged_in`
+
+**⚠️ 三条设计约定**
+
+1. **只回"前 N 名 + 我自己"，不回全榜** —— 前端要的是一眼看懂，少传一份就少泄露一份。
+2. **`me.rank` 为 `null` = 榜外**：服务端只往下扫 200 名来找"我"（免费版云函数 3 秒超时锁死，
+   为一个名次拉全表不划算）。用户量上来后改成"统计比我高的人数"的计数查询。
+3. **前端固定渲染 5 个栏位**（哪怕只有 1 个人）：空位显示「虚位以待 / —」——
+   位次本身是信息。名次分档用**颜色 + 字重两路**表达（只靠颜色，色觉差异或黑白屏就读不出来）。
+
+**实测状态**（Day 28 晚，公网）：`200`，`me={totalSeconds:291, rank:1}`，`top[0]={test28_2552, 291}` ✓；
+未登录 → `401` ✓；`limit=999999` / `limit=abc` → 均 `200`（内部收敛）✓
 
 ---
 
@@ -727,3 +1013,5 @@ GET /api/mastered-words?studentKey=<匿名标识>
 | v1.3 | 2026-10-10 | Day 18 | 新增写接口 `POST /api/words`（登记，代码同日实现）：请求体 `id` / `title` / `desc` / `tag`，前三项必填；成功 `201 {ok:true,data}`（**拍板**：写接口成功一律带 `ok`，与失败形状对称）；重复 id → `409 duplicate_id`（**靠主键唯一约束，非「先查后插」**）；缺必填 → `400 missing_field`（中文写明缺哪一项）。1.3 状态码表补 `201` 与 `409`，并把 405 的过期例子（「用 POST 打只读接口」）改为 PUT |
 | v1.4 | 2026-10-11 | Day 22 | 补齐写接口的最后两类，`/api/words` 四类操作闭环：新增 **`PATCH /api/words?id=`**（改一条；可改 `title`/`desc`/`tag`；`id` 不入可改字段；至少给一个字段否则 `400`）与 **`DELETE /api/words?id=`**（**真删**一条）。两者均用网关 `Prefer: return=representation` 回显：**空数组 = id 不存在 → `404 word_not_found`**（不写「先查后改/删」那种竞态写法）。`id` 一律走 query 参数（`?id=`），**不动网关配置**。⚠️ 删除的防护三层：接口层判 404 + 前端 `confirm()` 二次确认 + 本节写明「真删、不可恢复」。同时回填上一版遗留的 `POST` 「实测状态」占位（Day 18 已实测留证，Day 21 复核）。新增「6-附. 四类操作闭环自检」小节（7 步单变量流程，含反向验证）。层内改动：`lib/rdb.js` + `rdbUpdate`/`rdbDelete`、`repositories/words.repo.js` + `updateWord`/`deleteWord`、`index.js` + `patchWords`/`deleteWords` 与路由表扩到四方法、`check.html` + `check.js` 新增第 ④ 区（修改 / 删除 + 二次确认） |
 | v1.5 | 2026-10-11 | Day 22（余力加练） | **软删除**落地：`words` 表新增列 **`is_deleted BOOL NOT NULL DEFAULT false`**（2.2 表定义已补）；**`DELETE /api/words?id=` 的语义由「真删」改为「软删」**——只置 `is_deleted=true`，数据留在库、可恢复，但所有读接口默认不返回它（过滤加在 `words.repo.js` 的 `listWords`）。**`POST` 增加「复活」分支**：撞主键时先查是否 `is_deleted=true`，是则复活（清标记 + 覆盖字段）回 `201`，不是才回 `409`。⇒ 删除从**不可逆**变为**可逆**。⚠️ **数据库升级方式**：线上表已有数据，**不能重跑 `schema.sql`（开头 DROP）/ `seed.sql`（开头 TRUNCATE），都会清库**；`db/schema.sql` 末尾新增「9. 增量升级脚本」，只跑一句 `ALTER TABLE words ADD COLUMN IF NOT EXISTS is_deleted ...`（带 `DEFAULT false`，已有行自动补 `false`，一条数据不动）。层内改动：`words.repo.js` + `findWordById`/`softDeleteWord`/`restoreWord`（`listWords` 加过滤）、`index.js` 的 `deleteWords` 改走软删 + `postWords` 加复活分支 |
+| v1.6 | 2026-10-13 | Day 28（上午） | **认证体系落地，1.5 节的「本期无认证」作废**（原文以墓碑形式留在 1.5 里）：新增 **5 个认证端点**（captcha / register / login / me / logout，3.1 总览第 10~14 条 + 3.2 逐条登记）；新增两张表 **`users` / `sessions`**（2.1 已补，建表脚本 `db/schema-auth.sql`：**只 CREATE IF NOT EXISTS、永不 DROP**）；密码存 scrypt 哈希（`s1$<盐>$<哈希>`），token 为 64 位十六进制、有效期 30 天。⚠️ **老接口一行没动**：`/api/health` `/api/boards` `/api/words` 全部照旧匿名可调 —— 契约冻结继续生效 |
+| v1.7 | 2026-10-13 | Day 28（晚） | **学习时长与排行榜落地**：新增 **2 个端点**（`POST /api/usage/beat`、`GET /api/usage/leaderboard`，3.1 第 15~16 条 + 3.2 逐条登记）；新增一张表 **`usage_totals`**（每人一行累计秒数 + `last_beat_at`，建表脚本 `db/schema-usage.sql`，同样只 CREATE 不 DROP）。口径：**只算音频真正在放的时间**，由前端 60 秒心跳上报，服务端封顶 `min(180, 距上次上报秒数+90)` 防刷。⚠️ **同日线上排障得到一个必须记进契约的事实**（已写进 1.5）：线上站点前的**平台反向代理会把 `Authorization` 头替换成它自己的 JWT**，导致"登录成功但之后每次都是未登录"；修法是 token 同时写进 **cookie**，由站点自己的 `dev-server.js` 代理把 cookie 里的 token **覆盖回** `Authorization`（平台 JWT 一律丢弃、不外传给云函数）。**云函数侧契约零变更**。 |

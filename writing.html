@@ -6,40 +6,94 @@
        为什么不能挪进 style.css：见 index.html 里的同名注释。 -->
   <style>@view-transition { navigation: auto; }</style>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>作文模板 · 英语学习工具</title>
+  <title>作文模板 · 星禾星穗</title>
   <link rel="stylesheet" href="assets/css/style.css">
+  <!-- 外壳层。⚠️ 必须排在 style.css 之后，详见 app-shell.css 开头 -->
+  <link rel="stylesheet" href="assets/css/app-shell.css">
 </head>
-<body class="page-list">
-  <header class="site-header">
-    <a class="back-link" href="index.html">&larr; 返回首页</a>
-    <h1>作文模板</h1>
+<body class="app page-list">
+  <header class="appbar">
+    <button type="button" class="iconbtn appbar__menu" id="btn-left"
+            aria-expanded="false" aria-controls="panel-left" aria-label="打开板块导航">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+           stroke-linecap="round" aria-hidden="true"><path d="M4 7h16"/><path d="M4 12h16"/><path d="M4 17h16"/></svg>
+    </button>
+
+    <a class="appbar__brand" href="index.html">
+      <img class="brand-logo" src="assets/img/logo.png" alt="" width="30" height="30">
+      <span class="brand-name" role="img" aria-label="星禾星穗">
+        <span class="brand-char" aria-hidden="true"></span>
+        <span class="brand-char" aria-hidden="true"></span>
+        <span class="brand-char" aria-hidden="true"></span>
+        <span class="brand-char" aria-hidden="true"></span>
+      </span>
+    </a>
+
+    <span class="appbar__spacer"></span>
+
+    <!-- ⚠️ 头像字不写死：由 app-shell.js 按登录态填（见 index.html 同名注释） -->
+    <button type="button" class="avatarbtn" id="btn-right"
+            aria-expanded="false" aria-controls="panel-right" aria-label="打开个人账号"></button>
   </header>
 
-  <main>
-    <!-- 视图间平级切换（Day 13）：三个内页互相直达，不必先绕回首页。
-         每一项都挂 class="btn item" —— 药丸形与那身皮直接复用现成组件。
-         自己是当前页，所以这一项带 aria-current="page" -->
-    <nav class="view-nav" aria-label="视图切换">
-      <a class="btn item" href="reader.html">文本跟读</a>
-      <a class="btn item" href="vocab.html">词汇速记</a>
-      <a class="btn item" href="writing.html" aria-current="page">作文模板</a>
-    </nav>
+  <div class="shell">
+    <aside class="side side--left" id="panel-left" aria-label="板块导航">
+      <nav class="sidenav">
+        <a class="sidenav__item" href="index.html">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
+               stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 6.6v13"/>
+            <path d="M12 6.6C10.6 5.4 8.7 4.6 6.2 4.6H3.6v13h2.6c2.5 0 4.4.8 5.8 2"/>
+            <path d="M12 6.6c1.4-1.2 3.3-2 5.8-2h2.6v13h-2.6c-2.5 0-4.4.8-5.8 2"/>
+          </svg>
+          文本跟读
+        </a>
 
-    <!-- 状态位：加载中 / 没有结果 / 读取失败＋重试，都写在这一个地方。
-         role="status" 是给读屏软件的：内容一变它就会念出来，不用用户自己去发现。
-         加载成功时它是空的，不占版面 -->
-    <div id="list-status" role="status"></div>
+        <a class="sidenav__item" href="vocab.html">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
+               stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="3.5" y="8.5" width="13" height="11" rx="2.4"/>
+            <path d="M7.5 8.5V6.6A2.6 2.6 0 0 1 10.1 4h8.5A2.6 2.6 0 0 1 21.2 6.6v8.5a2.6 2.6 0 0 1-2.6 2.6h-1.9"/>
+          </svg>
+          词汇速记
+        </a>
 
-    <!-- 列表由 assets/js/list-page.js 按下面三个 data-* 渲染。
-         内容一并放 data/templates.json —— 现在是空的，页面会给出
-         明确的「没有结果」提示，而不是一片空白（这是四种状态里的第三种） -->
-    <ul class="list" id="list"
-        data-list-url="data/templates.json"
-        data-list-key="templates"
-        data-list-name="作文模板"></ul>
-  </main>
+        <!-- 当前板块 -->
+        <a class="sidenav__item" href="writing.html" aria-current="page">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
+               stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M13.6 3.5H7.2A2.2 2.2 0 0 0 5 5.7v12.6a2.2 2.2 0 0 0 2.2 2.2h9.6a2.2 2.2 0 0 0 2.2-2.2V8.6l-5.4-5.1Z"/>
+            <path d="M13.4 3.7v5.2h5.4"/>
+          </svg>
+          作文模板
+        </a>
+      </nav>
 
+    </aside>
+
+    <main class="appmain">
+      <!-- 状态位：加载中 / 没有结果 / 读取失败＋重试，都写在这一个地方。
+           role="status" 是给读屏软件的：内容一变它就会念出来，不用用户自己去发现。
+           加载成功时它是空的，不占版面 -->
+      <div id="list-status" role="status"></div>
+
+      <!-- 列表由 assets/js/list-page.js 按下面三个 data-* 渲染。
+           内容一并放 data/templates.json —— 现在是空的，页面会给出
+           明确的「没有结果」提示，而不是一片空白（这是四种状态里的第三种） -->
+      <ul class="list" id="list"
+          data-list-url="data/templates.json"
+          data-list-key="templates"
+          data-list-name="作文模板"></ul>
+    </main>
+
+    <aside class="side side--right" id="panel-right" aria-label="个人账号"></aside>
+  </div>
+
+  <div class="scrim" id="scrim" aria-hidden="true"></div>
+
+  <!-- ⚠️ 顺序不能动：common.js 提供工具函数，app-shell.js 与 list-page.js 都要用 -->
   <script src="assets/js/common.js"></script>
+  <script src="assets/js/app-shell.js"></script>
   <script src="assets/js/list-page.js"></script>
 </body>
 </html>
