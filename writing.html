@@ -11,6 +11,68 @@
   <!-- 外壳层。⚠️ 必须排在 style.css 之后，详见 app-shell.css 开头 -->
   <link rel="stylesheet" href="assets/css/app-shell.css">
   <link rel="stylesheet" href="assets/css/page-loader.css">
+  <style>
+  /* free talk 页专属样式（.ft- 前缀，避开 echoread 与 .vg- 命名空间） */
+  .appmain{padding:24px 32px 32px;max-width:1080px}
+  /* 话题卡 */
+  .ft-card{background:#fff;border:1px solid #dfe1e6;border-radius:16px;padding:18px 20px;
+    box-shadow:0 1px 2px rgba(16,24,40,.04)}
+  .ft-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+  .ft-tag{font-size:12px;color:#0f6e56;background:#e1f5ee;border-radius:999px;padding:2px 10px}
+  .ft-tag.gray{color:#4c545e;background:#fff;border:1px solid #dfe1e6}
+  .ft-chg{margin-left:auto;font-size:13px;color:#0f6e56;border:1px solid #dfe1e6;background:#fff;
+    border-radius:8px;padding:5px 12px;cursor:pointer;font-family:inherit}
+  .ft-chg:hover{border-color:#0f6e56;background:#e1f5ee}
+  .ft-q{font-size:17px;font-weight:600;line-height:1.5}
+  .ft-zh{font-size:13px;color:#606c77;margin-top:6px}
+  .ft-bul{margin:14px 0 0;padding-left:18px;font-size:13px;color:#4c545e;line-height:1.9}
+  .ft-bul li{list-style:disc}
+  /* 回答区 */
+  .ft-box{background:#fff;border:1px solid #dfe1e6;border-radius:16px;padding:16px 18px;margin-top:14px;
+    box-shadow:0 1px 2px rgba(16,24,40,.04)}
+  .ft-box textarea{width:100%;min-height:130px;resize:vertical;border:1px solid #dfe1e6;border-radius:10px;
+    padding:12px 14px;font-size:14px;line-height:1.7;color:#16181d;font-family:inherit;outline:0;box-sizing:border-box}
+  .ft-box textarea:focus{border-color:#0f6e56}
+  .ft-box textarea::placeholder{color:#a0a8b2}
+  .ft-bar{display:flex;align-items:center;gap:10px;margin-top:12px;flex-wrap:wrap}
+  .ft-count{font-size:12px;color:#a0a8b2}
+  .ft-count b{color:#0f6e56;font-weight:600}
+  .ft-btn{font-size:13px;border:1px solid #dfe1e6;background:#fff;color:#16181d;border-radius:8px;
+    padding:6px 14px;cursor:pointer;font-family:inherit}
+  .ft-btn:hover{border-color:#0f6e56;color:#0f6e56}
+  .ft-btn:disabled{opacity:.45;cursor:not-allowed;border-style:dashed;color:#a0a8b2}
+  .ft-btn.done{background:#e1f5ee;border-color:#e1f5ee;color:#0f6e56}
+  .ft-sp{flex:1}
+  /* 折叠块（追问 / 参考词汇 / 参考回答） */
+  .ft-sec{background:#fff;border:1px solid #dfe1e6;border-radius:16px;padding:14px 18px;margin-top:14px;
+    box-shadow:0 1px 2px rgba(16,24,40,.04)}
+  .ft-h{display:flex;align-items:center;gap:8px;font-size:13px;color:#4c545e;cursor:pointer;user-select:none}
+  .ft-h .arrow{width:14px;height:14px;flex:none;transition:transform .2s;color:#606c77}
+  .ft-sec.open .ft-h .arrow{transform:rotate(90deg)}
+  .ft-h .hint{margin-left:auto;font-size:12px;color:#a0a8b2}
+  .ft-body{display:none;margin-top:12px}
+  .ft-sec.open .ft-body{display:block}
+  .ft-follow{font-size:14px;line-height:1.9;color:#16181d;padding:3px 0;border-bottom:1px solid #f1f2f4}
+  .ft-follow:last-child{border-bottom:0}
+  /* 参考词汇 chips */
+  .ft-words{display:flex;gap:8px;flex-wrap:wrap}
+  .ft-w{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:#16181d;
+    border:1px solid #dfe1e6;border-radius:999px;padding:5px 12px;cursor:pointer;background:#fff}
+  .ft-w:hover{border-color:#0f6e56;color:#0f6e56}
+  .ft-w svg{width:13px;height:13px;flex:none}
+  .ft-tips{font-size:13px;color:#4c545e;line-height:1.8;margin-top:14px;padding-top:14px;border-top:1px solid #f1f2f4}
+  .ft-sample{font-size:14px;line-height:1.9;color:#16181d;white-space:pre-wrap}
+  .ft-empty{font-size:13px;color:#a0a8b2}
+  /* 左栏分类列表 */
+  .levels{display:flex;flex-direction:column;gap:6px;margin-top:16px}
+  .ft-cat-row{display:flex;align-items:center;justify-content:space-between;width:100%}
+  .ft-cat-row .c{font-size:12px;color:#606c77;flex:none}
+  .side-levels .level-btn[aria-pressed='true'] .c{color:#0f6e56}
+  @media (max-width:599px){
+    .appmain{padding:16px 14px 24px}
+    .ft-q{font-size:16px}
+  }
+  </style>
 </head>
 <body class="app page-list">
   <header class="appbar">
@@ -70,21 +132,70 @@
         </a>
       </nav>
 
+      <!-- 话题分类：由 data/freetalk.json 的 cats 渲染，复用 echoread 原生 .level-btn -->
+      <nav class="levels side-levels" id="catList" aria-label="话题分类"></nav>
     </aside>
 
     <main class="appmain">
-      <!-- 状态位：加载中 / 没有结果 / 读取失败＋重试，都写在这一个地方。
-           role="status" 是给读屏软件的：内容一变它就会念出来，不用用户自己去发现。
-           加载成功时它是空的，不占版面 -->
-      <div id="list-status" role="status"></div>
+      <!-- 状态位：加载中 / 读取失败＋重试 / 没有结果，都写在这一个地方 -->
+      <div id="ft-status" role="status"></div>
 
-      <!-- 列表由 assets/js/list-page.js 按下面三个 data-* 渲染。
-           内容一并放 data/templates.json —— 现在是空的，页面会给出
-           明确的「没有结果」提示，而不是一片空白（这是四种状态里的第三种） -->
-      <ul class="list" id="list"
-          data-list-url="data/templates.json"
-          data-list-key="templates"
-          data-list-name="free talk练习"></ul>
+      <!-- 话题区：数据到位后由脚本填充 -->
+      <div id="ft-main" hidden>
+        <section class="ft-card" id="ftCard">
+          <div class="ft-meta">
+            <span class="ft-tag" id="ftPart"></span>
+            <span class="ft-tag gray" id="ftCat"></span>
+            <span class="ft-tag gray" id="ftLevel"></span>
+            <button type="button" class="ft-chg" id="ftChange">换一个话题</button>
+          </div>
+          <div class="ft-q" id="ftQ"></div>
+          <div class="ft-zh" id="ftZh"></div>
+          <ul class="ft-bul" id="ftBul" hidden></ul>
+        </section>
+
+        <section class="ft-box">
+          <textarea id="ftAns" placeholder="先用英文把你的回答写下来，写完再对照参考回答。不会的词可以先空着，看看参考词汇里有没有。"></textarea>
+          <div class="ft-bar">
+            <span class="ft-count" id="ftCount">0 词</span>
+            <span class="ft-sp"></span>
+            <button type="button" class="ft-btn" id="ftDone">标记已练</button>
+            <button type="button" class="ft-btn" id="ftAI" disabled title="AI 纠错功能待开放，届时可对用户回答做语法与表达批改">AI 纠错 · 待开放</button>
+          </div>
+        </section>
+
+        <section class="ft-sec open" id="secFollow">
+          <div class="ft-h" data-toggle="secFollow">
+            <svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                 stroke-linecap="round" stroke-linejoin="round"><path d="m9 5 7 7-7 7"/></svg>
+            追问 · 答完主问接着往下说
+            <span class="hint" id="ftFollowN"></span>
+          </div>
+          <div class="ft-body" id="ftFollow"></div>
+        </section>
+
+        <section class="ft-sec open" id="secWords">
+          <div class="ft-h" data-toggle="secWords">
+            <svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                 stroke-linecap="round" stroke-linejoin="round"><path d="m9 5 7 7-7 7"/></svg>
+            参考词汇 · 点一下听发音
+          </div>
+          <div class="ft-body">
+            <div class="ft-words" id="ftWords"></div>
+            <div class="ft-tips" id="ftTips"></div>
+          </div>
+        </section>
+
+        <section class="ft-sec" id="secSample">
+          <div class="ft-h" data-toggle="secSample">
+            <svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                 stroke-linecap="round" stroke-linejoin="round"><path d="m9 5 7 7-7 7"/></svg>
+            参考回答
+            <span class="hint">先自己写完再展开</span>
+          </div>
+          <div class="ft-body"><div class="ft-sample" id="ftSample"></div></div>
+        </section>
+      </div>
     </main>
 
     <aside class="side side--right" id="panel-right" aria-label="个人账号"></aside>
@@ -92,10 +203,187 @@
 
   <div class="scrim" id="scrim" aria-hidden="true"></div>
 
-  <!-- ⚠️ 顺序不能动：common.js 提供工具函数，app-shell.js 与 list-page.js 都要用 -->
+  <!-- ⚠️ 顺序不能动：common.js 提供工具函数，app-shell.js 要用 -->
   <script src="assets/js/common.js"></script>
   <script src="assets/js/page-loader.js"></script>
   <script src="assets/js/app-shell.js"></script>
-  <script src="assets/js/list-page.js"></script>
+  <script>
+  (function () {
+    var URL_DATA = 'data/freetalk.json';
+    var KEY_DRAFT = 'freetalk_draft';   // { 话题id: 用户回答 }
+    var KEY_DONE  = 'freetalk_done';    // [ 话题id ]
+    var KEY_CAT   = 'freetalk_cat';     // 当前分类 id
+
+    var $ = function (id) { return document.getElementById(id); };
+    var statusBox = $('ft-status'), mainBox = $('ft-main');
+
+    var CATS = [], TOPICS = [], CUR_CAT = 'all', CUR = null;
+
+    function readJSON(k, d) { try { return JSON.parse(localStorage.getItem(k)) || d; } catch (e) { return d; } }
+    function writeJSON(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+
+    function esc(s) {
+      return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+    function spkSvg() {
+      return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" ' +
+        'stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6.5 8.5H3.5v7h3L11 19V5Z"/>' +
+        '<path d="M15 9.5a3.5 3.5 0 0 1 0 5"/><path d="M17.5 7a7 7 0 0 1 0 10"/></svg>';
+    }
+    /* 参考词汇发音走有道标准美音（type=2）。全球发音需要先离线预取 voiceId，
+       本页词汇没做预取，所以只给标准音，不放点不响的假按钮。 */
+    window.ftPlay = function (w) {
+      new Audio('https://dict.youdao.com/dictvoice?audio=' + encodeURIComponent(w) + '&type=2').play();
+    };
+
+    /* ---------- 左栏分类 ---------- */
+    function renderCats() {
+      var box = $('catList'), done = readJSON(KEY_DONE, []);
+      box.innerHTML = '';
+      CATS.forEach(function (c) {
+        var inCat = c.id === 'all' ? TOPICS : TOPICS.filter(function (t) { return t.cat === c.id; });
+        var dn = inCat.filter(function (t) { return done.indexOf(t.id) >= 0; }).length;
+        var b = document.createElement('button');
+        b.type = 'button'; b.className = 'level-btn';
+        b.setAttribute('data-cat', c.id);
+        b.setAttribute('aria-pressed', String(c.id === CUR_CAT));
+        var row = document.createElement('span'); row.className = 'ft-cat-row';
+        var nm = document.createElement('span'); nm.textContent = c.name;
+        var ct = document.createElement('span'); ct.className = 'c'; ct.textContent = dn + '/' + inCat.length;
+        row.appendChild(nm); row.appendChild(ct); b.appendChild(row);
+        b.addEventListener('click', function () {
+          if (CUR_CAT === c.id) return;
+          CUR_CAT = c.id; writeJSON(KEY_CAT, c.id);
+          renderCats(); pick(pool()[0]);
+        });
+        box.appendChild(b);
+      });
+    }
+
+    function pool() {
+      return CUR_CAT === 'all' ? TOPICS : TOPICS.filter(function (t) { return t.cat === CUR_CAT; });
+    }
+
+    /* ---------- 渲染当前话题 ---------- */
+    function pick(t) {
+      if (!t) {
+        mainBox.hidden = true;
+        statusBox.innerHTML = '<div class="ft-empty">这个分类下暂时没有话题</div>';
+        return;
+      }
+      CUR = t;
+      mainBox.hidden = false;
+      statusBox.innerHTML = '';
+
+      var catName = (CATS.filter(function (c) { return c.id === t.cat; })[0] || {}).name || t.cat;
+      var list = pool();
+      $('ftPart').textContent = t.part;
+      $('ftCat').textContent = catName;
+      $('ftLevel').textContent = t.level;
+      $('ftQ').textContent = t.q;
+      $('ftZh').textContent = t.zh;
+
+      if (t.bullets && t.bullets.length) {
+        $('ftBul').hidden = false;
+        $('ftBul').innerHTML = t.bullets.map(function (b) { return '<li>' + esc(b) + '</li>'; }).join('');
+      } else {
+        $('ftBul').hidden = true; $('ftBul').innerHTML = '';
+      }
+
+      $('ftFollow').innerHTML = (t.follow || []).map(function (f) {
+        return '<div class="ft-follow">' + esc(f) + '</div>';
+      }).join('');
+      $('ftFollowN').textContent = (t.follow || []).length + ' 条 · 第 ' +
+        (list.indexOf(t) + 1) + '/' + list.length + ' 题';
+
+      $('ftWords').innerHTML = (t.words || []).map(function (w) {
+        return '<span class="ft-w" onclick="ftPlay(\'' + esc(w) + '\')">' + spkSvg() + esc(w) + '</span>';
+      }).join('');
+      $('ftTips').textContent = t.tips || '';
+      $('ftSample').textContent = t.sample || '';
+
+      $('secSample').classList.remove('open');
+
+      var draft = readJSON(KEY_DRAFT, {});
+      $('ftAns').value = draft[t.id] || '';
+      countWords();
+      syncDone();
+    }
+
+    function countWords() {
+      var v = $('ftAns').value.trim();
+      var n = v ? v.split(/\s+/).length : 0;
+      $('ftCount').innerHTML = '<b>' + n + '</b> 词' + (n < 40 ? ' · 建议写到 40 词以上' : '');
+    }
+
+    function syncDone() {
+      if (!CUR) return;
+      var done = readJSON(KEY_DONE, []);
+      var b = $('ftDone'), on = done.indexOf(CUR.id) >= 0;
+      b.textContent = on ? '已练 ✓' : '标记已练';
+      b.classList.toggle('done', on);
+    }
+
+    /* ---------- 事件 ---------- */
+    $('ftAns').addEventListener('input', function () {
+      countWords();
+      if (!CUR) return;
+      var d = readJSON(KEY_DRAFT, {});
+      d[CUR.id] = $('ftAns').value;
+      writeJSON(KEY_DRAFT, d);
+    });
+
+    $('ftChange').addEventListener('click', function () {
+      var list = pool();
+      if (list.length < 2) return;
+      var next;
+      do { next = list[Math.floor(Math.random() * list.length)]; } while (next.id === CUR.id);
+      pick(next);
+    });
+
+    $('ftDone').addEventListener('click', function () {
+      if (!CUR) return;
+      var done = readJSON(KEY_DONE, []);
+      var i = done.indexOf(CUR.id);
+      if (i >= 0) done.splice(i, 1); else done.push(CUR.id);
+      writeJSON(KEY_DONE, done);
+      syncDone(); renderCats();
+    });
+
+    Array.prototype.forEach.call(document.querySelectorAll('.ft-h[data-toggle]'), function (h) {
+      h.addEventListener('click', function () {
+        $(h.getAttribute('data-toggle')).classList.toggle('open');
+      });
+    });
+
+    /* ---------- 载入数据 ---------- */
+    function load() {
+      statusBox.innerHTML = '<div class="ft-empty">正在载入话题…</div>';
+      fetch(URL_DATA, { cache: 'no-cache' })
+        .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+        .then(function (d) {
+          TOPICS = d.topics || [];
+          CATS = d.cats || [];
+          if (!TOPICS.length) {
+            statusBox.innerHTML = '<div class="ft-empty">题库是空的</div>';
+            return;
+          }
+          var saved = readJSON(KEY_CAT, 'all');
+          if (CATS.some(function (c) { return c.id === saved; })) CUR_CAT = saved;
+          renderCats();
+          pick(pool()[0]);
+        })
+        .catch(function (e) {
+          statusBox.innerHTML = '<div class="ft-empty">题库读取失败（' + esc(e.message) +
+            '）<br><button type="button" class="ft-btn" id="ftRetry" style="margin-top:10px">重试</button></div>';
+          var r = $('ftRetry');
+          if (r) r.addEventListener('click', load);
+        });
+    }
+
+    load();
+  })();
+  </script>
 </body>
 </html>
