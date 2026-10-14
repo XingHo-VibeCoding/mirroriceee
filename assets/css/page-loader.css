@@ -1,0 +1,133 @@
+/* ============================================================
+   页面跳转加载动画（page-loader.css）—— Day 29
+   ------------------------------------------------------------
+   干什么：点站内链接切页时，趁"老页面还在、新页面还没上屏"的那段空档，
+          盖一层遮罩 + 一个动画，让人知道"在走，不是卡住了"。
+
+   现在用的动画：**四片穗子（品牌 logo）旋转** ——
+     · 右上那一片是"刀片"，绕中心 2 秒公转两圈，全程不停；
+     · 另外三片在自己被扫过的一瞬缩小旋转退场、第二圈再长回来，
+       三片用 0 / .25s / .50s 错开（刀片每 90° 正好 0.25s）。
+     来源：本站 Day 27 的首页加载遮罩（`loading.css` + `petal-{tl,tr,bl,br}.png`，
+     最后可用版本 = 提交 69ad4cc）。那套遮罩在首页并入 index.html 后成了孤儿、
+     被删过一次；这里把【动效本体】搬过来当切页动画用，图片从 git 原样恢复。
+
+   ⚠️ 曾经短暂用过「旋转圆环」（从 css-loading-gallery 搬的），斌哥看过之后
+      要求换回品牌穗子版 —— 圆环那段 CSS 已删，要找回看提交历史里的 page-loader.css
+      （或 gallery 文件 `css-loading-gallery/index.html` 的「01 · 旋转圆环」）。
+
+   为什么延迟出现（130ms 那档在 JS 里）：本地站切页常常几十毫秒就完了，
+      一出现就被替换掉 = 屏幕上闪一下，比不显示还难看。
+      延迟之后，快导航根本看不到它，慢导航才看到 —— 这是标准做法。
+
+   ⚠️ 类名一律 pl- 前缀：站内已有 ld-（旧首页遮罩）、acct-、usage- 等前缀，
+      不许蹭别人的名字，也不许和 `.loader/.track/.fill` 这类通用词撞车。
+   ============================================================ */
+
+.pl-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;                 /* 压过一切：切页时它最大 */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  /* 半透明而不是全白：底下还留着老页面的影子，读起来像"盖了一层"，
+     而不是"跳到一个空白页"。 */
+  background: rgba(247, 248, 250, .88);
+  -webkit-backdrop-filter: blur(2px);
+  backdrop-filter: blur(2px);
+
+  /* 显隐靠这两个属性一起切：只切 opacity 的话，隐形遮罩仍然吃鼠标事件 */
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity .18s ease-out, visibility .18s ease-out;
+}
+
+.pl-mask.is-on {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* ---------- 四片穗子 ---------- */
+.pl-logo {
+  position: relative;
+  /* 比首页那套遮罩小一档（160px → 110px）：切页是"路过一下"，
+     占满屏中央会觉得被拦住了。嫌小改这一个数即可。 */
+  width: min(110px, 28vw);
+  height: calc(min(110px, 28vw) * 383 / 377);   /* 保持原图 377×383 比例 */
+}
+
+.pl-petal {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+}
+.pl-petal--tl { background-image: url(../img/petal-tl.png); }
+.pl-petal--tr { background-image: url(../img/petal-tr.png); }
+.pl-petal--bl { background-image: url(../img/petal-bl.png); }
+.pl-petal--br { background-image: url(../img/petal-br.png); }
+
+/* 刀片（右上那片）绕中心持续公转：2 秒两圈，全程不停 */
+.pl-rotor {
+  position: absolute;
+  inset: 0;
+  transform-origin: 50% 50%;
+  animation: pl-rotor-spin 2s linear infinite;
+  will-change: transform;
+}
+@keyframes pl-rotor-spin {
+  0%   { transform: rotate(0deg); }
+  100% { transform: rotate(720deg); }
+}
+
+/* 被扫过的三片：第一圈 0.10→0.22s 退场，第二圈 1.22→1.34s 长回。
+   三片用 delay 0 / .25s / .50s 错开 —— 对应刀片每 90° 用时 0.25s */
+.pl-petal--tl,
+.pl-petal--bl,
+.pl-petal--br {
+  animation: pl-petal-veil 2s infinite;
+  will-change: opacity, transform;
+}
+.pl-petal--br { animation-delay: 0s; }
+.pl-petal--bl { animation-delay: .25s; }
+.pl-petal--tl { animation-delay: .50s; }
+
+@keyframes pl-petal-veil {
+  0%, 5% {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+    animation-timing-function: cubic-bezier(.215, .61, .355, 1);
+  }
+  11% { opacity: 0; transform: scale(.35) rotate(-30deg); }
+  61% {
+    opacity: 0;
+    transform: scale(.35) rotate(-30deg);
+    animation-timing-function: cubic-bezier(.215, .61, .355, 1);
+  }
+  67%, 100% { opacity: 1; transform: scale(1) rotate(0deg); }
+}
+
+.pl-label {
+  font-size: var(--text-sm);
+  letter-spacing: 2px;
+  color: var(--text-muted);
+}
+
+/* 系统开了「减少动态效果」：穗子停住、四片都留住（旧首页遮罩当年就是这个处理）。
+   ⚠️ 这里不再"放慢"而是"停住" —— 转圈对这类用户是实打实的不适，
+   而"加载中…"这几个字已经把状态说清楚了。 */
+@media (prefers-reduced-motion: reduce) {
+  .pl-rotor,
+  .pl-petal--tl,
+  .pl-petal--bl,
+  .pl-petal--br {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+}

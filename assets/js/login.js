@@ -150,6 +150,9 @@
               localStorage.setItem('echoread_token', r.d.data.token);
             }
             setStatus('登录成功，正在回到跟读页…', 'ok');
+            /* Day 29：这一跳是脚本自己发起的，点击拦截管不到 —— 手动叫起切页动画。
+               没有它，登录成功后会有半秒"按了没反应"的空档。 */
+            if (window.PageLoader) window.PageLoader.show();
             setTimeout(function () { window.location.href = 'index.html'; }, 400);
           } else {
             setStatus((r.d && r.d.message) || '登录失败，请稍后再试。', 'error');
