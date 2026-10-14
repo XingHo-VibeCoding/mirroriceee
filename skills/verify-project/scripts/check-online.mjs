@@ -3,7 +3,7 @@
    check-online.mjs —— 发布前检查 · 联网部分（打真实接口 / 真实站点）
    ---------------------------------------------------------------------------
    查什么（编号与 SKILL.md、check-offline.mjs 对齐）：
-     C 组 · 跨域（CORS）        C1 ~ C5
+     C 组 · 跨域（CORS）        C1 ~ C6   ← Day 27 换判据：改判「同源代理」这条真实链路
      D 组 · 接口契约（冻结）    D1 ~ D6
      E 组 · 数据安全（写入类）  E1 ~ E2   ← 默认不跑，要加 --write
      F 组 · 线上可达            F1 ~ F3
@@ -15,6 +15,16 @@
    可覆盖的地址：
      ECHOREAD_API    接口基地址（默认线上那套 ap-shanghai）
      ECHOREAD_SITE   发布站点来源（默认 https://echoread.app.workbuddy.host）
+
+   ⚠️⚠️ Day 27 为什么把 C 组的判据整个换掉（原判据的历史与证据见 CORS_FIX.md，那份文档没删）：
+      旧 C1/C2 断言的是「网关给不给发布站点这个来源回跨域头」。Day 27 提交 `274a07f` 之后，
+      **前端已经不直连云函数了** —— 发布服务器新增 `/api/**` 反向代理（转发时摘掉 `Origin` 头，
+      网关就是拿它比对白名单的），页面改调**相对路径** `/api/**` ⇒ 浏览器眼里全站同源，
+      **压根不产生跨域请求**。
+      ⇒ 再拿"网关给不给发布站跨域头"当判据，就是**永远报红的假警报**：
+        线上明明好用，脚本偏说坏 —— 这种**假红比假绿更伤**，下次真出问题就没人信它了。
+      ⇒ 新判据 = **直接测用户实际走的那条路**：从发布站域名访问 `/api/**` 必须通（C1~C3）；
+        外加一条**防回退**（C4）：前端源码里不许再出现云函数完整域名 —— 谁写回去，跨域立刻复发。
 
    ⚠️ 默认【只读】：所有请求都是"必然会被拒"或"查无此 id"的那种，不写库、不造数据。
       要验写入路径（软删可逆 / 同 id 不双写），加 --write —— 脚本自己负责清理。
@@ -50,7 +60,8 @@ const rep = createReport({
   meta: [' 接口：' + API, ' 站点：' + SITE, ' 写入类检查：' + (WRITE ? '已启用（--write）' : '未启用（默认只读）')],
   notes: [
     'curl 通了不等于浏览器通了 —— 跨域问题只有真实来源头才能暴露。',
-    'C 组在跨域白名单补上发布域名之前【必然是 FAIL】，那是它有用的证据，不是脚本坏了。'
+    'C 组（Day 27 起）判的是【同源代理】这条真实链路：从发布站域名访问 /api/** 必须通；',
+    '不再判"网关给不给发布站回跨域头"—— 那条路已经不用了，继续断言它只会永远报假红。'
   ]
 });
 
@@ -75,16 +86,9 @@ async function call(method, pathname, opts) {
   }
 }
 
-/* 判断「这个来源有没有被放行」：
-   不只看有没有头，还要看头里回的是不是**它自己** —— 回 `*` 也不算合格。 */
-function notAllowed(r, origin) {
-  if (r.netError) return '请求根本没发出去：' + r.netError;
-  const acao = r.headers.get('access-control-allow-origin');
-  if (!acao) return '没有 access-control-allow-origin（网关没认这个来源）';
-  if (acao === '*') return '回的是通配符 *（本项目带凭据，* 无效，等于没放行）';
-  if (acao !== origin) return '回的是「' + acao + '」，不是请求的来源「' + origin + '」';
-  return null;
-}
+/* ⚠️ Day 27：原 notAllowed() 已随 C 组换判据一并删掉 ——
+   它判的是"这个来源有没有被网关放行"，而前端已改走同源代理、不再需要那条放行。
+   原实现可用 `git show 274a07f^:skills/verify-project/scripts/check-online.mjs` 找回。 */
 
 function isErr(r, status, code) {
   if (r.netError) return '请求发不出去：' + r.netError;
@@ -102,57 +106,88 @@ function detailOf(r) {
 const NOID = 'w-vp-nope-' + Date.now();   /* 一定不存在的 id，用来做"不写库"的探测 */
 
 /* ===========================================================================
-   C 组 · 跨域（CORS）
+   C 组 · 跨域（CORS）—— Day 27 起判「同源代理」这条真实链路
+   ---------------------------------------------------------------------------
+   判据为什么换（完整背景见文件头注释 + 根目录 CORS_FIX.md）：
+     `274a07f` 之后前端不再直连云函数 —— 发布服务器加 `/api/**` 反向代理
+     （转发时摘掉 `Origin` 头），页面改调相对路径 ⇒ 浏览器眼里全站同源。
+     ⇒ 旧判据（"网关给不给发布站回跨域头"）会**永远报红**：线上好用，脚本说坏。
+     ⇒ 新判据直接测**用户实际走的那条路**，并加一条防回退。
    =========================================================================== */
-rep.section('C 组 · 跨域（CORS）—— 白名单里有没有发布站点域名');
+rep.section('C 组 · 跨域（CORS）—— 发布站域名走 /api/** 必须通（同源代理）');
 
-const KNOWN_OK = [
-  { label: '本地开发源 localhost:8000', origin: 'http://localhost:8000' },
-  { label: '控制台内置域名 tcloudbaseapp.com', origin: 'https://echoread-d0g1b2ez6a369d11e-1502538433.tcloudbaseapp.com' }
-];
 const OUTSIDER = 'https://evil.example.com';
 
-let r = await call('GET', '/api/health', { origin: SITE });
-let bad = notAllowed(r, SITE);
-rep.check('C1', '发布站点来源能拿到跨域头（GET /api/health）',
-  bad === null,
-  bad ? bad + ' ｜ HTTP ' + r.status + ' ｜ vary=' + JSON.stringify(r.headers.get('vary'))
-      : 'acao=' + r.headers.get('access-control-allow-origin') + '，vary=' + r.headers.get('vary'));
+/* ---- C1 同源【读】路径通（用户实际走的就是这条路）---- */
+let r = await call('GET', SITE + '/api/health', {});
+const c1ok = r.status === 200 && r.json && r.json.ok === true && r.json.service === 'echoread';
+rep.check('C1', '同源读路径通：' + SITE_HOST + '/api/health 必须 200',
+  c1ok,
+  c1ok ? '200 {ok:true, service:"echoread"}（发布服务器代理到了云函数）'
+    : detailOf(r) + (r.status === 404
+        ? '（← 404 = 发布服务器上没有 /api 这一段，查 dev-server.js 的 proxyToApi 及其调用处）' : ''));
 
-r = await call('OPTIONS', '/api/words', {
-  origin: SITE,
-  headers: { 'Access-Control-Request-Method': 'POST', 'Access-Control-Request-Headers': 'content-type' }
-});
-bad = notAllowed(r, SITE);
-const preOk = bad === null && r.status === 204 &&
-  String(r.headers.get('access-control-allow-methods') || '').toUpperCase().indexOf('POST') >= 0;
-rep.check('C2', '写入预检 OPTIONS 能过（应 204 且放行 POST）',
-  preOk,
-  bad ? bad + ' ｜ 实际 HTTP ' + r.status + '（405 = 预检被透传给了云函数）'
-      : 'HTTP ' + r.status + '，allow-methods=' + JSON.stringify(r.headers.get('access-control-allow-methods')));
+/* ---- C2 同源【写】路径能穿到后端（用不存在的 id，绝不写库）----
+   为什么用"不存在的 id + DELETE"：错误码是云函数回的 ⇒ 证明写请求真的穿过了代理；
+   而 id 不存在 ⇒ 无论代理通不通都改不到任何一行数据。 */
+r = await call('DELETE', SITE + '/api/words?id=' + encodeURIComponent(NOID), {});
+const c2 = isErr(r, 404, 'word_not_found');
+rep.check('C2', '同源写路径通：DELETE /api/words 由云函数回 404（写请求真的穿过了代理）',
+  c2 === null,
+  c2 === null
+    ? '404 word_not_found —— 这个短码与中文提示是云函数回的，说明写请求穿过了代理（未碰任何数据）'
+    : c2 + ' ｜ ' + detailOf(r));
 
-let c3bad = [];
-for (const k of KNOWN_OK) {
-  const rr = await call('GET', '/api/health', { origin: k.origin });
-  const b = notAllowed(rr, k.origin);
-  if (b) c3bad.push(k.label + '：' + b);
+/* ---- C3 同源能读到真实数据 ---- */
+r = await call('GET', SITE + '/api/words', {});
+const c3ok = r.status === 200 && r.json && Array.isArray(r.json.words);
+rep.check('C3', '同源读到真实数据：' + SITE_HOST + '/api/words 返回 {words:[…]}',
+  c3ok,
+  c3ok ? '当前 ' + r.json.words.length + ' 行' : detailOf(r));
+
+/* ---- C4 防回退：前端源码里不许写死云函数完整域名 ----
+   为什么这条最要紧：同源代理是靠"页面只调相对路径"撑起来的。
+   谁要是把完整域名写回前端，跨域立刻复发 —— 而且**线上可能好几天没人发现**（页面能开、数据空）。
+   只扫前端（根目录 *.html + assets/js/*.js）。
+   ⚠️ dev-server.js / cloudfunctions/ 里出现这个域名是**对的**（后端才该知道上游地址），不要扫它们。 */
+const FE_DOMAIN = 'tcloudbase.com';
+const feHits = [];
+try {
+  const jsDir = path.join(ROOT, 'assets', 'js');
+  const feFiles = fs.readdirSync(ROOT).filter(function (f) { return f.endsWith('.html'); })
+    .concat(fs.existsSync(jsDir)
+      ? fs.readdirSync(jsDir).filter(function (f) { return f.endsWith('.js'); })
+          .map(function (f) { return path.join('assets', 'js', f); })
+      : []);
+  for (const rel of feFiles) {
+    const txt = fs.readFileSync(path.join(ROOT, rel), 'utf8');
+    if (txt.indexOf(FE_DOMAIN) >= 0) feHits.push(rel);
+  }
+} catch (e) {
+  feHits.push('（扫描出错：' + ((e && e.message) || e) + '）');
 }
-rep.check('C3', '对照组：白名单内的来源没被误伤（防"修一个坏一个"）',
-  c3bad.length === 0,
-  c3bad.length === 0 ? 'localhost:8000 与内置域名都仍有跨域头' : c3bad.join(' ｜ '));
+rep.check('C4', '防回退：前端源码里不得写死云函数域名（写回去 = 跨域复发）',
+  feHits.length === 0,
+  feHits.length === 0
+    ? '扫描 ' + '(根目录 *.html + assets/js/*.js) 全部干净 —— 页面只调相对路径 /api/**'
+    : '⚠️ 这些前端文件里出现了 ' + FE_DOMAIN + '：' + feHits.join(' / ') + ' —— 请改回相对路径 /api/**');
 
+/* ---- C5 云函数直连本体活着（把"代理坏了"和"云函数坏了"分开）---- */
+r = await call('GET', '/api/health', {});
+const alive = r.status === 200 && r.json && r.json.ok === true && r.json.service === 'echoread';
+rep.check('C5', '云函数直连本体活着（不带 Origin；C1 红而 C5 绿 = 问题在代理，不在接口）',
+  alive,
+  alive ? '200 {ok:true, service:"echoread"}' : detailOf(r));
+
+/* ---- C6 纵深防御：白名单没被改松 ----
+   这条已**不再**决定应用可用性（前端不走白名单了），但它守的是"网关配置有没有被拆"，
+   仍是值得留的一道岗：真的被改松，是比原 Bug 更严重的安全问题。 */
 r = await call('GET', '/api/health', { origin: OUTSIDER });
 const acaoOut = r.netError ? '(请求失败)' : r.headers.get('access-control-allow-origin');
-rep.check('C4', '白名单外的域名【必须仍然】拿不到跨域头（防白名单被改松）',
+rep.check('C6', '纵深防御：白名单外的来源直连云函数【必须仍拿不到】跨域头（防白名单被改松）',
   acaoOut === null,
   acaoOut === null ? '确认无 access-control-allow-origin（闸门没被拆）'
     : '⚠️ 居然放行了：acao=' + acaoOut + ' —— 白名单被改松了，比原 Bug 更严重');
-
-r = await call('GET', '/api/health', {});
-const alive = r.status === 200 && r.json && r.json.ok === true && r.json.service === 'echoread';
-rep.check('C5', '接口本体是活的（不带 Origin，把"跨域被拦"和"接口坏了"分开）',
-  alive,
-  alive ? '200 {ok:true, service:"echoread"}' : detailOf(r));
 
 /* ===========================================================================
    D 组 · 接口契约（冻结：路径 / 字段名 / 错误码都不许动）
@@ -357,11 +392,15 @@ rep.print();
 
 const st = rep.stats;
 if (st.fail > 0 && !WRITE) {
-  console.log(' 提示：若 FAIL 全是 C 组「发布站点」相关项，而 C3 对照全过，');
-  console.log('       那就是跨域白名单漏了这个域名。控制台「环境配置 → 安全来源 → 安全域名」');
-  console.log('       点【添加域名】，填这个（⚠️ 裸域名，不要带 http:// 或 https://）：');
-  console.log('         ' + SITE_HOST);
-  console.log('       约 1–2 分钟生效，之后重跑应变成全 PASS。不用改任何代码。');
+  console.log(' 提示：C 组红了照这个顺序看 ——');
+  console.log('   C1 红（同源 /api/health 不是 200）→ 发布服务器上没有 /api 代理段：');
+  console.log('        查 dev-server.js 的 proxyToApi() 与那个 if (…startsWith(\'/api/\')) 分支。');
+  console.log('   C2 红而 C1 绿 → 读能过、写过不去：看代理有没有把方法/请求体透传（req.pipe(upstream)）。');
+  console.log('   C5 也红 → 是云函数本身的问题（部署 / 路由 / 环境变量），不是代理的锅。');
+  console.log('   C4 红 → 有前端文件把云函数完整域名写回去了，改回相对路径 /api/**。');
+  console.log('   C6 红 → 网关白名单被改松了，属安全问题，优先处理。');
+  console.log('   ⚠️ 别再按「控制台加安全域名」那条路去修 —— 免费体验版加不了；');
+  console.log('      Day 27 已改走同源代理。历史决策与实测证据见根目录 CORS_FIX.md。');
   console.log('');
 }
 process.exit(rep.exitCode());

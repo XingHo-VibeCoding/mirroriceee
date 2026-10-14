@@ -1,7 +1,7 @@
 ---
 name: verify-project
 description: "Pre-release check for this project (EchoRead): secrets & .env hygiene, release-package leaks, CORS whitelist, frozen API contract, soft-delete safety, and live reachability. Use when the user asks to 发布前检查 / 上线前自查 / 跑一遍发布检查 / 验收自查 / 检查跨域 / 密钥扫描 / 接口契约检查 / pre-release check / release gate."
-description_zh: "发布前检查 —— 把「上线前必须过的 26 项」写成能自动跑的检查：密钥与 .env、发布包不夹带机密、跨域白名单、接口契约（冻结）、软删数据安全、线上可达。逐项 PASS/FAIL/跳过 + 证据，退出码 0 才算过。"
+description_zh: "发布前检查 —— 把「上线前必须过的 27 项」写成能自动跑的检查：密钥与 .env、发布包不夹带机密、跨域（同源代理链路）、接口契约（冻结）、软删数据安全、线上可达。逐项 PASS/FAIL/跳过 + 证据，退出码 0 才算过。"
 description_en: "Pre-release gate: secrets, release leaks, CORS, API contract, data safety, reachability"
 display_name: "发布前检查"
 display_name_en: "Pre-release Check"
@@ -22,7 +22,7 @@ agent_created: true
 |---|---|
 | A 组 | Day 23 安全审计：密钥红线、`.env` 与忽略规则 |
 | B 组 | Day 23 → Day 24：发布是「整目录上传、只增不删」，本地删了线上还在 ⇒ 只能靠服务器层拒绝 |
-| C 组 | Day 23 发现 / Day 24 复现：网关跨域白名单漏了发布域名，界面报「网络连不上」，而 **curl 全绿** |
+| C 组 | Day 23 发现 / Day 24 复现 / **Day 27 修复**：网关跨域白名单漏了发布域名，界面报「网络连不上」而 **curl 全绿**；Day 27 改走**同源代理**绕过套餐限制，C 组判据随之改判 |
 | D 组 | Day 23：`commit 9dcff11` 早提交了，但云函数没重新部署 ⇒ **源码 ≠ 线上生效** |
 | E 组 | Day 22：`w-abandon` 被删了三天才发现 —— 删要能退，重复写不能悄悄变两条 |
 | F 组 | Day 9 / Day 13：Range 支持没了跳播必坏；`.md` 文档会上公网 |
@@ -40,7 +40,7 @@ agent_created: true
 
 **不适用**：前端筛选交互的三态与可访问性（那是 `frontend-guidelines` skill）；性能 / 包体积 / CSS 视觉审查。
 
-## 检查项（26 条）
+## 检查项（27 条）
 
 ### A 组 · 密钥与机密（离线）
 
@@ -61,15 +61,23 @@ agent_created: true
 | B2 | `dev-server.js` 后缀黑名单齐全 | 含 `.md`，且含 `.env*` |
 | B3 | 交叉比对：仓库里的敏感物逐条能被挡住 | 把**真实躺着**的敏感文件（`.env` / `.workbuddy/memory/…` / `cloudfunctions/…` / `db/schema.sql` / 各 `.md`）拿同一套规则过一遍，**一个都不许漏** |
 
-### C 组 · 跨域（联网）
+### C 组 · 跨域（联网）—— Day 27 起判「同源代理」这条真实链路
+
+> ⚠️ **Day 27 换了判据**（原判据的背景与证据见根目录 `CORS_FIX.md`，那份文档没删）。
+> 提交 `274a07f` 之后前端**不再直连云函数**：发布服务器加 `/api/**` 反向代理
+> （转发时摘掉 `Origin` 头 —— 网关就是拿它比对白名单的），页面改调**相对路径** ⇒
+> 浏览器眼里全站同源，**根本不产生跨域请求**。
+> ⇒ 旧判据（"网关给不给发布站回跨域头"）会**永远报红**：线上好用、脚本说坏。
+> **假红比假绿更伤** —— 下次真出问题就没人信它了。所以改成直接测**用户实际走的那条路**。
 
 | 编号 | 检查什么 | 怎么算过 |
 |---|---|---|
-| C1 | 发布站点来源能拿到跨域头 | 带发布域名 `Origin` 打 `GET /api/health` → `access-control-allow-origin` **回显自身**（回 `*` 也不算过） |
-| C2 | 写入预检能过 | `OPTIONS /api/words` 带 `Access-Control-Request-Method: POST` → **204** 且 `allow-methods` 含 POST |
-| C3 | 对照组没被误伤 | `localhost:8000` 与内置 `tcloudbaseapp.com` 仍**有**跨域头（防「修一个坏一个」） |
-| C4 | 白名单没被改松 | `https://evil.example.com` **必须仍无**跨域头（比原 Bug 更严重的错，是"闸门被拆"） |
-| C5 | 接口本体是活的 | 不带 `Origin` → 200。把「跨域被拦」和「接口坏了」分开 |
+| C1 | 同源【读】路径通 | `GET <发布站>/api/health` → **200** 且 `{ok:true, service:"echoread"}`。**404 = 发布服务器上没有 `/api` 代理段** |
+| C2 | 同源【写】路径通 | `DELETE <发布站>/api/words?id=<不存在的 id>` → **云函数**回 **404 `word_not_found`** ⇒ 证明写请求真的穿过了代理，且**未碰任何数据** |
+| C3 | 同源读到真实数据 | `GET <发布站>/api/words` → **200** 且 `{words:[…]}`，并报出条数 |
+| C4 | **防回退**：前端不得写死云函数域名 | 扫**根目录 `*.html` + `assets/js/*.js`**，不得出现 `tcloudbase.com`。⚠️ 谁把完整域名写回前端，跨域立刻复发，而且**线上可能好几天没人发现**（页面能开、数据空） |
+| C5 | 云函数直连本体活着 | 不带 `Origin` 直连 → 200。**C1 红而 C5 绿 = 问题在代理，不在接口** |
+| C6 | 纵深防御：白名单没被改松 | `https://evil.example.com` 直连**必须仍无**跨域头。⚠️ 已不决定可用性（前端不走白名单了），但守的是"网关配置有没有被拆" |
 
 ### D 组 · 接口契约（联网，冻结：路径 / 字段名 / 错误码都不许动）
 
@@ -151,23 +159,34 @@ node skills\verify-project\scripts\check-online.mjs --write
 | 1 | 把 `.gitignore` 里的 `.env` 行注释掉 | **A2** | `git checkout -- .gitignore` |
 | 2 | 在 `common.js` 的 `failureHTML` 里加一句 `+ err.message` | **A6** | `git checkout -- assets/js/common.js` |
 | 3 | 删掉 `dev-server.js` 里 `BLOCKED_PATH_PREFIX` 的 `'cloudfunctions/'` | **B1** + **B3** | `git checkout -- dev-server.js` |
+| 4 | 把靶址换成不存在的站点：`ECHOREAD_SITE=https://example.invalid node …check-online.mjs` | **C1 / C2 / C3** | 去掉这个环境变量即可（**不改任何文件**） |
+| 5 | 往 `assets/js/` 塞一个含云函数域名的临时 `.js`（如 `_c4probe.js`），跑完删掉 | **C4** | 删掉那个临时文件，重跑应回绿（**注入带还原闸门**） |
 
 ⚠️ 注入一律**改动真实文件、验完立刻 `git checkout` 还原**，做完用 `git status` 复核工作区干净。
 **不要**做成脚本内置的 `--bad` 假副本模式 —— 那验的是"脚本对自己的想象"，不是"对真实缺陷的反应"。
 
-联网侧自带一条**天然的红**：在跨域白名单补上发布域名之前，**C1 / C2 必然是 FAIL**。
-「补上白名单后由红转绿」这个差值，就是修复生效的铁证。
+**Day 27 起，联网侧不再自带"天然的红"** —— 旧版那条「C1/C2 必然 FAIL」的**假红**已随判据更换消失。
+现在的反向验证靠上表第 4、5 条（2026-10-14 实测过）：改靶址 ⇒ **C1/C2/C3 全红**；塞一个含域名的前端文件 ⇒ **C4 红**，删掉即回绿。
+
+**改判据的前后对照（2026-10-14 同机同日实测）**：
+
+| 版本 | 汇总 | 退出码 |
+|---|---|---|
+| 改前（`HEAD` 版，旧判据） | PASS 12 / **FAIL 2**（C1 C2 是**假红**） | 1 |
+| 改后（同源代理判据） | **PASS 15 / FAIL 0** / 跳过 2 | **0** |
 
 ## 人还要做的那一步（脚本替不了）
 
 两个脚本都跑完之后，剩下这一步必须人来做：
 
-1. 打开**发布站点**的检查台，按 F12；
-2. 看 Console 里是「具体的 HTTP 状态码」（白名单内）还是 `blocked by CORS policy`（白名单外）——
-   这是一条**免费的现场判据**，一眼能分出"本地还是线上"；
-3. 截图，**图里要含地址栏与报错原文**。
+1. 打开**发布站点**的首页，按 F12；
+2. 看 Console 与 Network：**不该再出现 `blocked by CORS policy`**；接口请求（`/api/**`）应全部正常返回。
+   ⚠️ Day 27 前那条"看有没有具体 HTTP 状态码来分本地/线上"的现场判据**已过期** ——
+   同源代理之后，线上页面调 `/api/**` 本来就会拿到正常状态码，不再有跨域红字。
+   这条判据现在要**反着用**：**线上出现 `blocked by CORS policy` = 有人把云函数完整域名写回了前端**（正对应 C4）。
+3. 截图，**图里要含地址栏**。
 
-为什么脚本绿了还要人看：脚本验的是「头对不对」，
+为什么脚本绿了还要人看：脚本验的是「接口通不通」，
 看不出「用户看到的那句话读起来顺不顺」「页面是不是白屏」。这一步缺了，自查只算做了一半。
 
 ## 输出格式
@@ -214,7 +233,11 @@ node skills\verify-project\scripts\check-online.mjs --write
 | `Cannot find module` | 在别的目录直接敲了脚本名 | 用完整路径，或先 `cd /d <仓库路径>` |
 | A3 一直显示「跳过」 | 快照文件没生成 | 先跑一遍文件头那条 `git log … > .git-history-snapshot.txt` |
 | B1/B2 报「抠不出」 | 黑名单变量被改名 | 改回原名，或同步更新检查脚本里的变量名 |
-| C1/C2 一直红 | 跨域白名单没有发布域名 | **免费体验版加不了**，见根目录 `CORS_FIX.md` 四·补；这不是脚本的问题 |
+| C1 红（404） | 发布服务器上没有 `/api` 代理段 | 查 `dev-server.js` 的 `proxyToApi()` 与 `if (…startsWith('/api/'))` 分支 |
+| C2 红而 C1 绿 | 代理没把方法 / 请求体透传 | 看 `req.pipe(upstream)` |
+| C4 红 | 前端把云函数完整域名写回去了 | 改回相对路径 `/api/**` —— **跨域会复发，优先处理** |
+| C5 也红 | 云函数本身的问题（部署 / 路由 / 环境变量） | **不是代理的锅**；参考 `ROLLBACK.md` |
+| C6 红 | 网关白名单被改松 | 安全问题，优先处理 |
 | 中文输出乱码 | Windows 终端代码页 | 先 `chcp 65001` |
 
 ## 资源
@@ -234,7 +257,7 @@ node skills\verify-project\scripts\check-online.mjs --write
 | `scan-secrets.cjs` | → A1（并保留「搜索结果：0 条 —— 干净」这句输出，截图口径不变） |
 | `verify-day23-security.mjs` | → A1 / A2 / A3 / A4 / A6 |
 | `verify-day23-live.cjs` | → D3 / D4 / D6 + E1 / E2（`--write`） |
-| `verify-day24-cors.cjs` | → C1 ~ C5 |
+| `verify-day24-cors.cjs` | → C1 ~ C6（Day 27 起判据改为同源代理链路，见上文 C 组） |
 
 **留在原地没动的**（它们不属于"发布前检查"）：
 `check-filter-interaction.mjs`、`verify-three-states.cjs`（`frontend-guidelines` skill 自己的工具）、
