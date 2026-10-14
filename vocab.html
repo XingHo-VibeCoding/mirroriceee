@@ -253,7 +253,15 @@
     function search(val){
       var t = (val || '').trim().toLowerCase();
       if (!t) { result.innerHTML = ''; renderHist(); return; }
-      var m = LIB.filter(function (w){ return w.en && w.en.indexOf(t) >= 0; }).slice(0, 20);
+      var m = LIB.filter(function (w){ return w.en && w.en.toLowerCase().indexOf(t) === 0; });
+      // 前缀匹配：只出「以输入开头」的词；精确匹配排最前，其余按字母序
+      m.sort(function (a, b){
+        var ae = a.en.toLowerCase(), be = b.en.toLowerCase();
+        if (ae === t) return -1;
+        if (be === t) return 1;
+        return ae.localeCompare(be);
+      });
+      m = m.slice(0, 20);
       result.innerHTML = m.length
         ? m.map(cardHTML).join('')
         : '<div class="vg-empty">没查到「' + t + '」</div>';
