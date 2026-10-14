@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>B · 闯关答题</title>
+<style>
+:root{
+  --bg:#131318;--card:#1C1C23;--card2:#232330;--line:rgba(255,255,255,.10);
+  --tx:#EDEDF2;--tx2:#A2A2AE;--tx3:#6C6C78;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);min-height:100vh;display:flex;justify-content:center;
+  padding:22px 14px 54px;font-family:"Segoe UI","Microsoft YaHei",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+.app{width:100%;max-width:430px}
+header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.back{font-size:12px;color:var(--tx3);text-decoration:none;transition:.15s}
+.back:hover{color:var(--tx2)}
+.title{font-size:14px;font-weight:500}
+.topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.lives{display:flex;gap:5px;align-items:center}
+.life{width:11px;height:11px;border-radius:50%;background:#E24B4A;transition:.2s}
+.life.gone{background:#3A3A44}
+.combo{font-size:12px;font-weight:500;color:#EF9F27;min-width:66px;text-align:center}
+.counter{font-size:12px;color:var(--tx2)}
+.bar{height:5px;border-radius:3px;background:var(--card2);overflow:hidden;margin-bottom:20px}
+.bar>i{display:block;height:100%;width:100%;background:#534AB7;transition:background .2s}
+.wordbox{text-align:center;margin-bottom:20px}
+.speak{display:inline-flex;align-items:center;gap:7px;height:34px;padding:0 14px;border-radius:18px;
+  background:var(--card);border:0.5px solid var(--line);color:var(--tx2);font-size:12px;font-family:inherit;
+  cursor:pointer;transition:.15s;margin-bottom:16px}
+.speak:hover{background:var(--card2);color:var(--tx)}
+.word{font-size:26px;font-weight:500;letter-spacing:.5px;line-height:1.2}
+.ph{font-size:12px;color:var(--tx3);margin-top:6px}
+.opts{display:grid;gap:9px}
+.opt{display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:12px 13px;border-radius:10px;
+  background:var(--card);border:0.5px solid var(--line);color:var(--tx);font-size:13.5px;font-family:inherit;
+  cursor:pointer;transition:.15s}
+.opt:hover:not(:disabled){background:var(--card2);border-color:rgba(255,255,255,.22)}
+.opt .k{width:20px;height:20px;border-radius:6px;background:var(--card2);color:var(--tx2);font-size:11px;
+  display:flex;align-items:center;justify-content:center;flex:none}
+.opt.ok{background:#1B3A16;border:1px solid #639922;color:#C0DD97}
+.opt.ok .k{background:#3B6D11;color:#EAF3DE}
+.opt.bad{background:#3D1414;border:1px solid #A32D2D;color:#F7C1C1}
+.opt.bad .k{background:#791F1F;color:#FCEBEB}
+.foot{margin-top:16px;display:flex;justify-content:space-between;font-size:12px;color:var(--tx3)}
+.toast{position:fixed;left:50%;top:88px;transform:translate(-50%,-8px);padding:7px 16px;border-radius:20px;
+  background:var(--card2);border:0.5px solid var(--line);font-size:13px;font-weight:500;opacity:0;
+  transition:.22s;pointer-events:none;z-index:8}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+.overlay{position:fixed;inset:0;background:rgba(10,10,14,.87);display:none;align-items:center;
+  justify-content:center;padding:20px;z-index:9}
+.overlay.show{display:flex}
+.panel{background:var(--card);border:0.5px solid var(--line);border-radius:16px;padding:24px;
+  width:100%;max-width:322px;text-align:center}
+.panel h2{font-size:16px;font-weight:500;margin:0 0 18px}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px}
+.stat{background:var(--card2);border-radius:10px;padding:11px 10px}
+.stat b{display:block;font-size:11px;font-weight:400;color:var(--tx2);margin-bottom:4px}
+.stat span{font-size:17px;font-weight:500}
+.btn{width:100%;background:#534AB7;border:none;color:#fff;border-radius:10px;padding:12px;
+  font-size:14px;font-family:inherit;cursor:pointer;transition:.15s}
+.btn:hover{background:#6157c9}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <a class="back" href="../vocab.html">← 返回词汇速记</a>
+    <span class="title">B · 闯关答题</span>
+  </header>
+
+  <div class="topbar">
+    <div class="lives" id="lives"></div>
+    <div class="combo" id="combo"></div>
+    <div class="counter" id="counter">第 1 / 10 关</div>
+  </div>
+
+  <div class="bar"><i id="bar"></i></div>
+
+  <div class="wordbox">
+    <button class="speak" id="speak">听发音</button>
+    <div class="word" id="word">—</div>
+    <div class="ph" id="ph"></div>
+  </div>
+
+  <div class="opts" id="opts"></div>
+
+  <div class="foot">
+    <span>答错扣 1 血 · 每题 10 秒</span>
+    <span>得分 <b id="score" style="color:var(--tx);font-weight:500">0</b></span>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<div class="overlay" id="overlay">
+  <div class="panel">
+    <h2 id="ovTitle">关卡结束</h2>
+    <div class="stats" id="ovStats"></div>
+    <button class="btn" id="ovBtn">再来一局</button>
+  </div>
+</div>
+
+<script src="dicts.js"></script>
+<script src="dict-pick.js"></script>
+<script>
+/* 兜底词表：只有在 dicts.js 和 words.js 都读不到时才用，正常情况请忽略它 */
+const FALLBACK_WORDS = [
+  {en:'resilient', zh:'坚韧的；有弹性的',   pos:'adj.', ph:'/r\u026a\u02c8z\u026ali\u0259nt/'},
+  {en:'courage',   zh:'勇气',              pos:'n.',   ph:'/\u02c8k\u028cr\u026ad\u0292/'},
+  {en:'hesitate',  zh:'犹豫，踌躇',         pos:'v.',   ph:'/\u02c8hez\u026ate\u026at/'},
+  {en:'generous',  zh:'慷慨的，大方的',     pos:'adj.', ph:'/\u02c8d\u0292en\u0259r\u0259s/'},
+  {en:'ambiguous', zh:'模棱两可的',         pos:'adj.', ph:'/\u00e6m\u02c8b\u026a\u0261ju\u0259s/'},
+  {en:'vague',     zh:'含糊不清的',         pos:'adj.', ph:'/ve\u026a\u0261/'},
+  {en:'persist',   zh:'坚持，持续',         pos:'v.',   ph:'/p\u0259\u02c8s\u026ast/'},
+  {en:'reluctant', zh:'不情愿的',           pos:'adj.', ph:'/r\u026a\u02c8l\u028ckt\u0259nt/'},
+  {en:'diligent',  zh:'勤勉的',             pos:'adj.', ph:'/\u02c8d\u026al\u026ad\u0292\u0259nt/'},
+  {en:'fragile',   zh:'易碎的，脆弱的',     pos:'adj.', ph:'/\u02c8fr\u00e6d\u0292a\u026al/'},
+  {en:'genuine',   zh:'真正的，真诚的',     pos:'adj.', ph:'/\u02c8d\u0292enju\u026an/'},
+  {en:'abundant',  zh:'丰富的，充裕的',     pos:'adj.', ph:'/\u0259\u02c8b\u028cnd\u0259nt/'},
+  {en:'tolerate',  zh:'容忍，忍受',         pos:'v.',   ph:'/\u02c8t\u0252l\u0259re\u026at/'},
+  {en:'accurate',  zh:'准确的',             pos:'adj.', ph:'/\u02c8\u00e6kj\u0259r\u0259t/'},
+  {en:'sincere',   zh:'真诚的',             pos:'adj.', ph:'/s\u026an\u02c8s\u026a\u0259/'},
+  {en:'obstacle',  zh:'障碍，阻碍',         pos:'n.',   ph:'/\u02c8\u0252bst\u0259kl/'},
+  {en:'thrive',    zh:'茁壮成长，兴旺',     pos:'v.',   ph:'/\u03b8ra\u026av/'},
+  {en:'frequent',  zh:'频繁的',             pos:'adj.', ph:'/\u02c8fri\u02d0kw\u0259nt/'},
+  {en:'modest',    zh:'谦虚的；适度的',     pos:'adj.', ph:'/\u02c8m\u0252d\u026ast/'},
+  {en:'anxious',   zh:'焦虑的；渴望的',     pos:'adj.', ph:'/\u02c8\u00e6\u014bk\u0283\u0259s/'}
+];
+
+/* 优先读外部词库 words.js；读不到才回退到上面的兜底词表。 */
+const WORDS = ((window.PICKED_WORDS && window.PICKED_WORDS.length) ? window.PICKED_WORDS : FALLBACK_WORDS)
+  .filter(w => /^[a-z]+$/.test(w.en) && w.en.length >= 3 && w.en.length <= 14);
+
+const TOTAL = 10, LIMIT = 10;
+const $ = id => document.getElementById(id);
+const optsEl = $('opts');
+
+let qs = [], qi = 0, score = 0, combo = 0, bestCombo = 0, lives = 3, correctCount = 0;
+let locked = false, playing = false, deadline = 0, rafId = 0;
+
+function shuffle(arr){
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+/* 干扰项优先挑长度接近的词，避免四个选项一眼就能靠长短排掉 */
+function pickDistractors(target, n){
+  const near = WORDS.filter(x => x.en !== target.en && Math.abs(x.en.length - target.en.length) <= 3);
+  const pool = near.length >= n ? near : WORDS.filter(x => x.en !== target.en);
+  return shuffle(pool).slice(0, n);
+}
+
+function renderLives(){
+  const box = $('lives');
+  box.innerHTML = '';
+  for (let i = 0; i < 3; i++){
+    const d = document.createElement('span');
+    d.className = 'life' + (i < lives ? '' : ' gone');
+    box.appendChild(d);
+  }
+}
+
+function showToast(text, color){
+  const t = $('toast');
+  t.textContent = text;
+  t.style.color = color || 'var(--tx)';
+  t.classList.add('show');
+  clearTimeout(showToast.tid);
+  showToast.tid = setTimeout(() => t.classList.remove('show'), 900);
+}
+
+function speak(text){
+  try{
+    if (!('speechSynthesis' in window)) return;
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'en-US';
+    u.rate = 0.9;
+    window.speechSynthesis.speak(u);
+  }catch(e){}
+}
+
+function startGame(){
+  qs = shuffle(WORDS).slice(0, TOTAL).map(w => {
+    const others = pickDistractors(w, 3).map(x => x.zh);
+    return { w, opts: shuffle([w.zh].concat(others)) };
+  });
+  qi = 0; score = 0; combo = 0; bestCombo = 0; lives = 3; correctCount = 0; playing = true;
+  $('overlay').classList.remove('show');
+  renderLives();
+  updateHud();
+  renderQuestion();
+}
+
+function updateHud(){
+  $('score').textContent = score;
+  $('combo').textContent = combo > 1 ? '连击 ×' + combo : '';
+  $('counter').textContent = '第 ' + Math.min(qi + 1, TOTAL) + ' / ' + TOTAL + ' 关';
+}
+
+function renderQuestion(){
+  if (qi >= qs.length){ finish(true); return; }
+  locked = false;
+  const q = qs[qi];
+  $('word').textContent = q.w.en;
+  // 词性为空时（开源词库大多没有）自动隐藏，不留双空格
+  $('ph').textContent = [q.w.ph, q.w.pos].filter(Boolean).join('  ');
+  updateHud();
+
+  optsEl.innerHTML = '';
+  q.opts.forEach((text, i) => {
+    const b = document.createElement('button');
+    b.className = 'opt';
+    const k = document.createElement('span');
+    k.className = 'k';
+    k.textContent = 'ABCD'[i];
+    const s = document.createElement('span');
+    s.textContent = text;
+    b.appendChild(k);
+    b.appendChild(s);
+    b.addEventListener('click', () => answer(i));
+    optsEl.appendChild(b);
+  });
+
+  deadline = performance.now() + LIMIT * 1000;
+  cancelAnimationFrame(rafId);
+  tick();
+}
+
+function tick(){
+  if (!playing || locked) return;
+  const left = Math.max(0, deadline - performance.now());
+  const pct = left / (LIMIT * 1000) * 100;
+  const bar = $('bar');
+  bar.style.width = pct + '%';
+  bar.style.background = left < 3000 ? '#E24B4A' : (left < 6000 ? '#EF9F27' : '#534AB7');
+  if (left <= 0){ timeout(); return; }
+  rafId = requestAnimationFrame(tick);
+}
+
+function revealCorrect(){
+  const q = qs[qi];
+  const ci = q.opts.indexOf(q.w.zh);
+  const btns = optsEl.children;
+  if (btns[ci]) btns[ci].classList.add('ok');
+  return ci;
+}
+
+function answer(i){
+  if (locked || !playing) return;
+  locked = true;
+  cancelAnimationFrame(rafId);
+  const ci = revealCorrect();
+  const btns = optsEl.children;
+  for (const b of btns) b.disabled = true;
+
+  if (i === ci){
+    correctCount++;
+    combo++;
+    bestCombo = Math.max(bestCombo, combo);
+    const gain = 10 + combo * 2;
+    score += gain;
+    if (btns[i]) btns[i].classList.add('ok');
+    showToast('+ ' + gain + '   连击 ×' + combo, '#97C459');
+  } else {
+    if (btns[i]) btns[i].classList.add('bad');
+    combo = 0;
+    lives--;
+    renderLives();
+    showToast('答错了', '#E24B4A');
+  }
+  updateHud();
+
+  if (lives <= 0){ setTimeout(() => finish(false), 950); return; }
+  setTimeout(() => { qi++; renderQuestion(); }, 900);
+}
+
+function timeout(){
+  if (locked || !playing) return;
+  locked = true;
+  revealCorrect();
+  for (const b of optsEl.children) b.disabled = true;
+  combo = 0;
+  lives--;
+  renderLives();
+  updateHud();
+  showToast('超时了', '#EF9F27');
+  if (lives <= 0){ setTimeout(() => finish(false), 950); return; }
+  setTimeout(() => { qi++; renderQuestion(); }, 900);
+}
+
+function finish(won){
+  playing = false;
+  cancelAnimationFrame(rafId);
+  $('ovTitle').textContent = won ? '通关' : '血量耗尽';
+  $('ovStats').innerHTML =
+    '<div class="stat"><b>得分</b><span>' + score + '</span></div>' +
+    '<div class="stat"><b>答对</b><span>' + correctCount + ' / ' + TOTAL + '</span></div>' +
+    '<div class="stat"><b>最高连击</b><span>×' + bestCombo + '</span></div>' +
+    '<div class="stat"><b>剩余生命</b><span>' + Math.max(lives, 0) + '</span></div>';
+  $('overlay').classList.add('show');
+}
+
+$('speak').addEventListener('click', () => speak(qs[qi] ? qs[qi].w.en : ''));
+$('ovBtn').addEventListener('click', startGame);
+startGame();
+</script>
+</body>
+</html>

@@ -2,15 +2,78 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
-  <!-- ⚠️ 跨页过渡的 opt-in，【必须】留在这里 —— 站内每个页面各声明一份才生效。
-       为什么不能挪进 style.css：见 index.html 里的同名注释。 -->
   <style>@view-transition { navigation: auto; }</style>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>词汇速记 · 星禾星穗</title>
   <link rel="stylesheet" href="assets/css/style.css">
-  <!-- 外壳层。⚠️ 必须排在 style.css 之后，详见 app-shell.css 开头 -->
   <link rel="stylesheet" href="assets/css/app-shell.css">
   <link rel="stylesheet" href="assets/css/page-loader.css">
+  <style>
+  /* 词汇速记页专属样式（.vg- 前缀，避开 echoread 命名空间） */
+  .appmain{padding:24px 32px 32px;max-width:1080px}
+  /* 搜索栏：高 40px、宽与下方对齐 */
+  .vg-searchbar{display:flex;align-items:center;gap:8px;width:100%;height:40px;
+    background:#fff;border:1px solid #dfe1e6;border-radius:12px;padding:0 12px;
+    box-shadow:0 1px 2px rgba(16,24,40,.04)}
+  .vg-searchbar svg{flex:none;width:17px;height:17px;color:#606c77}
+  .vg-searchbar input{flex:1;min-width:0;border:0;outline:0;background:transparent;
+    font-size:14px;color:#16181d;font-family:inherit}
+  .vg-searchbar input::placeholder{color:#a0a8b2}
+  .vg-searchbar button{flex:none;border:0;background:transparent;color:#606c77;font-size:13px;
+    cursor:pointer;padding:4px 6px;border-radius:6px;font-family:inherit}
+  .vg-searchbar button:hover{color:#0f6e56}
+  /* 搜索记录 */
+  .vg-history{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:10px;min-height:26px}
+  .vg-history .lbl{font-size:12px;color:#a0a8b2;flex:none}
+  .vg-history .hit{font-size:12px;color:#4c545e;border:1px solid #dfe1e6;border-radius:999px;
+    padding:3px 10px;cursor:pointer;background:#fff;transition:border-color .15s,color .15s}
+  .vg-history .hit:hover{border-color:#0f6e56;color:#0f6e56}
+  .vg-history .clr{font-size:12px;color:#a0a8b2;cursor:pointer;margin-left:2px}
+  .vg-history .clr:hover{color:#c62828}
+  /* 查词结果卡片 */
+  .vg-result{margin-top:16px}
+  .vg-wcard{display:flex;align-items:center;gap:14px;background:#fff;border:1px solid #dfe1e6;
+    border-radius:14px;padding:12px 16px;box-shadow:0 1px 2px rgba(16,24,40,.04);margin-bottom:10px}
+  .vg-wcard .w{font-size:18px;font-weight:600}
+  .vg-wcard .ph{font-size:13px;color:#606c77;margin-left:8px;font-weight:400}
+  .vg-wcard .zh{font-size:14px;color:#4c545e;flex:1}
+  .vg-wcard .acts{display:flex;gap:6px;flex:none;flex-wrap:wrap}
+  .vg-pbtn{display:inline-flex;align-items:center;gap:5px;border:1px solid #dfe1e6;background:#fff;
+    color:#16181d;border-radius:999px;padding:5px 11px;font-size:12px;cursor:pointer;font-family:inherit}
+  .vg-pbtn svg{width:14px;height:14px}
+  .vg-pbtn:hover{border-color:#0f6e56;color:#0f6e56}
+  .vg-pbtn.gv{border-color:transparent;background:#e1f5ee;color:#0f6e56;font-weight:500}
+  .vg-pbtn:disabled{opacity:.42;cursor:not-allowed;border:1px dashed #dfe1e6;color:#a0a8b2}
+  .vg-empty{font-size:13px;color:#a0a8b2}
+  /* 单词小游戏板块 */
+  .vg-sech{font-size:15px;font-weight:600;color:#16181d;margin:36px 0 12px;display:flex;align-items:center;gap:8px}
+  .vg-sech .pill{font-size:12px;font-weight:500;color:#0f6e56;background:#e1f5ee;border-radius:999px;padding:2px 10px}
+  .vg-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(272px,1fr));gap:16px}
+  .vg-card{position:relative;display:block;text-decoration:none;color:inherit;background:#fff;
+    border:1px solid #dfe1e6;border-radius:16px;box-shadow:0 1px 2px rgba(16,24,40,.04);
+    padding:20px;transition:border-color .15s,box-shadow .22s,transform .22s}
+  .vg-card::before{content:"";position:absolute;left:0;top:16px;bottom:16px;width:3px;
+    border-radius:0 3px 3px 0;background:#0f6e56;opacity:0;transition:opacity .22s}
+  @media (hover:hover){
+    .vg-card:hover{transform:translateY(-3px);box-shadow:0 10px 22px -8px rgba(16,24,40,.16),0 22px 44px -20px rgba(16,24,40,.18);border-color:#0f6e56}
+    .vg-card:hover::before{top:10px;bottom:10px;opacity:1}
+    .vg-card:hover .vg-desc{color:#16181d}
+  }
+  .vg-top{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+  .vg-badge{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;
+    font-size:15px;font-weight:500;flex:none;background:#e1f5ee;color:#0f6e56}
+  .vg-name{font-size:16px;font-weight:500}
+  .vg-en{font-size:12px;color:#606c77;margin-top:2px;letter-spacing:.3px}
+  .vg-desc{font-size:14px;color:#4c545e;line-height:1.7;min-height:66px;margin:0}
+  .vg-tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:16px}
+  .vg-tag{font-size:12px;color:#4c545e;border:1px solid #dfe1e6;border-radius:999px;padding:3px 9px}
+  .vg-go{margin-top:16px;font-size:14px;color:#0f6e56;font-weight:500}
+  /* 左栏词书列表 */
+  .levels{display:flex;flex-direction:column;gap:6px;margin-top:16px}
+  .vg-dict-row{display:flex;align-items:center;justify-content:space-between;width:100%}
+  .vg-dict-row .c{font-size:12px;color:#606c77;flex:none}
+  .side-levels .level-btn[aria-pressed='true'] .c{color:#0f6e56}
+  </style>
 </head>
 <body class="app page-list">
   <header class="appbar">
@@ -32,7 +95,6 @@
 
     <span class="appbar__spacer"></span>
 
-    <!-- ⚠️ 头像字不写死：由 app-shell.js 按登录态填（见 index.html 同名注释） -->
     <button type="button" class="avatarbtn" id="btn-right"
             aria-expanded="false" aria-controls="panel-right" aria-label="打开个人账号"></button>
   </header>
@@ -50,7 +112,6 @@
           文本跟读
         </a>
 
-        <!-- 当前板块 -->
         <a class="sidenav__item" href="vocab.html" aria-current="page">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
                stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -66,34 +127,53 @@
             <path d="M13.6 3.5H7.2A2.2 2.2 0 0 0 5 5.7v12.6a2.2 2.2 0 0 0 2.2 2.2h9.6a2.2 2.2 0 0 0 2.2-2.2V8.6l-5.4-5.1Z"/>
             <path d="M13.4 3.7v5.2h5.4"/>
           </svg>
-          作文模板
+          free talk练习
         </a>
       </nav>
 
+      <!-- 词书列表：由 games/dict-pick.js 提供的 DICT_LIST 渲染，复用 echoread 原生 .level-btn -->
+      <nav class="levels side-levels" id="dictList" aria-label="词库筛选"></nav>
     </aside>
 
     <main class="appmain">
-      <!-- 状态位：加载中 / 没有结果 / 读取失败＋重试，都写在这一个地方。
-           role="status" 是给读屏软件的：内容一变它就会念出来，不用用户自己去发现。
-           加载成功时它是空的，不占版面 -->
-      <div id="list-status" role="status"></div>
+      <!-- 搜索区 -->
+      <div class="vg-searchbar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+             stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.2-3.2"/></svg>
+        <input id="q" type="text" placeholder="输入英文查单词" autocomplete="off" spellcheck="false">
+        <button id="clear" type="button" style="display:none">清除</button>
+      </div>
+      <div class="vg-history" id="hist"><span class="lbl">最近搜索</span></div>
+      <div class="vg-result" id="result"></div>
 
-      <!-- 列表由 assets/js/list-page.js 按下面三个 data-* 渲染。
-           以后再添一个列表页，照抄这一个 <ul>、改三个属性即可 -->
-
-      <!-- ⚠️ Day 20：data-list-url 从仓库里的 data/words.json 换成【后端接口】。
-           Day 27：地址由【完整域名】改回【相对路径】。
-             原先写完整域名，是因为两域名不同、写相对路径必 404 —— 那时还没有代理。
-             现在 dev-server.js 加了 /api 代理：同源的 /api/words 会被转发到云函数，
-             跨域问题从浏览器眼里消失（详见 CORS_FIX.md）。⚠️ 别改回完整域名。
-           为什么只改这一行就够：
-             GET /api/words 返回的形状（{ words: [{ id, title, desc, tag }] }）与
-             data/words.json 完全一致 —— 所以下面 list-page.js 的渲染逻辑一行都不用动。
-           地址里不含任何密钥（只是个公开路径）；能读写数据库的那把 Key 只在云函数的环境变量里。 -->
-      <ul class="list" id="list"
-          data-list-url="/api/words"
-          data-list-key="words"
-          data-list-name="词表"></ul>
+      <!-- 单词小游戏板块 -->
+      <h2 class="vg-sech">单词小游戏 <span class="pill">同一套词表四种玩法</span></h2>
+      <div class="vg-grid">
+        <a class="vg-card" href="games/a-memory-match.html">
+          <div class="vg-top"><div class="vg-badge" aria-hidden="true">A</div><div><div class="vg-name">翻牌配对</div><div class="vg-en">Memory Match</div></div></div>
+          <p class="vg-desc">翻开两张牌，英文和中文释义对上了就消除。手气加记忆，越玩越熟。</p>
+          <div class="vg-tags"><span class="vg-tag">词义绑定</span><span class="vg-tag">短时记忆</span><span class="vg-tag">难度 低</span></div>
+          <div class="vg-go">开始 →</div>
+        </a>
+        <a class="vg-card" href="games/b-quiz-runner.html">
+          <div class="vg-top"><div class="vg-badge" aria-hidden="true">B</div><div><div class="vg-name">闯关答题</div><div class="vg-en">Quiz Runner</div></div></div>
+          <p class="vg-desc">看单词选释义，10 秒一题。三条命、连击加倍，答错掉血，血空即止。</p>
+          <div class="vg-tags"><span class="vg-tag">再认速度</span><span class="vg-tag">限时高压</span><span class="vg-tag">难度 中</span></div>
+          <div class="vg-go">开始 →</div>
+        </a>
+        <a class="vg-card" href="games/c-falling-words.html">
+          <div class="vg-top"><div class="vg-badge" aria-hidden="true">C</div><div><div class="vg-name">单词坠落</div><div class="vg-en">Catch the Word</div></div></div>
+          <p class="vg-desc">词块从上方掉落，在它落到底之前点中符合题意的那个。手要快，眼要准。</p>
+          <div class="vg-tags"><span class="vg-tag">快速辨识</span><span class="vg-tag">手眼反应</span><span class="vg-tag">难度 高</span></div>
+          <div class="vg-go">开始 →</div>
+        </a>
+        <a class="vg-card" href="games/d-word-builder.html">
+          <div class="vg-top"><div class="vg-badge" aria-hidden="true">D</div><div><div class="vg-name">字母拼装</div><div class="vg-en">Word Builder</div></div></div>
+          <p class="vg-desc">只给中文释义，把打散的字母拼回正确单词。不考认，考你真会不会写。</p>
+          <div class="vg-tags"><span class="vg-tag">主动拼写</span><span class="vg-tag">产出式回忆</span><span class="vg-tag">难度 中</span></div>
+          <div class="vg-go">开始 →</div>
+        </a>
+      </div>
     </main>
 
     <aside class="side side--right" id="panel-right" aria-label="个人账号"></aside>
@@ -101,10 +181,91 @@
 
   <div class="scrim" id="scrim" aria-hidden="true"></div>
 
-  <!-- ⚠️ 顺序不能动：common.js 提供工具函数，app-shell.js 与 list-page.js 都要用 -->
+  <!-- 顺序不能动：common.js 供 app-shell.js 用；dicts.js 供 dict-pick.js 用 -->
   <script src="assets/js/common.js"></script>
   <script src="assets/js/page-loader.js"></script>
   <script src="assets/js/app-shell.js"></script>
-  <script src="assets/js/list-page.js"></script>
+  <script src="games/dicts.js"></script>
+  <script src="games/dict-pick.js"></script>
+  <script src="games/search-dict.js"></script>
+  <script>
+  (function () {
+    /* 左栏词书列表：复用 echoread 原生 .level-btn */
+    var box = document.getElementById('dictList');
+    var list = window.DICT_LIST || [];
+    list.forEach(function (d) {
+      var b = document.createElement('button');
+      b.type = 'button'; b.className = 'level-btn';
+      b.setAttribute('data-dict', d.id);
+      b.setAttribute('aria-pressed', String(d.id === window.DICT_ID));
+      var row = document.createElement('span'); row.className = 'vg-dict-row';
+      var n = document.createElement('span'); n.textContent = d.name;
+      var c = document.createElement('span'); c.className = 'c'; c.textContent = d.count + ' 词';
+      row.appendChild(n); row.appendChild(c); b.appendChild(row);
+      b.addEventListener('click', function () {
+        if (b.getAttribute('aria-pressed') === 'true') return;
+        window.setDict(d.id);
+      });
+      box.appendChild(b);
+    });
+
+    /* 查词：数据源 = COCA20000 + 四本 合并去重（games/search-dict.js 的 SEARCH_WORDS） */
+    var LIB = window.SEARCH_WORDS || [];
+    var q = document.getElementById('q'), clear = document.getElementById('clear'),
+        hist = document.getElementById('hist'), result = document.getElementById('result');
+    var KEY = 'vocab_search_hist';
+
+    function readHist(){ try{ return JSON.parse(localStorage.getItem(KEY) || '[]'); }catch(e){ return []; } }
+    function writeHist(a){ try{ localStorage.setItem(KEY, JSON.stringify(a)); }catch(e){} }
+
+    function spk(){ return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6.5 8.5H3.5v7h3L11 19V5Z"/><path d="M15 9.5a3.5 3.5 0 0 1 0 5"/><path d="M17.5 7a7 7 0 0 1 0 10"/></svg>'; }
+    function playUS(e){ new Audio('https://dict.youdao.com/dictvoice?audio=' + encodeURIComponent(e) + '&type=2').play(); }
+    function playUK(e){ new Audio('https://dict.youdao.com/dictvoice?audio=' + encodeURIComponent(e) + '&type=1').play(); }
+    function playGV(id){ new Audio('https://dict.youdao.com/mvoice?method=getVoice&id=' + id).play(); }
+    window.playUS = playUS; window.playUK = playUK; window.playGV = playGV;
+
+    function renderHist(){
+      var a = readHist(); hist.innerHTML = '<span class="lbl">最近搜索</span>';
+      if (a.length) {
+        var clr = document.createElement('span'); clr.className = 'clr'; clr.textContent = '清空';
+        clr.onclick = function(){ writeHist([]); q.value=''; clear.style.display='none'; result.innerHTML=''; renderHist(); };
+        hist.appendChild(clr);
+      }
+      a.forEach(function (w) {
+        var s = document.createElement('span'); s.className = 'hit'; s.textContent = w;
+        s.onclick = function(){ q.value = w; search(w); };
+        hist.appendChild(s);
+      });
+    }
+
+    function cardHTML(w){
+      var ph = w.ph ? '<span class="ph">' + w.ph + '</span>' : '';
+      var gv = w.gv
+        ? '<button class="vg-pbtn gv" onclick="playGV(\'' + w.gv + '\')">' + spk() + '全球发音</button>'
+        : '<button class="vg-pbtn" disabled>' + spk() + '全球发音·无</button>';
+      return '<div class="vg-wcard"><span><span class="w">' + w.en + '</span>' + ph + '</span>' +
+        '<span class="zh">' + w.zh + '</span><span class="acts">' +
+        '<button class="vg-pbtn" onclick="playUS(\'' + w.en + '\')">' + spk() + '美</button>' +
+        '<button class="vg-pbtn" onclick="playUK(\'' + w.en + '\')">' + spk() + '英</button>' + gv +
+        '</span></div>';
+    }
+
+    function search(val){
+      var t = (val || '').trim().toLowerCase();
+      if (!t) { result.innerHTML = ''; renderHist(); return; }
+      var m = LIB.filter(function (w){ return w.en && w.en.indexOf(t) >= 0; }).slice(0, 20);
+      result.innerHTML = m.length
+        ? m.map(cardHTML).join('')
+        : '<div class="vg-empty">没查到「' + t + '」</div>';
+      var a = readHist(); a = a.filter(function (x){ return x !== t; }); a.unshift(t); a = a.slice(0, 8);
+      writeHist(a); renderHist();
+    }
+
+    q.addEventListener('input', function(){ clear.style.display = q.value ? 'inline-block' : 'none'; });
+    q.addEventListener('keydown', function(e){ if (e.key === 'Enter') search(q.value); });
+    clear.addEventListener('click', function(){ q.value=''; clear.style.display='none'; result.innerHTML=''; renderHist(); q.focus(); });
+    renderHist();
+  })();
+  </script>
 </body>
 </html>

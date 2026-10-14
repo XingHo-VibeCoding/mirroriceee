@@ -25,7 +25,7 @@ body.app {
   --bar-h: 56px;
 
   /* 两栏宽度。桌面三列网格直接吃这两个值 */
-  --side-left-w: 224px;
+  --side-left-w: 256px;
   --side-right-w: 296px;
 
   /* 左栏的薄荷色系（取自参考图 K12 学习台那张：

@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>C · 单词坠落</title>
+<style>
+:root{
+  --bg:#131318;--card:#1C1C23;--card2:#232330;--line:rgba(255,255,255,.10);
+  --tx:#EDEDF2;--tx2:#A2A2AE;--tx3:#6C6C78;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);min-height:100vh;display:flex;justify-content:center;
+  padding:22px 14px 54px;font-family:"Segoe UI","Microsoft YaHei",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+.app{width:100%;max-width:430px}
+header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.back{font-size:12px;color:var(--tx3);text-decoration:none;transition:.15s}
+.back:hover{color:var(--tx2)}
+.title{font-size:14px;font-weight:500}
+.hud{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.score{font-size:12px;color:var(--tx2)}
+.score b{font-size:16px;font-weight:500;color:var(--tx);margin-left:5px}
+.lives{display:flex;gap:5px;align-items:center}
+.life{width:10px;height:10px;border-radius:50%;background:#639922;transition:.2s}
+.life.gone{background:#3A3A44}
+.spd{font-size:12px;color:var(--tx2)}
+.target{background:#04342C;border:0.5px solid #0F6E56;border-radius:9px;padding:9px 11px;
+  text-align:center;font-size:12.5px;color:#9FE1CB;margin-bottom:10px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.track{position:relative;height:420px;max-height:58vh;min-height:320px;background:var(--card);
+  border:0.5px solid var(--line);border-radius:14px;overflow:hidden}
+.lane{position:absolute;top:0;bottom:0;width:0;border-left:0.5px dashed rgba(255,255,255,.07)}
+.pill{position:absolute;top:0;left:0;padding:7px 13px;border-radius:16px;background:#26215C;
+  border:0.5px solid #534AB7;color:#CECBF6;font-size:13px;font-weight:500;white-space:nowrap;
+  cursor:pointer;user-select:none;will-change:transform;touch-action:manipulation}
+.pill:hover{background:#312b7a}
+.pill.ok{background:#1B3A16;border-color:#639922;color:#C0DD97}
+.pill.bad{background:#3D1414;border-color:#A32D2D;color:#F7C1C1}
+.foot{margin-top:12px;display:flex;justify-content:space-between;font-size:12px;color:var(--tx3)}
+.toast{position:fixed;left:50%;top:84px;transform:translate(-50%,-8px);padding:7px 16px;border-radius:20px;
+  background:var(--card2);border:0.5px solid var(--line);font-size:13px;font-weight:500;opacity:0;
+  transition:.22s;pointer-events:none;z-index:8}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+.overlay{position:fixed;inset:0;background:rgba(10,10,14,.87);display:flex;align-items:center;
+  justify-content:center;padding:20px;z-index:9}
+.overlay.hide{display:none}
+.panel{background:var(--card);border:0.5px solid var(--line);border-radius:16px;padding:24px;
+  width:100%;max-width:322px;text-align:center}
+.panel h2{font-size:16px;font-weight:500;margin:0 0 10px}
+.panel p{font-size:12.5px;color:var(--tx2);line-height:1.75;margin:0 0 18px}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px}
+.stat{background:var(--card2);border-radius:10px;padding:11px 10px}
+.stat b{display:block;font-size:11px;font-weight:400;color:var(--tx2);margin-bottom:4px}
+.stat span{font-size:17px;font-weight:500}
+.btn{width:100%;background:#993C1D;border:none;color:#fff;border-radius:10px;padding:12px;
+  font-size:14px;font-family:inherit;cursor:pointer;transition:.15s}
+.btn:hover{background:#b04a26}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <a class="back" href="../vocab.html">← 返回词汇速记</a>
+    <span class="title">C · 单词坠落</span>
+  </header>
+
+  <div class="hud">
+    <div class="score">分数<b id="score">0</b></div>
+    <div class="lives" id="lives"></div>
+    <div class="spd">速度 <span id="spd">1.0×</span></div>
+  </div>
+
+  <div class="target" id="target">当前目标：—</div>
+
+  <div class="track" id="track">
+    <div class="lane" style="left:33.33%"></div>
+    <div class="lane" style="left:66.66%"></div>
+  </div>
+
+  <div class="foot">
+    <span>点中正确的词块接住它</span>
+    <span>漏掉正确词块扣 1 血</span>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<div class="overlay" id="overlay">
+  <div class="panel">
+    <h2 id="ovTitle">单词坠落</h2>
+    <p id="ovDesc">词块会从上方往下掉。<br>在它落到底之前，点中符合题意的那个。<br>三条命，漏掉正确的就扣一条。</p>
+    <div class="stats" id="ovStats" style="display:none"></div>
+    <button class="btn" id="ovBtn">开始</button>
+  </div>
+</div>
+
+<script src="dicts.js"></script>
+<script src="dict-pick.js"></script>
+<script>
+/* 兜底词表：只有在 dicts.js 和 words.js 都读不到时才用，正常情况请忽略它 */
+const FALLBACK_WORDS = [
+  {en:'resilient', zh:'坚韧的；有弹性的',   ph:'/r\u026a\u02c8z\u026ali\u0259nt/'},
+  {en:'courage',   zh:'勇气',              ph:'/\u02c8k\u028cr\u026ad\u0292/'},
+  {en:'hesitate',  zh:'犹豫，踌躇',         ph:'/\u02c8hez\u026ate\u026at/'},
+  {en:'generous',  zh:'慷慨的，大方的',     ph:'/\u02c8d\u0292en\u0259r\u0259s/'},
+  {en:'ambiguous', zh:'模棱两可的',         ph:'/\u00e6m\u02c8b\u026a\u0261ju\u0259s/'},
+  {en:'vague',     zh:'含糊不清的',         ph:'/ve\u026a\u0261/'},
+  {en:'persist',   zh:'坚持，持续',         ph:'/p\u0259\u02c8s\u026ast/'},
+  {en:'reluctant', zh:'不情愿的',           ph:'/r\u026a\u02c8l\u028ckt\u0259nt/'},
+  {en:'diligent',  zh:'勤勉的',             ph:'/\u02c8d\u026al\u026ad\u0292\u0259nt/'},
+  {en:'fragile',   zh:'易碎的，脆弱的',     ph:'/\u02c8fr\u00e6d\u0292a\u026al/'},
+  {en:'genuine',   zh:'真正的，真诚的',     ph:'/\u02c8d\u0292enju\u026an/'},
+  {en:'abundant',  zh:'丰富的，充裕的',     ph:'/\u0259\u02c8b\u028cnd\u0259nt/'},
+  {en:'tolerate',  zh:'容忍，忍受',         ph:'/\u02c8t\u0252l\u0259re\u026at/'},
+  {en:'accurate',  zh:'准确的',             ph:'/\u02c8\u00e6kj\u0259r\u0259t/'},
+  {en:'sincere',   zh:'真诚的',             ph:'/s\u026an\u02c8s\u026a\u0259/'},
+  {en:'obstacle',  zh:'障碍，阻碍',         ph:'/\u02c8\u0252bst\u0259kl/'},
+  {en:'thrive',    zh:'茁壮成长，兴旺',     ph:'/\u03b8ra\u026av/'},
+  {en:'frequent',  zh:'频繁的',             ph:'/\u02c8fri\u02d0kw\u0259nt/'},
+  {en:'modest',    zh:'谦虚的；适度的',     ph:'/\u02c8m\u0252d\u026ast/'},
+  {en:'anxious',   zh:'焦虑的；渴望的',     ph:'/\u02c8\u00e6\u014bk\u0283\u0259s/'}
+];
+
+/* 优先读外部词库 words.js；读不到才回退到上面的兜底词表。
+   轨道宽度有限，过长的词块会挤出屏幕，所以卡在 12 个字母以内。 */
+const WORDS = ((window.PICKED_WORDS && window.PICKED_WORDS.length) ? window.PICKED_WORDS : FALLBACK_WORDS)
+  .filter(w => /^[a-z]+$/.test(w.en) && w.en.length >= 3 && w.en.length <= 12);
+
+const $ = id => document.getElementById(id);
+const track = $('track');
+
+let pills = [], playing = false, roundActive = false;
+let score = 0, combo = 0, bestCombo = 0, lives = 3, rounds = 0, speed = 70;
+let rafId = 0, lastT = 0;
+
+function shuffle(arr){
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+/* 干扰词块优先挑长度接近的，否则一眼就能靠长短认出目标 */
+function pickDistractors(target, n){
+  const near = WORDS.filter(x => x.en !== target.en && Math.abs(x.en.length - target.en.length) <= 3);
+  const pool = near.length >= n ? near : WORDS.filter(x => x.en !== target.en);
+  return shuffle(pool).slice(0, n);
+}
+
+function renderLives(){
+  const box = $('lives');
+  box.innerHTML = '';
+  for (let i = 0; i < 3; i++){
+    const d = document.createElement('span');
+    d.className = 'life' + (i < lives ? '' : ' gone');
+    box.appendChild(d);
+  }
+}
+
+function updateHud(){
+  $('score').textContent = score;
+  $('spd').textContent = (speed / 70).toFixed(1) + '\u00d7';
+  renderLives();
+}
+
+function showToast(text, color){
+  const t = $('toast');
+  t.textContent = text;
+  t.style.color = color || 'var(--tx)';
+  t.classList.add('show');
+  clearTimeout(showToast.tid);
+  showToast.tid = setTimeout(() => t.classList.remove('show'), 850);
+}
+
+function clearPills(fade){
+  const old = pills;
+  pills = [];
+  for (const p of old){
+    if (!p.alive) continue;
+    p.alive = false;
+    if (fade){
+      p.el.style.transition = 'opacity .26s';
+      p.el.style.opacity = '0';
+      setTimeout(() => p.el.remove(), 280);
+    } else {
+      p.el.remove();
+    }
+  }
+}
+
+function spawnRound(){
+  if (!playing) return;
+  clearPills(true);
+  roundActive = true;
+  rounds++;
+  speed = Math.min(70 + rounds * 5, 165);
+  updateHud();
+
+  const target = shuffle(WORDS)[0];
+  const distractors = pickDistractors(target, 3);
+  const items = shuffle([{ w: target, correct: true }]
+    .concat(distractors.map(w => ({ w: w, correct: false }))));
+
+  $('target').textContent = '当前目标：点中「' + target.zh + '」';
+
+  const W = track.clientWidth;
+  const laneW = W / 3;
+
+  items.forEach((it, i) => {
+    const el = document.createElement('div');
+    el.className = 'pill';
+    el.textContent = it.w.en;
+    el.style.transform = 'translate(-9999px,0)';
+    track.appendChild(el);
+
+    const pw = el.offsetWidth, phh = el.offsetHeight;
+    const lane = i % 3;
+    const x = lane * laneW + Math.max(6, Math.round((laneW - pw) / 2));
+    const p = {
+      el: el, x: x, y: -phh - 12,
+      delay: Math.random() * 1.0 + i * 0.1,
+      correct: it.correct, alive: true, word: it.w
+    };
+    el.style.transform = 'translate(' + x + 'px,' + p.y + 'px)';
+    el.addEventListener('pointerdown', ev => { ev.preventDefault(); hit(p); });
+    pills.push(p);
+  });
+}
+
+function hit(p){
+  if (!playing || !p.alive || !roundActive) return;
+
+  if (p.correct){
+    combo++;
+    bestCombo = Math.max(bestCombo, combo);
+    const gain = 100 + combo * 10;
+    score += gain;
+    p.el.classList.add('ok');
+    updateHud();
+    showToast('+ ' + gain + '   连击 \u00d7' + combo, '#97C459');
+    roundActive = false;
+    clearPills(true);
+    planNext(640);
+  } else {
+    combo = 0;
+    lives--;
+    p.alive = false;
+    p.el.classList.add('bad');
+    setTimeout(() => p.el.remove(), 300);
+    updateHud();
+    showToast('点错了', '#E24B4A');
+    if (lives <= 0){ roundActive = false; gameOver(); }
+  }
+}
+
+function missTarget(){
+  if (!roundActive) return;
+  roundActive = false;
+  combo = 0;
+  lives--;
+  updateHud();
+  showToast('漏掉了', '#EF9F27');
+  planNext(560);
+}
+
+function planNext(ms){
+  if (lives <= 0){ gameOver(); return; }
+  setTimeout(() => { if (playing) spawnRound(); }, ms);
+}
+
+function update(dt){
+  if (!playing) return;
+  const H = track.clientHeight;
+  const list = pills.slice();
+  for (const p of list){
+    if (!p.alive) continue;
+    if (p.delay > 0){ p.delay -= dt; continue; }
+    p.y += speed * dt;
+    p.el.style.transform = 'translate(' + p.x + 'px,' + p.y + 'px)';
+    if (p.y > H){
+      p.alive = false;
+      p.el.remove();
+      if (p.correct) missTarget();
+    }
+  }
+  pills = pills.filter(p => p.alive);
+}
+
+function loop(t){
+  if (!playing) return;
+  const dt = Math.min(0.05, ((t - lastT) / 1000) || 0);
+  lastT = t;
+  update(dt);
+  rafId = requestAnimationFrame(loop);
+}
+
+function startGame(){
+  score = 0; combo = 0; bestCombo = 0; lives = 3; rounds = 0; speed = 70;
+  playing = true; roundActive = false;
+  track.querySelectorAll('.pill').forEach(el => el.remove());
+  pills = [];
+  $('overlay').classList.add('hide');
+  updateHud();
+  spawnRound();
+  lastT = performance.now();
+  cancelAnimationFrame(rafId);
+  rafId = requestAnimationFrame(loop);
+}
+
+function gameOver(){
+  if (!playing) return;
+  playing = false;
+  cancelAnimationFrame(rafId);
+  clearPills(false);
+  $('target').textContent = '当前目标：—';
+  $('ovTitle').textContent = '血量耗尽';
+  $('ovDesc').style.display = 'none';
+  const st = $('ovStats');
+  st.style.display = 'grid';
+  st.innerHTML =
+    '<div class="stat"><b>分数</b><span>' + score + '</span></div>' +
+    '<div class="stat"><b>坚持轮数</b><span>' + rounds + '</span></div>' +
+    '<div class="stat"><b>最高连击</b><span>\u00d7' + bestCombo + '</span></div>' +
+    '<div class="stat"><b>最终速度</b><span>' + (speed / 70).toFixed(1) + '\u00d7</span></div>';
+  $('ovBtn').textContent = '再来一局';
+  $('overlay').classList.remove('hide');
+  updateHud();
+}
+
+$('ovBtn').addEventListener('click', startGame);
+updateHud();
+</script>
+</body>
+</html>

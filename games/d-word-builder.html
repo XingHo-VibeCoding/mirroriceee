@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>D · 字母拼装</title>
+<style>
+:root{
+  --bg:#131318;--card:#1C1C23;--card2:#232330;--line:rgba(255,255,255,.10);
+  --tx:#EDEDF2;--tx2:#A2A2AE;--tx3:#6C6C78;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);min-height:100vh;display:flex;justify-content:center;
+  padding:22px 14px 54px;font-family:"Segoe UI","Microsoft YaHei",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+.app{width:100%;max-width:430px}
+header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.back{font-size:12px;color:var(--tx3);text-decoration:none;transition:.15s}
+.back:hover{color:var(--tx2)}
+.title{font-size:14px;font-weight:500}
+.hud{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;font-size:12px;color:var(--tx2)}
+.hud b{color:var(--tx);font-weight:500}
+.prompt{background:var(--card);border:0.5px solid var(--line);border-radius:12px;padding:16px;text-align:center}
+.zh{font-size:16px;font-weight:500;line-height:1.4}
+.meta{font-size:12px;color:var(--tx3);margin-top:8px}
+.slots{display:flex;justify-content:center;gap:5px;flex-wrap:wrap;margin:22px 0 6px;min-height:38px}
+.slot{width:30px;height:38px;border-radius:7px;border:0.5px dashed rgba(255,255,255,.28);
+  display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:500;
+  color:#B5D4F4;background:#0C447C;cursor:pointer;transition:.12s}
+.slot.empty{background:transparent;cursor:default}
+.slot.locked{background:#2A2440;border:0.5px solid #534AB7;color:#CECBF6;cursor:default}
+.slots.wrong .slot{background:#3D1414;border-color:#A32D2D;color:#F7C1C1;animation:shk .32s}
+.slots.right .slot{background:#1B3A16;border-color:#639922;color:#C0DD97}
+@keyframes shk{0%,100%{transform:translateX(0)}25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+.poolLabel{font-size:11px;color:var(--tx3);text-align:center;margin:16px 0 10px}
+.pool{display:flex;justify-content:center;gap:7px;flex-wrap:wrap;min-height:36px}
+.tile{width:34px;height:34px;border-radius:9px;background:#26215C;border:0.5px solid #534AB7;
+  color:#CECBF6;font-size:15px;font-weight:500;display:flex;align-items:center;justify-content:center;
+  cursor:pointer;transition:.12s;user-select:none}
+.tile:hover{background:#332d80;transform:translateY(-1px)}
+.tile.used{opacity:0;pointer-events:none}
+.actions{display:flex;gap:9px;margin-top:22px}
+.act{flex:1;height:42px;border-radius:10px;border:0.5px solid var(--line);background:var(--card);
+  color:var(--tx);font-size:13px;font-family:inherit;cursor:pointer;transition:.15s}
+.act:hover:not(:disabled){background:var(--card2);border-color:rgba(255,255,255,.24)}
+.act:disabled{color:var(--tx3);cursor:default}
+.act.primary{background:#0F6E56;border-color:#0F6E56;color:#fff}
+.act.primary:hover:not(:disabled){background:#12846a}
+.toast{position:fixed;left:50%;top:88px;transform:translate(-50%,-8px);padding:7px 16px;border-radius:20px;
+  background:var(--card2);border:0.5px solid var(--line);font-size:13px;font-weight:500;opacity:0;
+  transition:.22s;pointer-events:none;z-index:8}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+.overlay{position:fixed;inset:0;background:rgba(10,10,14,.87);display:none;align-items:center;
+  justify-content:center;padding:20px;z-index:9}
+.overlay.show{display:flex}
+.panel{background:var(--card);border:0.5px solid var(--line);border-radius:16px;padding:24px;
+  width:100%;max-width:322px;text-align:center}
+.panel h2{font-size:16px;font-weight:500;margin:0 0 18px}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px}
+.stat{background:var(--card2);border-radius:10px;padding:11px 10px}
+.stat b{display:block;font-size:11px;font-weight:400;color:var(--tx2);margin-bottom:4px}
+.stat span{font-size:17px;font-weight:500}
+.btn{width:100%;background:#0F6E56;border:none;color:#fff;border-radius:10px;padding:12px;
+  font-size:14px;font-family:inherit;cursor:pointer;transition:.15s}
+.btn:hover{background:#12846a}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <a class="back" href="../vocab.html">← 返回词汇速记</a>
+    <span class="title">D · 字母拼装</span>
+  </header>
+
+  <div class="hud">
+    <div>第 <b id="prog">1</b> / <b id="total">20</b> 词</div>
+    <div>剩余提示 <b id="hintLeft">2</b> 次</div>
+    <div>得分 <b id="score">0</b></div>
+  </div>
+
+  <div class="prompt">
+    <div class="zh" id="zh">—</div>
+    <div class="meta" id="meta"></div>
+  </div>
+
+  <div class="slots" id="slots"></div>
+  <div class="poolLabel">字母池 · 点字母填进槽位，点已填的格子可退回</div>
+  <div class="pool" id="pool"></div>
+
+  <div class="actions">
+    <button class="act primary" id="btnHint">提示</button>
+    <button class="act" id="btnSkip">跳过</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<div class="overlay" id="overlay">
+  <div class="panel">
+    <h2 id="ovTitle">20 词完成</h2>
+    <div class="stats" id="ovStats"></div>
+    <button class="btn" id="ovBtn">再来一轮</button>
+  </div>
+</div>
+
+<script src="dicts.js"></script>
+<script src="dict-pick.js"></script>
+<script>
+/* 兜底词表：只有在 dicts.js 和 words.js 都读不到时才用，正常情况请忽略它 */
+const FALLBACK_WORDS = [
+  {en:'resilient', zh:'坚韧的；有弹性的',   pos:'adj.', ph:'/r\u026a\u02c8z\u026ali\u0259nt/'},
+  {en:'courage',   zh:'勇气',              pos:'n.',   ph:'/\u02c8k\u028cr\u026ad\u0292/'},
+  {en:'hesitate',  zh:'犹豫，踌躇',         pos:'v.',   ph:'/\u02c8hez\u026ate\u026at/'},
+  {en:'generous',  zh:'慷慨的，大方的',     pos:'adj.', ph:'/\u02c8d\u0292en\u0259r\u0259s/'},
+  {en:'ambiguous', zh:'模棱两可的',         pos:'adj.', ph:'/\u00e6m\u02c8b\u026a\u0261ju\u0259s/'},
+  {en:'vague',     zh:'含糊不清的',         pos:'adj.', ph:'/ve\u026a\u0261/'},
+  {en:'persist',   zh:'坚持，持续',         pos:'v.',   ph:'/p\u0259\u02c8s\u026ast/'},
+  {en:'reluctant', zh:'不情愿的',           pos:'adj.', ph:'/r\u026a\u02c8l\u028ckt\u0259nt/'},
+  {en:'diligent',  zh:'勤勉的',             pos:'adj.', ph:'/\u02c8d\u026al\u026ad\u0292\u0259nt/'},
+  {en:'fragile',   zh:'易碎的，脆弱的',     pos:'adj.', ph:'/\u02c8fr\u00e6d\u0292a\u026al/'},
+  {en:'genuine',   zh:'真正的，真诚的',     pos:'adj.', ph:'/\u02c8d\u0292enju\u026an/'},
+  {en:'abundant',  zh:'丰富的，充裕的',     pos:'adj.', ph:'/\u0259\u02c8b\u028cnd\u0259nt/'},
+  {en:'tolerate',  zh:'容忍，忍受',         pos:'v.',   ph:'/\u02c8t\u0252l\u0259re\u026at/'},
+  {en:'accurate',  zh:'准确的',             pos:'adj.', ph:'/\u02c8\u00e6kj\u0259r\u0259t/'},
+  {en:'sincere',   zh:'真诚的',             pos:'adj.', ph:'/s\u026an\u02c8s\u026a\u0259/'},
+  {en:'obstacle',  zh:'障碍，阻碍',         pos:'n.',   ph:'/\u02c8\u0252bst\u0259kl/'},
+  {en:'thrive',    zh:'茁壮成长，兴旺',     pos:'v.',   ph:'/\u03b8ra\u026av/'},
+  {en:'frequent',  zh:'频繁的',             pos:'adj.', ph:'/\u02c8fri\u02d0kw\u0259nt/'},
+  {en:'modest',    zh:'谦虚的；适度的',     pos:'adj.', ph:'/\u02c8m\u0252d\u026ast/'},
+  {en:'anxious',   zh:'焦虑的；渴望的',     pos:'adj.', ph:'/\u02c8\u00e6\u014bk\u0283\u0259s/'}
+];
+
+/* 优先读外部词库 words.js；读不到才回退到上面的兜底词表。
+   拼装玩法只吃纯字母，且槽位一行排不下太长的词，所以卡在 12 个字母以内。 */
+const WORDS = ((window.PICKED_WORDS && window.PICKED_WORDS.length) ? window.PICKED_WORDS : FALLBACK_WORDS)
+  .filter(w => /^[a-z]+$/.test(w.en) && w.en.length >= 3 && w.en.length <= 12);
+
+const ROUND_SIZE = 20;
+
+const $ = id => document.getElementById(id);
+const slotsEl = $('slots'), poolEl = $('pool');
+const ALPHA = 'abcdefghijklmnopqrstuvwxyz';
+
+let queue = [], qi = 0, word = null, slots = [], tiles = [];
+let hints = 2, score = 0, correctCount = 0, skipCount = 0, usedHints = 0;
+let locked = false, playing = false;
+
+function shuffle(arr){
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function showToast(text, color){
+  const t = $('toast');
+  t.textContent = text;
+  t.style.color = color || 'var(--tx)';
+  t.classList.add('show');
+  clearTimeout(showToast.tid);
+  showToast.tid = setTimeout(() => t.classList.remove('show'), 900);
+}
+
+function updateHud(){
+  $('prog').textContent = Math.min(qi + 1, queue.length);
+  $('hintLeft').textContent = hints;
+  $('score').textContent = score;
+  $('btnHint').disabled = hints <= 0 || locked;
+  $('btnHint').textContent = hints > 0 ? '提示 (' + hints + ')' : '提示已用完';
+}
+
+function buildWord(w){
+  word = w;
+  const n = w.en.length;
+  slots = [];
+  for (let i = 0; i < n; i++) slots.push({ ch: null, tileId: null, locked: false });
+
+  const letters = w.en.split('');
+  const extras = [];
+  while (extras.length < 2) extras.push(ALPHA[Math.floor(Math.random() * 26)]);
+  tiles = shuffle(letters.concat(extras)).map((c, i) => ({ ch: c, id: i, used: false }));
+
+  $('zh').textContent = w.zh;
+  // 词性为空时（开源词库大多没有）自动隐藏，不留空档
+  $('meta').textContent = [w.ph, w.pos, n + ' letters'].filter(Boolean).join('  \u00b7  ');
+  render();
+  updateHud();
+}
+
+function render(){
+  slotsEl.className = 'slots';
+  slotsEl.innerHTML = '';
+  slots.forEach((s, i) => {
+    const d = document.createElement('div');
+    d.className = 'slot' + (s.ch ? '' : ' empty') + (s.locked ? ' locked' : '');
+    d.textContent = s.ch ? s.ch : '';
+    if (s.ch && !s.locked) d.addEventListener('click', () => unplace(i));
+    slotsEl.appendChild(d);
+  });
+
+  poolEl.innerHTML = '';
+  tiles.forEach(t => {
+    const d = document.createElement('div');
+    d.className = 'tile' + (t.used ? ' used' : '');
+    d.textContent = t.ch;
+    d.addEventListener('click', () => place(t.id));
+    poolEl.appendChild(d);
+  });
+}
+
+function place(tileId){
+  if (locked || !playing) return;
+  const t = tiles.find(x => x.id === tileId);
+  if (!t || t.used) return;
+  const idx = slots.findIndex(s => !s.ch);
+  if (idx < 0) return;
+  slots[idx] = { ch: t.ch, tileId: t.id, locked: false };
+  t.used = true;
+  render();
+  if (slots.every(s => s.ch)) check();
+}
+
+function unplace(i){
+  if (locked || !playing) return;
+  const s = slots[i];
+  if (!s.ch || s.locked) return;
+  const t = tiles.find(x => x.id === s.tileId);
+  if (t) t.used = false;
+  slots[i] = { ch: null, tileId: null, locked: false };
+  render();
+}
+
+function useHint(){
+  if (locked || !playing || hints <= 0) return;
+  const idx = slots.findIndex(s => !s.ch);
+  if (idx < 0) return;
+  const ch = word.en[idx];
+  const t = tiles.find(x => !x.used && x.ch === ch);
+  if (t) t.used = true;
+  slots[idx] = { ch: ch, tileId: t ? t.id : null, locked: true };
+  hints--;
+  usedHints++;
+  render();
+  updateHud();
+  if (slots.every(s => s.ch)) check();
+}
+
+function check(){
+  const guess = slots.map(s => s.ch || '').join('');
+  if (guess === word.en){
+    locked = true;
+    correctCount++;
+    const gain = 20 + (usedHints === 0 ? 5 : 0);
+    score += gain;
+    updateHud();
+    slotsEl.classList.add('right');
+    showToast('拼对了  + ' + gain, '#97C459');
+    setTimeout(nextWord, 760);
+  } else {
+    locked = true;
+    slotsEl.classList.add('wrong');
+    showToast('拼错了', '#E24B4A');
+    setTimeout(() => {
+      slots.forEach((s, i) => {
+        if (s.locked) return;
+        if (s.tileId !== null){
+          const t = tiles.find(x => x.id === s.tileId);
+          if (t) t.used = false;
+        }
+        slots[i] = { ch: null, tileId: null, locked: false };
+      });
+      locked = false;
+      render();
+    }, 760);
+  }
+}
+
+function nextWord(){
+  locked = false;
+  usedHints = 0;
+  qi++;
+  if (qi >= queue.length){ finish(); return; }
+  buildWord(queue[qi]);
+}
+
+function finish(){
+  playing = false;
+  $('ovTitle').textContent = queue.length + ' 词完成';
+  $('ovStats').innerHTML =
+    '<div class="stat"><b>得分</b><span>' + score + '</span></div>' +
+    '<div class="stat"><b>拼对</b><span>' + correctCount + ' / ' + queue.length + '</span></div>' +
+    '<div class="stat"><b>跳过</b><span>' + skipCount + '</span></div>' +
+    '<div class="stat"><b>用了提示</b><span>' + (2 - hints) + ' 次</span></div>';
+  $('overlay').classList.add('show');
+}
+
+function startGame(){
+  queue = shuffle(WORDS).slice(0, Math.min(ROUND_SIZE, WORDS.length));
+  qi = 0; hints = 2; score = 0; correctCount = 0; skipCount = 0; usedHints = 0;
+  locked = false; playing = true;
+  $('total').textContent = queue.length;
+  $('overlay').classList.remove('show');
+  buildWord(queue[0]);
+}
+
+$('btnHint').addEventListener('click', useHint);
+$('btnSkip').addEventListener('click', () => {
+  if (locked || !playing) return;
+  skipCount++;
+  nextWord();
+});
+$('ovBtn').addEventListener('click', startGame);
+startGame();
+</script>
+</body>
+</html>

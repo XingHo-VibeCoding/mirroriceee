@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>A · 翻牌配对</title>
+<style>
+:root{
+  --bg:#131318;--card:#1C1C23;--card2:#232330;--line:rgba(255,255,255,.10);
+  --tx:#EDEDF2;--tx2:#A2A2AE;--tx3:#6C6C78;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);min-height:100vh;display:flex;justify-content:center;
+  padding:22px 14px 54px;font-family:"Segoe UI","Microsoft YaHei",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+.app{width:100%;max-width:420px}
+header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.back{font-size:12px;color:var(--tx3);text-decoration:none;transition:.15s}
+.back:hover{color:var(--tx2)}
+.title{font-size:14px;font-weight:500}
+.hud{display:flex;gap:8px;margin-bottom:12px}
+.metric{flex:1;background:var(--card);border-radius:10px;padding:9px 8px;text-align:center}
+.metric b{display:block;font-size:11px;font-weight:400;color:var(--tx2);margin-bottom:3px}
+.metric span{font-size:16px;font-weight:500}
+#board{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.cell{position:relative;height:68px;perspective:700px;cursor:pointer}
+.inner{position:absolute;inset:0;transform-style:preserve-3d;transition:transform .34s ease}
+.cell.flip .inner{transform:rotateY(180deg)}
+.face{position:absolute;inset:0;border-radius:10px;display:flex;align-items:center;justify-content:center;
+  backface-visibility:hidden;-webkit-backface-visibility:hidden;font-size:12px;font-weight:500;
+  padding:4px 5px;text-align:center;line-height:1.28;word-break:break-word}
+.face.back{background:#26215C;border:0.5px solid #534AB7;color:#7F77DD;font-size:17px}
+.face.front{transform:rotateY(180deg);background:#0C447C;border:0.5px solid #185FA5;color:#B5D4F4}
+.face.front.zh{background:#04342C;border-color:#0F6E56;color:#9FE1CB}
+.cell.done{opacity:.4;cursor:default}
+.tip{margin-top:16px;font-size:12px;color:var(--tx3);text-align:center;line-height:1.8}
+.overlay{position:fixed;inset:0;background:rgba(10,10,14,.87);display:none;align-items:center;
+  justify-content:center;padding:20px;z-index:9}
+.overlay.show{display:flex}
+.panel{background:var(--card);border:0.5px solid var(--line);border-radius:16px;padding:24px;
+  width:100%;max-width:322px;text-align:center}
+.panel h2{font-size:16px;font-weight:500;margin:0 0 18px}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px}
+.stat{background:var(--card2);border-radius:10px;padding:11px 10px}
+.stat b{display:block;font-size:11px;font-weight:400;color:var(--tx2);margin-bottom:4px}
+.stat span{font-size:17px;font-weight:500}
+.btn{width:100%;background:#185FA5;border:none;color:#fff;border-radius:10px;padding:12px;
+  font-size:14px;font-family:inherit;cursor:pointer;transition:.15s}
+.btn:hover{background:#1a6fbf}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <a class="back" href="../vocab.html">← 返回词汇速记</a>
+    <span class="title">A · 翻牌配对</span>
+  </header>
+
+  <div class="hud">
+    <div class="metric"><b>步数</b><span id="mMoves">0</span></div>
+    <div class="metric"><b>配对</b><span id="mPairs">0 / 6</span></div>
+    <div class="metric"><b>用时</b><span id="mTime">00:00</span></div>
+  </div>
+
+  <div id="board"></div>
+
+  <p class="tip">翻开两张牌，词与义对上即消除<br>每翻两张牌算 1 步，步数越少越准</p>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="panel">
+    <h2 id="ovTitle">全部配对完成</h2>
+    <div class="stats" id="ovStats"></div>
+    <button class="btn" id="ovBtn">再来一局</button>
+  </div>
+</div>
+
+<script src="dicts.js"></script>
+<script src="dict-pick.js"></script>
+<script>
+/* 兜底词表：只有在 dicts.js 和 words.js 都读不到时才用，正常情况请忽略它 */
+const FALLBACK_WORDS = [
+  {en:'resilient', zh:'坚韧的；有弹性的',   pos:'adj.', ph:'/r\u026a\u02c8z\u026ali\u0259nt/'},
+  {en:'courage',   zh:'勇气',              pos:'n.',   ph:'/\u02c8k\u028cr\u026ad\u0292/'},
+  {en:'hesitate',  zh:'犹豫，踌躇',         pos:'v.',   ph:'/\u02c8hez\u026ate\u026at/'},
+  {en:'generous',  zh:'慷慨的，大方的',     pos:'adj.', ph:'/\u02c8d\u0292en\u0259r\u0259s/'},
+  {en:'ambiguous', zh:'模棱两可的',         pos:'adj.', ph:'/\u00e6m\u02c8b\u026a\u0261ju\u0259s/'},
+  {en:'vague',     zh:'含糊不清的',         pos:'adj.', ph:'/ve\u026a\u0261/'},
+  {en:'persist',   zh:'坚持，持续',         pos:'v.',   ph:'/p\u0259\u02c8s\u026ast/'},
+  {en:'reluctant', zh:'不情愿的',           pos:'adj.', ph:'/r\u026a\u02c8l\u028ckt\u0259nt/'},
+  {en:'diligent',  zh:'勤勉的',             pos:'adj.', ph:'/\u02c8d\u026al\u026ad\u0292\u0259nt/'},
+  {en:'fragile',   zh:'易碎的，脆弱的',     pos:'adj.', ph:'/\u02c8fr\u00e6d\u0292a\u026al/'},
+  {en:'genuine',   zh:'真正的，真诚的',     pos:'adj.', ph:'/\u02c8d\u0292enju\u026an/'},
+  {en:'abundant',  zh:'丰富的，充裕的',     pos:'adj.', ph:'/\u0259\u02c8b\u028cnd\u0259nt/'},
+  {en:'tolerate',  zh:'容忍，忍受',         pos:'v.',   ph:'/\u02c8t\u0252l\u0259re\u026at/'},
+  {en:'accurate',  zh:'准确的',             pos:'adj.', ph:'/\u02c8\u00e6kj\u0259r\u0259t/'},
+  {en:'sincere',   zh:'真诚的',             pos:'adj.', ph:'/s\u026an\u02c8s\u026a\u0259/'},
+  {en:'obstacle',  zh:'障碍，阻碍',         pos:'n.',   ph:'/\u02c8\u0252bst\u0259kl/'},
+  {en:'thrive',    zh:'茁壮成长，兴旺',     pos:'v.',   ph:'/\u03b8ra\u026av/'},
+  {en:'frequent',  zh:'频繁的',             pos:'adj.', ph:'/\u02c8fri\u02d0kw\u0259nt/'},
+  {en:'modest',    zh:'谦虚的；适度的',     pos:'adj.', ph:'/\u02c8m\u0252d\u026ast/'},
+  {en:'anxious',   zh:'焦虑的；渴望的',     pos:'adj.', ph:'/\u02c8\u00e6\u014bk\u0283\u0259s/'}
+];
+
+/* 优先读外部词库 words.js；读不到才回退到上面的兜底词表。
+   顺带过滤掉翻牌格子里放不下的词（非纯字母、过长）。 */
+const WORDS = ((window.PICKED_WORDS && window.PICKED_WORDS.length) ? window.PICKED_WORDS : FALLBACK_WORDS)
+  .filter(w => /^[a-z]+$/.test(w.en) && w.en.length >= 3 && w.en.length <= 12);
+
+const PAIRS = 6;
+const board = document.getElementById('board');
+let deck = [], flipped = [], matched = 0, moves = 0;
+let seconds = 0, timerId = null, lock = false, started = false;
+
+function shuffle(arr){
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+function fmt(s){
+  const m = String(Math.floor(s / 60)).padStart(2, '0');
+  const x = String(s % 60).padStart(2, '0');
+  return m + ':' + x;
+}
+
+function newGame(){
+  clearInterval(timerId); timerId = null;
+  seconds = 0; moves = 0; matched = 0; flipped = []; lock = false; started = false;
+  document.getElementById('mMoves').textContent = '0';
+  document.getElementById('mPairs').textContent = '0 / ' + PAIRS;
+  document.getElementById('mTime').textContent = '00:00';
+  document.getElementById('overlay').classList.remove('show');
+
+  const pick = shuffle(WORDS).slice(0, PAIRS);
+  deck = [];
+  pick.forEach((w, i) => {
+    deck.push({pid: i, type: 'en', text: w.en});
+    deck.push({pid: i, type: 'zh', text: w.zh});
+  });
+  deck = shuffle(deck);
+
+  board.innerHTML = '';
+  deck.forEach((c, idx) => {
+    const cell = document.createElement('div');
+    cell.className = 'cell';
+    const front = document.createElement('div');
+    front.className = 'face front' + (c.type === 'zh' ? ' zh' : '');
+    front.textContent = c.text;
+    const back = document.createElement('div');
+    back.className = 'face back';
+    back.textContent = '\u25c6';
+    const inner = document.createElement('div');
+    inner.className = 'inner';
+    inner.appendChild(back);
+    inner.appendChild(front);
+    cell.appendChild(inner);
+    cell.addEventListener('click', () => onFlip(idx, cell));
+    board.appendChild(cell);
+  });
+}
+
+function startTimer(){
+  if (started) return;
+  started = true;
+  timerId = setInterval(() => {
+    seconds++;
+    document.getElementById('mTime').textContent = fmt(seconds);
+  }, 1000);
+}
+
+function onFlip(idx, cell){
+  if (lock || cell.classList.contains('flip') || cell.classList.contains('done')) return;
+  startTimer();
+  cell.classList.add('flip');
+  flipped.push({idx, cell});
+
+  if (flipped.length < 2) return;
+
+  moves++;
+  document.getElementById('mMoves').textContent = moves;
+  const [a, b] = flipped;
+
+  if (deck[a.idx].pid === deck[b.idx].pid){
+    a.cell.classList.add('done');
+    b.cell.classList.add('done');
+    matched++;
+    document.getElementById('mPairs').textContent = matched + ' / ' + PAIRS;
+    flipped = [];
+    if (matched === PAIRS) win();
+  } else {
+    lock = true;
+    setTimeout(() => {
+      a.cell.classList.remove('flip');
+      b.cell.classList.remove('flip');
+      flipped = [];
+      lock = false;
+    }, 660);
+  }
+}
+
+function win(){
+  clearInterval(timerId); timerId = null;
+  const acc = Math.round(PAIRS / Math.max(moves, 1) * 100);
+  document.getElementById('ovTitle').textContent = '全部配对完成';
+  document.getElementById('ovStats').innerHTML =
+    '<div class="stat"><b>用时</b><span>' + fmt(seconds) + '</span></div>' +
+    '<div class="stat"><b>步数</b><span>' + moves + '</span></div>' +
+    '<div class="stat"><b>配对数</b><span>' + PAIRS + ' / ' + PAIRS + '</span></div>' +
+    '<div class="stat"><b>准确率</b><span>' + acc + '%</span></div>';
+  document.getElementById('overlay').classList.add('show');
+}
+
+document.getElementById('ovBtn').addEventListener('click', newGame);
+newGame();
+</script>
+</body>
+</html>
