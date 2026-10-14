@@ -70,3 +70,9 @@ yarn-error.log*
 dist/
 build/
 .cache/
+
+# --- 本地备份与临时文件（Day 26 加）---
+# *.bak-* ：改数据前的自动备份（如 data/freetalk.json.bak-20261014-201714），随时可重生成
+*.bak-*
+# tools/_* ：一次性临时脚本 / 预览页（下划线开头），不入仓库
+tools/_*

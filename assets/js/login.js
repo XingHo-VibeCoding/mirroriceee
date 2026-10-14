@@ -20,18 +20,23 @@
     box.className = 'form-status' + (kind ? ' form-status--' + kind : '');
   }
 
-  /* ---- Tab 切换：两个面板换着显示，地址栏不动 ---- */
+  /* ---- Tab 切换：两个面板换着显示，地址栏不动 ----
+     ⚠️ 切换的是【表单】（form-login / form-register），不是 tab 按钮本身。
+        原函数误操作了 tab-login / tab-register 两个按钮 —— 结果是
+        "点 tab 表单不切、反去隐藏 tab 按钮"。Day 26 修正。 */
   function showTab(name) {
-    var login = document.getElementById('tab-login');
-    var reg   = document.getElementById('tab-register');
-    if (!login || !reg) return;
+    var loginForm = document.getElementById('form-login');
+    var regForm   = document.getElementById('form-register');
+    var loginTab  = document.getElementById('tab-login');
+    var regTab    = document.getElementById('tab-register');
+    if (!loginForm || !regForm) return;
 
     var isLogin = (name === 'login');
-    login.hidden = !isLogin;
-    reg.hidden   = isLogin;
+    loginForm.hidden = !isLogin;
+    regForm.hidden   = isLogin;
 
-    login.setAttribute('aria-selected', String(isLogin));
-    reg.setAttribute('aria-selected', String(!isLogin));
+    if (loginTab) loginTab.setAttribute('aria-selected', String(isLogin));
+    if (regTab)   regTab.setAttribute('aria-selected', String(!isLogin));
     setStatus('');
   }
 
@@ -44,39 +49,10 @@
   });
 
   /* ============================================
-     验证码
-     ============================================ */
-
-  var currentCaptchaId = '';
-
-  function loadCaptcha() {
-    var box = document.getElementById('captcha-box');
-    if (!box) return;
-
-    box.innerHTML = '<span class="empty">验证码加载中…</span>';
-    currentCaptchaId = '';
-
-    fetch('/api/auth/captcha')
-      .then(function (res) { return res.json(); })
-      .then(function (d) {
-        if (!d || !d.ok) throw new Error((d && d.message) || '验证码获取失败');
-        currentCaptchaId = d.data.captchaId;
-        /* svg 是后端画的整张图，直接插进容器。
-           ⚠️ 内容来自我们自己的云函数（四个固定字符集 + 固定模板），不是用户输入。 */
-        box.innerHTML = d.data.svg;
-      })
-      .catch(function (err) {
-        console.error(err);
-        box.innerHTML = '<span class="empty">验证码加载失败，点这里重试</span>';
-      });
-  }
-
-  /* 点验证码图 = 换一张（看不清是常态，别让人刷新整个页面） */
-  document.addEventListener('click', function (e) {
-    if (e.target && e.target.closest && e.target.closest('#captcha-box')) {
-      loadCaptcha();
-    }
-  });
+     邀请码（Day 26 起替代图片验证码）
+     ------------------------------------------------------------
+     ⚠️ 音频有版权，注册门槛改成「开发者发放的邀请码」：
+        不是所有人都能注册。这里不再拉验证码图，注册时直接带邀请码。 */
 
   /* ============================================
      注册提交
@@ -89,10 +65,10 @@
       e.preventDefault();
       var username = form.username.value.trim();
       var password = form.password.value;
-      var code     = form.captchaCode.value.trim();
+      var code     = form.inviteCode.value.trim();
 
-      if (!currentCaptchaId) {
-        setStatus('验证码还没加载好，点一下验证码图换一张。', 'error');
+      if (!code) {
+        setStatus('请填写邀请码（向开发者获取）。', 'error');
         return;
       }
 
@@ -100,7 +76,7 @@
       fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: username, password: password, captchaId: currentCaptchaId, captchaCode: code })
+        body: JSON.stringify({ username: username, password: password, inviteCode: code })
       })
         .then(function (res) { return res.json().then(function (d) { return { status: res.status, d: d }; }); })
         .then(function (r) {
@@ -115,14 +91,11 @@
           } else {
             setStatus((r.d && r.d.message) || '注册失败，请稍后再试。', 'error');
           }
-          /* 不管成没成，验证码都算"用过了"（或快过期了）—— 换一张最稳 */
-          loadCaptcha();
-          form.captchaCode.value = '';
+          form.inviteCode.value = '';
         })
         .catch(function (err) {
           console.error(err);
           setStatus('网络连不上，注册没提交出去，请检查网络后重试。', 'error');
-          loadCaptcha();
         });
       return;
     }
@@ -165,8 +138,5 @@
     }
   });
 
-  document.addEventListener('DOMContentLoaded', function () {
-    /* 注册 tab 在下面藏着，但验证码先拉好 —— 切过去不用等 */
-    loadCaptcha();
-  });
+  /* 邀请码制：注册页不再需要预拉验证码图，页面加载即就绪 */
 })();

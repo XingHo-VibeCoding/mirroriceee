@@ -121,3 +121,30 @@ function failureHTML(err, what, action) {
   return '<p class="empty">' + escapeHTML(text) + '</p>' +
          '<button type="button" class="btn item" data-action="' + escapeHTML(action || 'retry') + '">重试</button>';
 }
+
+/* ============================================
+   API 基址（Day 26 加）—— 前端的 /api/* 到底打到哪
+   ------------------------------------------------------------
+   取决于页面托管在哪：
+     · CloudBase 静态托管（*.tcloudbaseapp.com）：该域【没有】/api 路由，
+       故直接拼上云函数完整地址。CloudBase 网关会自动回 CORS 头
+       （实测 allow-headers 含 authorization、allow-credentials: true），跨域可通。
+     · 其他（workbuddy.host 等）：保持相对 /api/*，交给该平台的 dev-server
+       代理转发到云函数（线上反向代理会吃 Authorization 头，靠 cookie 补回，
+       见 app-shell.js 与 dev-server.js 的注释）。
+   实现：只把【以 /api/ 开头】的字符串请求加前缀，其余（本地 data/*.json 等）原样不动。
+   ⚠️ 必须放在 common.js（每个页面最先加载），赶在 app-shell.js 等发请求之前。
+   ============================================ */
+(function () {
+  var CLOUD_FN = 'https://echoread-d0g1b2ez6a369d11e-1502538433.ap-shanghai.app.tcloudbase.com';
+  var onCloudHosting = /(^|\.)tcloudbaseapp\.com$/i.test(location.hostname);
+  window.API_BASE = onCloudHosting ? CLOUD_FN : '';
+  if (!window.API_BASE || !window.fetch) return;
+  var rawFetch = window.fetch;
+  window.fetch = function (input, init) {
+    if (typeof input === 'string' && input.indexOf('/api/') === 0) {
+      input = window.API_BASE + input;
+    }
+    return rawFetch.call(window, input, init);
+  };
+})();

@@ -7,562 +7,2685 @@
     "licenseNote": "MIT 条款要求保留原作者版权声明，见文末 source 字段及 tools/freetalk/README.md"
   },
   "cats": [
-    { "id": "all", "name": "全部" },
-    { "id": "personal", "name": "个人信息" },
-    { "id": "family", "name": "家庭朋友" },
-    { "id": "hobby", "name": "兴趣爱好" },
-    { "id": "tech", "name": "科技网络" },
-    { "id": "music", "name": "音乐" },
-    { "id": "sport", "name": "运动健康" },
-    { "id": "card", "name": "话题卡" },
-    { "id": "edu", "name": "教育" },
-    { "id": "env", "name": "环境" },
-    { "id": "society", "name": "社会" }
+    {
+      "id": "all",
+      "name": "全部"
+    },
+    {
+      "id": "personal",
+      "name": "个人信息"
+    },
+    {
+      "id": "family",
+      "name": "家庭朋友"
+    },
+    {
+      "id": "hobby",
+      "name": "兴趣爱好"
+    },
+    {
+      "id": "tech",
+      "name": "科技网络"
+    },
+    {
+      "id": "music",
+      "name": "音乐"
+    },
+    {
+      "id": "sport",
+      "name": "运动健康"
+    },
+    {
+      "id": "card",
+      "name": "话题卡"
+    },
+    {
+      "id": "edu",
+      "name": "教育"
+    },
+    {
+      "id": "env",
+      "name": "环境"
+    },
+    {
+      "id": "society",
+      "name": "社会"
+    }
   ],
   "topics": [
     {
-      "id": "ft-001", "part": "Part 1", "cat": "personal", "level": "A2",
+      "id": "ft-001",
+      "part": "Part 1",
+      "cat": "personal",
+      "level": "A2",
       "q": "Where are you from?",
       "zh": "你来自哪里？",
-      "follow": ["Do you work or study?", "What do you do for work/study?", "Do you like your job/studies? Why?"],
-      "words": ["hometown", "province", "grow up", "countryside", "neighbourhood"],
+      "follow": [
+        "Do you work or study?",
+        "What do you do for work/study?",
+        "Do you like your job/studies? Why?"
+      ],
+      "words": [
+        "hometown",
+        "province",
+        "grow up",
+        "countryside",
+        "neighbourhood"
+      ],
       "tips": "用 I come from… / I grew up in… 开头，再补一句这个地方的特点（食物、天气、节奏）。",
-      "sample": "I come from a small city in the north of China. I grew up there and most of my family still lives there. It is not very big, but the food is great and the pace of life is slower than in Beijing. I go back whenever I have a long holiday."
+      "sample": "Nice to meet you. I'm originally from China — I was born in a city near Shanghai [L1.1]. Actually, I'm from the south, but my family moved here eight years ago, when I was in high school [L1.1]. I came here after I graduated from college [L2.1].",
+      "src": [
+        [
+          "originally from",
+          "L1.1",
+          13,
+          16
+        ],
+        [
+          "was born in",
+          "L1.1",
+          13,
+          16
+        ],
+        [
+          "moved here … in high school",
+          "L1.1",
+          18,
+          23
+        ],
+        [
+          "came here after I graduated",
+          "L2.1",
+          9,
+          16
+        ]
+      ]
     },
     {
-      "id": "ft-002", "part": "Part 1", "cat": "personal", "level": "A2",
+      "id": "ft-002",
+      "part": "Part 1",
+      "cat": "personal",
+      "level": "A2",
       "q": "Do you work or study?",
       "zh": "你在工作还是上学？",
-      "follow": ["What do you do for work/study?", "Do you like your job/studies? Why?", "Where are you from?"],
-      "words": ["major", "campus", "full-time", "semester", "graduate"],
+      "follow": [
+        "What do you do for work/study?",
+        "Do you like your job/studies? Why?",
+        "Where are you from?"
+      ],
+      "words": [
+        "major",
+        "campus",
+        "full-time",
+        "semester",
+        "graduate"
+      ],
       "tips": "直接说现状，再加一句专业或年级：I am a … major in my … year.",
-      "sample": "I am still a student. I study electronic engineering at a university in my hometown, and I am in my third year now. I chose this major because I liked building things with my hands when I was a kid. I hope to graduate next summer."
+      "sample": "I'm still a student [L8.2]. I'm in my third year now, and I'm not sure what I want to do with my life, to be honest [L18.1]. Actually, I majored in English Literature [L20.2], but I haven't made up my mind about the future yet [L14.2].",
+      "src": [
+        [
+          "I'm still … (a student)",
+          "L8.2",
+          5,
+          8
+        ],
+        [
+          "I can't decide what I want to do with my life",
+          "L17.1",
+          3,
+          6
+        ],
+        [
+          "I majored in …",
+          "L19.2",
+          5,
+          10
+        ],
+        [
+          "haven't made up my mind",
+          "L14.2",
+          3,
+          6
+        ]
+      ]
     },
     {
-      "id": "ft-003", "part": "Part 1", "cat": "personal", "level": "B1",
+      "id": "ft-003",
+      "part": "Part 1",
+      "cat": "personal",
+      "level": "B1",
       "q": "What do you do for work/study?",
       "zh": "你的工作/学业具体是做什么的？",
-      "follow": ["Do you work or study?", "Do you like your job/studies? Why?", "Where are you from?"],
-      "words": ["responsibility", "project", "coursework", "lab", "deadline"],
+      "follow": [
+        "Do you work or study?",
+        "Do you like your job/studies? Why?",
+        "Where are you from?"
+      ],
+      "words": [
+        "responsibility",
+        "project",
+        "coursework",
+        "lab",
+        "deadline"
+      ],
       "tips": "别只报专业名，说一件具体的日常事（做实验、写代码、赶报告），内容才立得住。",
-      "sample": "Most of my time goes to coursework and lab sessions. This semester I am building a small robot with two classmates, so I spend a lot of time wiring circuits and fixing bugs in the code. Deadlines can be stressful, but I enjoy seeing the thing finally move."
+      "sample": "Most of my time goes to my coursework. I work with computers a lot — sort of like being in charge of the class project [L1.2]. It's not easy, and I'm not very good at it yet [L1.1], but I'm getting better. The same routine every day can get boring [L9.2], but it's worth it.",
+      "src": [
+        [
+          "in charge of",
+          "L1.2",
+          13,
+          15
+        ],
+        [
+          "sort of",
+          "L1.2",
+          18,
+          21
+        ],
+        [
+          "I'm not very good at …",
+          "L1.1",
+          6,
+          9
+        ],
+        [
+          "the same routine every day",
+          "L9.2",
+          8,
+          15
+        ]
+      ]
     },
     {
-      "id": "ft-004", "part": "Part 1", "cat": "personal", "level": "B1",
+      "id": "ft-004",
+      "part": "Part 1",
+      "cat": "personal",
+      "level": "B1",
       "q": "Do you like your job/studies? Why?",
       "zh": "你喜欢自己的工作/学业吗？为什么？",
-      "follow": ["What do you do for work/study?", "Do you work or study?", "Where are you from?"],
-      "words": ["rewarding", "challenging", "colleague", "hands-on", "tiring"],
+      "follow": [
+        "What do you do for work/study?",
+        "Do you work or study?",
+        "Where are you from?"
+      ],
+      "words": [
+        "rewarding",
+        "challenging",
+        "colleague",
+        "hands-on",
+        "tiring"
+      ],
       "tips": "喜欢就说喜欢什么，不喜欢就说哪一点烦，但结尾要转回积极：But overall…。",
-      "sample": "Yes, mostly. I like that it is hands-on, because I get to build something real instead of only reading. The tiring part is the maths behind it, which I sometimes find heavy. But overall I feel I am learning things I can actually use later."
+      "sample": "Mostly, yes. I like the part where I get to build something real. But I'm really sick of sitting in front of a computer all day [L9.2]. I think I need to try something totally different [L9.2] — I'd love something that would involve travel [L8.1]. Still, at this point in my life, I'm learning a lot [L14.2].",
+      "src": [
+        [
+          "sick of sitting in front of a computer",
+          "L9.2",
+          8,
+          15
+        ],
+        [
+          "try something totally different",
+          "L9.2",
+          15,
+          18
+        ],
+        [
+          "something that would involve travel",
+          "L8.1",
+          23,
+          28
+        ],
+        [
+          "at this point in my life",
+          "L14.2",
+          21,
+          25
+        ]
+      ]
     },
     {
-      "id": "ft-005", "part": "Part 1", "cat": "family", "level": "A2",
+      "id": "ft-005",
+      "part": "Part 1",
+      "cat": "family",
+      "level": "A2",
       "q": "Do you have a large family?",
       "zh": "你家里人多吗？",
-      "follow": ["How much time do you spend with your family?", "What do you like to do together as a family?", "Do you prefer spending time with family or friends?"],
-      "words": ["relatives", "only child", "sibling", "cousin", "gathering"],
+      "follow": [
+        "How much time do you spend with your family?",
+        "What do you like to do together as a family?",
+        "Do you prefer spending time with family or friends?"
+      ],
+      "words": [
+        "relatives",
+        "only child",
+        "sibling",
+        "cousin",
+        "gathering"
+      ],
       "tips": "先答大不大，再补人数构成：There are … of us / I am an only child.",
-      "sample": "Not really. I am an only child, so at home it is just my parents and me. But on my father's side there are quite a few relatives, and we usually have a big gathering during Spring Festival. That is the only time the house feels crowded."
+      "sample": "Not really. It's just my parents and me at home — I don't have any relatives here [L2.1]. In China, on holidays or the weekend, we visit relatives [L2.1], so our big family gets together then. I have a lot of friends, but that's not the same thing [L2.1].",
+      "src": [
+        [
+          "I don't have any relatives here",
+          "L2.1",
+          40,
+          46
+        ],
+        [
+          "we visit relatives",
+          "L2.1",
+          52,
+          58
+        ],
+        [
+          "that's not the same thing",
+          "L2.1",
+          46,
+          52
+        ]
+      ]
     },
     {
-      "id": "ft-006", "part": "Part 1", "cat": "family", "level": "A2",
+      "id": "ft-006",
+      "part": "Part 1",
+      "cat": "family",
+      "level": "A2",
       "q": "How much time do you spend with your family?",
       "zh": "你花多少时间和家人在一起？",
-      "follow": ["What do you like to do together as a family?", "Do you have a large family?", "Do you prefer spending time with family or friends?"],
-      "words": ["weekday", "catch up", "apart", "busy", "quality time"],
+      "follow": [
+        "What do you like to do together as a family?",
+        "Do you have a large family?",
+        "Do you prefer spending time with family or friends?"
+      ],
+      "words": [
+        "weekday",
+        "catch up",
+        "apart",
+        "busy",
+        "quality time"
+      ],
       "tips": "用频率副词（most evenings / once a week / during holidays）把时间说具体。",
-      "sample": "On weekdays not much, because I am on campus and my parents are at work. We usually have dinner together most evenings and catch up then. During holidays we spend much more time together, and I think that is when the real quality time happens."
+      "sample": "On weekdays, not much — I'm busy and so are my parents. But on the weekend we do things together. I really miss my mother's cooking [L2.1], so I try to be home for dinner. I guess that's when we really talk.",
+      "src": [
+        [
+          "I really miss my mother's cooking",
+          "L2.1",
+          69,
+          72
+        ],
+        [
+          "on the weekend we … together",
+          "L2.1",
+          52,
+          58
+        ]
+      ]
     },
     {
-      "id": "ft-007", "part": "Part 1", "cat": "family", "level": "B1",
+      "id": "ft-007",
+      "part": "Part 1",
+      "cat": "family",
+      "level": "B1",
       "q": "What do you like to do together as a family?",
       "zh": "你们一家喜欢一起做什么？",
-      "follow": ["How much time do you spend with your family?", "Do you have a large family?", "How often do you meet your friends?"],
-      "words": ["tradition", "share", "walk", "board game", "chat"],
+      "follow": [
+        "How much time do you spend with your family?",
+        "Do you have a large family?",
+        "How often do you meet your friends?"
+      ],
+      "words": [
+        "tradition",
+        "share",
+        "walk",
+        "board game",
+        "chat"
+      ],
       "tips": "挑一件具体的事讲细节（谁做什么、什么时候），比罗列三个活动强。",
-      "sample": "We cook together most weekends. My mother does the main dishes and I am in charge of washing and cutting, which is not very glamorous but someone has to do it. We talk while we work, and that is honestly my favourite part of the week."
+      "sample": "We cook together, mostly. My mom makes great soup [L2.1], and I'm in charge of the rest [L1.2]. I'm not very good at it [L1.1], but we always have a great time [L3.1]. On holidays and stuff, the whole family gets together [L3.2].",
+      "src": [
+        [
+          "she makes great soup",
+          "L2.1",
+          63,
+          69
+        ],
+        [
+          "in charge of",
+          "L1.2",
+          13,
+          15
+        ],
+        [
+          "I'm not very good at it",
+          "L1.1",
+          6,
+          9
+        ],
+        [
+          "we always had a great time",
+          "L3.1",
+          14,
+          17
+        ],
+        [
+          "on holidays and stuff",
+          "L3.2",
+          6,
+          9
+        ]
+      ]
     },
     {
-      "id": "ft-008", "part": "Part 1", "cat": "family", "level": "B1",
+      "id": "ft-008",
+      "part": "Part 1",
+      "cat": "family",
+      "level": "B1",
       "q": "Do you prefer spending time with family or friends?",
       "zh": "你更喜欢和家人还是朋友待在一起？",
-      "follow": ["How often do you meet your friends?", "What do you usually do with your friends?", "How much time do you spend with your family?"],
-      "words": ["relaxed", "comfortable", "depend on", "mood", "judge"],
+      "follow": [
+        "How often do you meet your friends?",
+        "What do you usually do with your friends?",
+        "How much time do you spend with your family?"
+      ],
+      "words": [
+        "relaxed",
+        "comfortable",
+        "depend on",
+        "mood",
+        "judge"
+      ],
       "tips": "用 It depends on … 分情况回答，能自然把两面都说出来。",
-      "sample": "It depends on my mood. With my family I feel completely relaxed because they never judge me, but with friends I talk more freely about things like future plans. If I am tired, I choose family; if I want to laugh, I choose friends."
+      "sample": "It depends. With my family I can be completely myself — they never make me feel judged. But I know what you mean about friends [L8.1]; with them I talk about things my parents wouldn't get. I'd love to say both, but if I had to choose, family on quiet days, friends on loud ones.",
+      "src": [
+        [
+          "I know what you mean",
+          "L8.1",
+          36,
+          37
+        ],
+        [
+          "I'd love to …",
+          "L10.1",
+          30,
+          33
+        ]
+      ]
     },
     {
-      "id": "ft-009", "part": "Part 1", "cat": "family", "level": "A2",
+      "id": "ft-009",
+      "part": "Part 1",
+      "cat": "family",
+      "level": "A2",
       "q": "How often do you meet your friends?",
       "zh": "你多久见一次朋友？",
-      "follow": ["What do you usually do with your friends?", "Do you prefer spending time with family or friends?", "How much time do you spend with your family?"],
-      "words": ["once a week", "schedule", "group", "text", "plan"],
+      "follow": [
+        "What do you usually do with your friends?",
+        "Do you prefer spending time with family or friends?",
+        "How much time do you spend with your family?"
+      ],
+      "words": [
+        "once a week",
+        "schedule",
+        "group",
+        "text",
+        "plan"
+      ],
       "tips": "给频率 + 原因（课表冲突、住得远），再补一句线上联系也算。",
-      "sample": "Probably once or twice a week. Our schedules do not always match, so we usually plan a couple of days ahead. Between meetups we text in a group chat almost every day, which makes it feel like we see each other more often than we really do."
+      "sample": "Probably once or twice a week. We used to meet more when we were students [L3.1], but now everybody's busy. We still text a lot. I hope we can get together more often [L22.2] — it's just a matter of time.",
+      "src": [
+        [
+          "we used to …",
+          "L3.1",
+          8,
+          11
+        ],
+        [
+          "get together",
+          "L21.2",
+          15,
+          17
+        ]
+      ]
     },
     {
-      "id": "ft-010", "part": "Part 1", "cat": "family", "level": "B1",
+      "id": "ft-010",
+      "part": "Part 1",
+      "cat": "family",
+      "level": "B1",
       "q": "What do you usually do with your friends?",
       "zh": "你和朋友通常一起做什么？",
-      "follow": ["How often do you meet your friends?", "Do you prefer spending time with family or friends?", "What do you like to do in your free time?"],
-      "words": ["hang out", "grab a bite", "studio", "boring", "memory"],
+      "follow": [
+        "How often do you meet your friends?",
+        "Do you prefer spending time with family or friends?",
+        "What do you like to do in your free time?"
+      ],
+      "words": [
+        "hang out",
+        "grab a bite",
+        "studio",
+        "boring",
+        "memory"
+      ],
       "tips": "讲一次具体的经历，用 Last time we… 开头，回答立刻有画面。",
-      "sample": "Mostly very ordinary things. We grab a bite near campus, walk around, and talk about nothing important. Last month we rented a small studio and cooked hotpot together, which was a mess but a good memory. I think boring plans with good people are the best ones."
+      "sample": "Mostly ordinary things — we walk around, grab a bite, talk about nothing. Sometimes we just play video games [L12.1]. You know, I really enjoy spending time with them [L3.2]. We always have a great time, even when we're doing nothing [L3.1].",
+      "src": [
+        [
+          "play a video game",
+          "L12.1",
+          31,
+          33
+        ],
+        [
+          "really enjoy spending time",
+          "L3.2",
+          20,
+          27
+        ],
+        [
+          "we always had a great time",
+          "L3.1",
+          14,
+          17
+        ]
+      ]
     },
     {
-      "id": "ft-011", "part": "Part 1", "cat": "hobby", "level": "A2",
+      "id": "ft-011",
+      "part": "Part 1",
+      "cat": "hobby",
+      "level": "A2",
       "q": "What do you like to do in your free time?",
       "zh": "你空闲时喜欢做什么？",
-      "follow": ["Do you have any hobbies?", "When did you start this hobby?", "Is it an expensive hobby?"],
-      "words": ["spare time", "unwind", "screen", "binge", "outdoors"],
+      "follow": [
+        "Do you have any hobbies?",
+        "When did you start this hobby?",
+        "Is it an expensive hobby?"
+      ],
+      "words": [
+        "spare time",
+        "unwind",
+        "screen",
+        "binge",
+        "outdoors"
+      ],
       "tips": "给一个主活动 + 一个替补（when I am too tired…），答案更立体。",
-      "sample": "I read and I go for long walks. Reading helps me slow down after a busy day, and walking is the only time I do not look at a screen. When I am too tired for either, I just put on a series and binge something silly, which I secretly enjoy most."
+      "sample": "I read a lot, and I go for long walks. When I was a kid, I used to collect shells [L3.1], and walking along the beach is still my favourite thing. I also like to catch up on my reading [L10.1] when I have a free weekend.",
+      "src": [
+        [
+          "I used to collect shells",
+          "L3.1",
+          27,
+          30
+        ],
+        [
+          "walk along the beach",
+          "L3.1",
+          17,
+          21
+        ],
+        [
+          "catch up on my reading",
+          "L10.1",
+          5,
+          11
+        ]
+      ]
     },
     {
-      "id": "ft-012", "part": "Part 1", "cat": "hobby", "level": "A2",
+      "id": "ft-012",
+      "part": "Part 1",
+      "cat": "hobby",
+      "level": "A2",
       "q": "Do you have any hobbies?",
       "zh": "你有什么爱好吗？",
-      "follow": ["When did you start this hobby?", "Is it an expensive hobby?", "What do you like to do in your free time?"],
-      "words": ["photography", "second-hand", "gear", "serious", "amateur"],
+      "follow": [
+        "When did you start this hobby?",
+        "Is it an expensive hobby?",
+        "What do you like to do in your free time?"
+      ],
+      "words": [
+        "photography",
+        "second-hand",
+        "gear",
+        "serious",
+        "amateur"
+      ],
       "tips": "说清「认真到什么程度」：I am not serious about it / I take it fairly seriously.",
-      "sample": "I take photos. I am not a serious photographer, more of an amateur with a second-hand camera. I like shooting ordinary streets rather than famous places, because those pictures age better. I probably take far too many of the same corner near my home."
+      "sample": "I do, though I'm not serious about any of them. I used to collect shells when I was a kid [L3.1] — I had a great shell collection [L3.1]. These days I read and take photos. Nothing expensive, I'm not very good at most of it [L1.1], but I enjoy it.",
+      "src": [
+        [
+          "I used to collect shells",
+          "L3.1",
+          27,
+          30
+        ],
+        [
+          "a great shell collection",
+          "L3.1",
+          21,
+          23
+        ],
+        [
+          "I'm not very good at",
+          "L1.1",
+          6,
+          9
+        ]
+      ]
     },
     {
-      "id": "ft-013", "part": "Part 1", "cat": "hobby", "level": "B1",
+      "id": "ft-013",
+      "part": "Part 1",
+      "cat": "hobby",
+      "level": "B1",
       "q": "When did you start this hobby?",
       "zh": "你什么时候开始这个爱好的？",
-      "follow": ["Is it an expensive hobby?", "Do you have any hobbies?", "What do you like to do in your free time?"],
-      "words": ["pick up", "since then", "on and off", "used to", "gap"],
+      "follow": [
+        "Is it an expensive hobby?",
+        "Do you have any hobbies?",
+        "What do you like to do in your free time?"
+      ],
+      "words": [
+        "pick up",
+        "since then",
+        "on and off",
+        "used to",
+        "gap"
+      ],
       "tips": "用 I picked it up … ago / I have been doing it on and off since … 表达断续坚持。",
-      "sample": "I picked it up about four years ago, in my first year of university. I did it almost every day that year, then stopped for a long gap when coursework got heavy. I started again last spring, so these days it is a few times a week rather than daily."
+      "sample": "I started when I was in high school. When I was a kid, we used to spend two weeks at the beach every summer [L3.1], and that's where the habit came from. I've kept it on and off since then. It takes a bit of getting used to at first [L22.2], but now it's part of me.",
+      "src": [
+        [
+          "When I was a kid, we used to spend …",
+          "L3.1",
+          8,
+          11
+        ],
+        [
+          "It takes a bit of getting used to",
+          "L21.2",
+          25,
+          27
+        ]
+      ]
     },
     {
-      "id": "ft-014", "part": "Part 1", "cat": "hobby", "level": "B1",
+      "id": "ft-014",
+      "part": "Part 1",
+      "cat": "hobby",
+      "level": "B1",
       "q": "Is it an expensive hobby?",
       "zh": "这个爱好花钱多吗？",
-      "follow": ["When did you start this hobby?", "Do you have any hobbies?", "What hobbies are popular in your country?"],
-      "words": ["budget", "afford", "gear", "add up", "worth it"],
+      "follow": [
+        "When did you start this hobby?",
+        "Do you have any hobbies?",
+        "What hobbies are popular in your country?"
+      ],
+      "words": [
+        "budget",
+        "afford",
+        "gear",
+        "add up",
+        "worth it"
+      ],
       "tips": "先给结论 It can be / Not really，再举一个价格细节支撑，比空说贵不贵有力。",
-      "sample": "It can be, but mine is not. I bought my camera second-hand and I have used the same lens for three years, so the costs do not really add up. The expensive version of this hobby exists, of course, but I do not need it to enjoy it."
+      "sample": "Not really. My camera is second-hand, and I've used the same one for years. The expensive version exists, of course — it costs three or four times as much [L5.1] — but I don't need it. I'd rather keep it simple.",
+      "src": [
+        [
+          "it costs three or four times as much",
+          "L5.1",
+          34,
+          40
+        ]
+      ]
     },
     {
-      "id": "ft-015", "part": "Part 1", "cat": "hobby", "level": "B1",
+      "id": "ft-015",
+      "part": "Part 1",
+      "cat": "hobby",
+      "level": "B1",
       "q": "What hobbies are popular in your country?",
       "zh": "你们国家什么爱好比较流行？",
-      "follow": ["What do you like to do in your free time?", "Do you have any hobbies?", "Do you think hobbies should be shared with other people?"],
-      "words": ["trend", "pickleball", "short video", "trendy", "take off"],
+      "follow": [
+        "What do you like to do in your free time?",
+        "Do you have any hobbies?",
+        "Do you think hobbies should be shared with other people?"
+      ],
+      "words": [
+        "trend",
+        "pickleball",
+        "short video",
+        "trendy",
+        "take off"
+      ],
       "tips": "用 … has really taken off recently 描述流行趋势，别只列清单。",
-      "sample": "Short video making is everywhere, and things like running and pickleball have really taken off in the last two years. Young people also seem to love camping, although I suspect many of them only go once. Trends move fast here, so the popular hobby changes every year."
+      "sample": "Short videos are everywhere now, and running has really taken off. Honestly, I think people are a bit too busy for hobbies these days — there's so much to see and do [L11.1] online that nobody slows down. I guess that's just how it is [L1.2].",
+      "src": [
+        [
+          "There's so much to see and do",
+          "L11.1",
+          10,
+          14
+        ],
+        [
+          "I guess so",
+          "L1.2",
+          18,
+          21
+        ]
+      ]
     },
     {
-      "id": "ft-016", "part": "Part 1", "cat": "hobby", "level": "B2",
+      "id": "ft-016",
+      "part": "Part 1",
+      "cat": "hobby",
+      "level": "B2",
       "q": "Do you think hobbies should be shared with other people?",
       "zh": "你觉得爱好应该和别人一起做吗？",
-      "follow": ["What hobbies are popular in your country?", "Do you have any hobbies?", "What do you like to do in your free time?"],
-      "words": ["solitary", "community", "motivation", "pressure", "personal"],
+      "follow": [
+        "What hobbies are popular in your country?",
+        "Do you have any hobbies?",
+        "What do you like to do in your free time?"
+      ],
+      "words": [
+        "solitary",
+        "community",
+        "motivation",
+        "pressure",
+        "personal"
+      ],
       "tips": "观点题用 I think it depends on the person 开头，再分两面说，最后落到自己。",
-      "sample": "I think it depends on the person and on the hobby. Sharing gives you motivation and a community, which is why running clubs work so well. But some hobbies are solitary on purpose, and turning them into a social event adds pressure. For me, photography is better alone."
+      "sample": "I think it depends on the person. Some hobbies are better shared, because you get to meet people and make new friends [L9.3]. Others are private, and that's fine too. At first, I thought I should share mine [L22.2], but then I realized I like doing them alone [L22.2].",
+      "src": [
+        [
+          "get to meet people and make new friends",
+          "L9.3",
+          8,
+          11
+        ],
+        [
+          "At first, I thought … But then I realized …",
+          "L21.2",
+          17,
+          20
+        ]
+      ]
     },
     {
-      "id": "ft-017", "part": "Part 1", "cat": "tech", "level": "A2",
+      "id": "ft-017",
+      "part": "Part 1",
+      "cat": "tech",
+      "level": "A2",
       "q": "Do you use the internet very much?",
       "zh": "你上网多吗？",
-      "follow": ["What do you do on the internet?", "When did you first start using the internet?", "Do you think the internet is useful?"],
-      "words": ["screen time", "constantly", "scroll", "device", "addicted"],
+      "follow": [
+        "What do you do on the internet?",
+        "When did you first start using the internet?",
+        "Do you think the internet is useful?"
+      ],
+      "words": [
+        "screen time",
+        "constantly",
+        "scroll",
+        "device",
+        "addicted"
+      ],
       "tips": "给一个量化的说法（several hours a day / far too much），比 very much 更实。",
-      "sample": "Far too much, honestly. My phone tells me I spend about five hours a day on it, and most of that is not work. I am not proud of the number, and I have tried limiting screen time, but I always find a reason to pick the phone up again."
+      "sample": "Far too much, honestly. I'm really sick of sitting in front of a screen all day [L9.2], but I keep doing it. It's impossible to avoid [L4.1] — everything is online now. I know what you mean if you say the same [L8.1].",
+      "src": [
+        [
+          "sick of sitting in front of a computer",
+          "L9.2",
+          8,
+          15
+        ],
+        [
+          "It's impossible to …",
+          "L4.1",
+          23,
+          28
+        ],
+        [
+          "I know what you mean",
+          "L8.1",
+          36,
+          37
+        ]
+      ]
     },
     {
-      "id": "ft-018", "part": "Part 1", "cat": "tech", "level": "B1",
+      "id": "ft-018",
+      "part": "Part 1",
+      "cat": "tech",
+      "level": "B1",
       "q": "When did you first start using the internet?",
       "zh": "你最早是什么时候开始上网的？",
-      "follow": ["Do you use the internet very much?", "What do you do on the internet?", "How has technology changed the way people communicate?"],
-      "words": ["dial-up", "desktop", "broadband", "slow", "generation"],
+      "follow": [
+        "Do you use the internet very much?",
+        "What do you do on the internet?",
+        "How has technology changed the way people communicate?"
+      ],
+      "words": [
+        "dial-up",
+        "desktop",
+        "broadband",
+        "slow",
+        "generation"
+      ],
       "tips": "对比过去和现在的设备/速度，用 Back then… Now… 结构。",
-      "sample": "Probably when I was about ten, on a family desktop with a very slow connection. Back then going online meant waiting and listening to a strange noise from the machine. Now I carry the internet in my pocket, which still feels strange to me sometimes."
+      "sample": "When I was a kid, I used to get up early and play outside [L3.1], not stare at a screen. I started using the internet in high school, on the family computer. Back then it was slow — but it's not the same thing at all now [L2.1].",
+      "src": [
+        [
+          "Every day we used to get up early",
+          "L3.1",
+          17,
+          21
+        ],
+        [
+          "that's not the same thing",
+          "L2.1",
+          46,
+          52
+        ]
+      ]
     },
     {
-      "id": "ft-019", "part": "Part 1", "cat": "tech", "level": "B1",
+      "id": "ft-019",
+      "part": "Part 1",
+      "cat": "tech",
+      "level": "B1",
       "q": "What do you do on the internet?",
       "zh": "你上网都做些什么？",
-      "follow": ["Do you use the internet very much?", "Do you think the internet is useful?", "What are the pros and cons of children using the internet?"],
-      "words": ["tutorial", "stream", "order", "rabbit hole", "distract"],
+      "follow": [
+        "Do you use the internet very much?",
+        "Do you think the internet is useful?",
+        "What are the pros and cons of children using the internet?"
+      ],
+      "words": [
+        "tutorial",
+        "stream",
+        "order",
+        "rabbit hole",
+        "distract"
+      ],
       "tips": "分两类说：有用的（查资料/学东西）+ 纯消遣的，显出自我觉察。",
-      "sample": "Two kinds of things. The useful kind is tutorials and articles for my coursework, which genuinely saves me time. The other kind is short videos, where I often fall into a rabbit hole for an hour. I try to notice when I have switched from the first to the second."
+      "sample": "Two kinds of things. The useful kind: tutorials, news, things for my school work. The other kind is just scrolling. I'm not very good at controlling it [L1.1], to be honest. I keep meaning to use it less, but I guess that's easier said than done [L1.2].",
+      "src": [
+        [
+          "I'm not very good at …",
+          "L1.1",
+          6,
+          9
+        ],
+        [
+          "I guess so",
+          "L1.2",
+          18,
+          21
+        ]
+      ]
     },
     {
-      "id": "ft-020", "part": "Part 1", "cat": "tech", "level": "B1",
+      "id": "ft-020",
+      "part": "Part 1",
+      "cat": "tech",
+      "level": "B1",
       "q": "Do you think the internet is useful?",
       "zh": "你觉得互联网有用吗？",
-      "follow": ["What do you do on the internet?", "What are the pros and cons of children using the internet?", "How can we ensure technology is used responsibly?"],
-      "words": ["double-edged", "access", "misinformation", "convenient", "critical"],
+      "follow": [
+        "What do you do on the internet?",
+        "What are the pros and cons of children using the internet?",
+        "How can we ensure technology is used responsibly?"
+      ],
+      "words": [
+        "double-edged",
+        "access",
+        "misinformation",
+        "convenient",
+        "critical"
+      ],
       "tips": "别一边倒。用 It is useful, but… 承认代价，观点更可信。",
-      "sample": "Yes, hugely, but it is double-edged. Access to knowledge is now almost free, which is a real change. The problem is that wrong information travels just as fast, so being critical matters more than ever. Convenience has made us faster, not necessarily smarter."
+      "sample": "Yes, but it's double-edged. There's so much to see and do [L11.1], and that's wonderful. But there are also too many distractions [L4.1]. I think the biggest mistake people make is trying to do too much [L11.1] — online, just like in real life.",
+      "src": [
+        [
+          "There's so much to see and do",
+          "L11.1",
+          10,
+          14
+        ],
+        [
+          "there are too many …",
+          "L4.1",
+          17,
+          23
+        ],
+        [
+          "the biggest mistake many people make is trying to do too much",
+          "L11.1",
+          5,
+          10
+        ]
+      ]
     },
     {
-      "id": "ft-021", "part": "Part 1", "cat": "tech", "level": "B2",
+      "id": "ft-021",
+      "part": "Part 1",
+      "cat": "tech",
+      "level": "B2",
       "q": "What are the pros and cons of children using the internet?",
       "zh": "孩子上网有哪些好处和坏处？",
-      "follow": ["Do you think the internet is useful?", "What do you do on the internet?", "How can we ensure technology is used responsibly?"],
-      "words": ["exposure", "supervision", "addictive", "safeguard", "boundary"],
+      "follow": [
+        "Do you think the internet is useful?",
+        "What do you do on the internet?",
+        "How can we ensure technology is used responsibly?"
+      ],
+      "words": [
+        "exposure",
+        "supervision",
+        "addictive",
+        "safeguard",
+        "boundary"
+      ],
       "tips": "利弊题用 On the one hand… On the other hand…，最后给一条自己的建议收尾。",
-      "sample": "On the one hand, it gives them exposure to far more than a classroom can, and that is valuable. On the other hand, these products are designed to be addictive, and children have no defence against that. I think supervision and clear time boundaries matter more than banning it completely."
+      "sample": "On the one hand, children can learn so much — there's so much to see and do [L11.1]. On the other hand, they can get lost in it. I think the biggest mistake parents make is not watching what kids do online [L11.1]. Another thing to remember is to set limits [L11.1] — otherwise it's impossible to keep up with them [L4.1].",
+      "src": [
+        [
+          "There's so much to see and do",
+          "L11.1",
+          10,
+          14
+        ],
+        [
+          "the biggest mistake … is …",
+          "L11.1",
+          5,
+          10
+        ],
+        [
+          "Another thing to remember is …",
+          "L11.1",
+          59,
+          66
+        ],
+        [
+          "It's impossible to …",
+          "L4.1",
+          23,
+          28
+        ]
+      ]
     },
     {
-      "id": "ft-022", "part": "Part 1", "cat": "music", "level": "A2",
+      "id": "ft-022",
+      "part": "Part 1",
+      "cat": "music",
+      "level": "A2",
       "q": "Do you like music?",
       "zh": "你喜欢音乐吗？",
-      "follow": ["What kind of music do you like?", "Have you ever learned to play a musical instrument?", "Do you think it is important for children to learn a musical instrument?"],
-      "words": ["background", "mood", "lyrics", "silence", "playlist"],
+      "follow": [
+        "What kind of music do you like?",
+        "Have you ever learned to play a musical instrument?",
+        "Do you think it is important for children to learn a musical instrument?"
+      ],
+      "words": [
+        "background",
+        "mood",
+        "lyrics",
+        "silence",
+        "playlist"
+      ],
       "tips": "说清音乐在你生活里的角色（背景音 / 专注用 / 睡前），比 yes, very much 有内容。",
-      "sample": "I do, although I mostly use it as background. I put something on while I study, usually without lyrics so I can focus, and something slower before sleep. I rarely sit down just to listen, which I think real music lovers would find a bit tragic."
+      "sample": "I do, though I'm not a big music person. I mostly use it as background. You know, it's funny — I'm not very good at singing or anything [L1.1], but I love listening. I guess I sort of just enjoy the feeling [L1.2].",
+      "src": [
+        [
+          "I'm not very good at …",
+          "L1.1",
+          6,
+          9
+        ],
+        [
+          "sort of",
+          "L1.2",
+          18,
+          21
+        ],
+        [
+          "I guess",
+          "L1.2",
+          18,
+          21
+        ]
+      ]
     },
     {
-      "id": "ft-023", "part": "Part 1", "cat": "music", "level": "A2",
+      "id": "ft-023",
+      "part": "Part 1",
+      "cat": "music",
+      "level": "A2",
       "q": "What kind of music do you like?",
       "zh": "你喜欢什么类型的音乐？",
-      "follow": ["Do you like music?", "Have you ever learned to play a musical instrument?", "What kind of music do you like?"],
-      "words": ["genre", "mellow", "upbeat", "phase", "guilty pleasure"],
+      "follow": [
+        "Do you like music?",
+        "Have you ever learned to play a musical instrument?",
+        "What kind of music do you like?"
+      ],
+      "words": [
+        "genre",
+        "mellow",
+        "upbeat",
+        "phase",
+        "guilty pleasure"
+      ],
       "tips": "给一主一次两种风格，并说「什么时候听哪种」，答案立刻具体。",
-      "sample": "Mostly mellow things, especially guitar-based songs I can work to. But I go through phases with upbeat pop too, and I have a guilty pleasure for very cheesy songs from my school years. My playlist would probably confuse anyone who borrowed my phone."
+      "sample": "Mostly quiet things — I like music I can think to. I'm not very good at explaining it [L1.1], but slow songs with guitar are my thing. I go through phases, though. I guess I just like whatever fits the mood [L1.2].",
+      "src": [
+        [
+          "I'm not very good at …",
+          "L1.1",
+          6,
+          9
+        ],
+        [
+          "I guess",
+          "L1.2",
+          18,
+          21
+        ]
+      ]
     },
     {
-      "id": "ft-024", "part": "Part 1", "cat": "music", "level": "B1",
+      "id": "ft-024",
+      "part": "Part 1",
+      "cat": "music",
+      "level": "B1",
       "q": "Have you ever learned to play a musical instrument?",
       "zh": "你学过乐器吗？",
-      "follow": ["Which instrument would you prefer to study, the piano or the violin?", "Do you think it is important for children to learn a musical instrument?", "What kind of music do you like?"],
-      "words": ["give up", "practice", "frustrating", "sight-read", "rusty"],
+      "follow": [
+        "Which instrument would you prefer to study, the piano or the violin?",
+        "Do you think it is important for children to learn a musical instrument?",
+        "What kind of music do you like?"
+      ],
+      "words": [
+        "give up",
+        "practice",
+        "frustrating",
+        "sight-read",
+        "rusty"
+      ],
       "tips": "学过又放弃是很真实的答案，用 I gave up because… 讲清原因即可。",
-      "sample": "I had piano lessons for about two years as a child. I did not enjoy the practice, and I gave up as soon as my parents stopped pushing me. I can still read a little music, but my hands are completely rusty now. Sometimes I regret quitting so early."
+      "sample": "I had piano lessons as a kid, but I gave up. I'm not very good at it [L1.1] and I never practised. I used to really enjoy it at first [L3.2], but then it became the same routine every day [L9.2], and I got sick of it [L9.2]. Sometimes I wish I had kept it up [L8.2].",
+      "src": [
+        [
+          "I'm not very good at it",
+          "L1.1",
+          6,
+          9
+        ],
+        [
+          "used to really enjoy",
+          "L3.2",
+          20,
+          27
+        ],
+        [
+          "the same routine every day",
+          "L9.2",
+          8,
+          15
+        ],
+        [
+          "sick of …",
+          "L9.2",
+          8,
+          15
+        ],
+        [
+          "I wish I had …",
+          "L8.2",
+          20,
+          27
+        ]
+      ]
     },
     {
-      "id": "ft-025", "part": "Part 1", "cat": "music", "level": "B1",
+      "id": "ft-025",
+      "part": "Part 1",
+      "cat": "music",
+      "level": "B1",
       "q": "Which instrument would you prefer to study, the piano or the violin?",
       "zh": "钢琴和小提琴，你更想学哪个？",
-      "follow": ["Have you ever learned to play a musical instrument?", "Do you think it is important for children to learn a musical instrument?", "Do you like music?"],
-      "words": ["begins", "forgiving", "ear", "awkward", "rewarding"],
+      "follow": [
+        "Have you ever learned to play a musical instrument?",
+        "Do you think it is important for children to learn a musical instrument?",
+        "Do you like music?"
+      ],
+      "words": [
+        "begins",
+        "forgiving",
+        "ear",
+        "awkward",
+        "rewarding"
+      ],
       "tips": "二选一题要给出「为什么不是另一个」的理由，这是得分点。",
-      "sample": "The piano, definitely. It is more forgiving at the start, because you get a decent sound almost immediately. The violin sounds awful for months, and I do not have the patience for that. I would rather play something simple well than something beautiful badly."
+      "sample": "The piano, definitely. It's more forgiving at the start — you get a nice sound right away. The violin sounds terrible for months. I'm not very good at being patient [L1.1], so I'd rather play something I can enjoy quickly. It's a deal for me [L1.2].",
+      "src": [
+        [
+          "I'm not very good at …",
+          "L1.1",
+          6,
+          9
+        ],
+        [
+          "It's a deal",
+          "L1.2",
+          31,
+          33
+        ]
+      ]
     },
     {
-      "id": "ft-026", "part": "Part 1", "cat": "music", "level": "B2",
+      "id": "ft-026",
+      "part": "Part 1",
+      "cat": "music",
+      "level": "B2",
       "q": "Do you think it is important for children to learn a musical instrument?",
       "zh": "你觉得孩子学乐器重要吗？",
-      "follow": ["Have you ever learned to play a musical instrument?", "What role should technology play in education?", "How important is it for students to learn practical skills?"],
-      "words": ["discipline", "forced", "appreciation", "well-rounded", "drop"],
+      "follow": [
+        "Have you ever learned to play a musical instrument?",
+        "What role should technology play in education?",
+        "How important is it for students to learn practical skills?"
+      ],
+      "words": [
+        "discipline",
+        "forced",
+        "appreciation",
+        "well-rounded",
+        "drop"
+      ],
       "tips": "观点题先让步 Admittedly…，再转折 But I think…,显得思考过两面。",
-      "sample": "Admittedly many children are forced into it and drop it the moment they can. But I think some music education is valuable, mostly for discipline and for learning to appreciate something slowly. Whether that has to be an instrument, I am less sure."
+      "sample": "I think it depends on the child. Some kids love it, and some are forced into it and end up sick of it [L9.2]. I'd say let them try — but don't be afraid to let them stop [L11.1] if it's not for them. It's best to let them decide [L11.1].",
+      "src": [
+        [
+          "sick of …",
+          "L9.2",
+          8,
+          15
+        ],
+        [
+          "don't be afraid to …",
+          "L11.1",
+          59,
+          66
+        ],
+        [
+          "It's best to …",
+          "L11.1",
+          14,
+          21
+        ]
+      ]
     },
     {
-      "id": "ft-027", "part": "Part 1", "cat": "sport", "level": "A2",
+      "id": "ft-027",
+      "part": "Part 1",
+      "cat": "sport",
+      "level": "A2",
       "q": "Do you like sport?",
       "zh": "你喜欢运动吗？",
-      "follow": ["What sports do you play?", "What is the most popular sport in your country?", "What are the benefits of playing sport?"],
-      "words": ["work out", "competitive", " spectator", "consistent", "sweat"],
+      "follow": [
+        "What sports do you play?",
+        "What is the most popular sport in your country?",
+        "What are the benefits of playing sport?"
+      ],
+      "words": [
+        "work out",
+        "competitive",
+        " spectator",
+        "consistent",
+        "sweat"
+      ],
       "tips": "区分「看」和「做」：I like watching… more than playing…，这是很自然的展开。",
-      "sample": "I like watching it more than playing it, to be honest. I follow a few basketball games a season and I enjoy the tension. When it comes to actually moving, I run and swim, but not very consistently. I keep meaning to be more serious about it."
+      "sample": "I like watching it more than playing it. When I was a kid, I used to run around all day [L3.1], but now I'm not very good at keeping it up [L1.1]. I do swim when I can. I guess I'm more of a fan [L1.2].",
+      "src": [
+        [
+          "I used to …",
+          "L3.1",
+          27,
+          30
+        ],
+        [
+          "I'm not very good at …",
+          "L1.1",
+          6,
+          9
+        ],
+        [
+          "I guess",
+          "L1.2",
+          18,
+          21
+        ]
+      ]
     },
     {
-      "id": "ft-028", "part": "Part 1", "cat": "sport", "level": "A2",
+      "id": "ft-028",
+      "part": "Part 1",
+      "cat": "sport",
+      "level": "A2",
       "q": "What sports do you play?",
       "zh": "你做什么运动？",
-      "follow": ["Do you like sport?", "What are the benefits of playing sport?", "Do you think children should play sport?"],
-      "words": ["jog", "court", "occasional", "stamina", "pull a muscle"],
+      "follow": [
+        "Do you like sport?",
+        "What are the benefits of playing sport?",
+        "Do you think children should play sport?"
+      ],
+      "words": [
+        "jog",
+        "court",
+        "occasional",
+        "stamina",
+        "pull a muscle"
+      ],
       "tips": "说频率和水平（twice a week / badly but happily），避免空泛。",
-      "sample": "Running mostly, and badminton when I can find someone to play with. I jog twice a week around the lake near campus, which is more for my head than for fitness. My badminton is enthusiastic but technically hopeless, and I pull a muscle far too often."
+      "sample": "I swim, and I rollerblade sometimes [L1.1]. Where did I learn to rollerblade? [L1.1] In the park near my house. This is only my second time at some of these [L1.1], so I'm not very good at them [L1.1], but I enjoy it.",
+      "src": [
+        [
+          "rollerblade",
+          "L1.1",
+          23,
+          25
+        ],
+        [
+          "Where did you learn to rollerblade?",
+          "L1.1",
+          23,
+          25
+        ],
+        [
+          "This is only my second time",
+          "L1.1",
+          25,
+          28
+        ],
+        [
+          "I'm not very good at",
+          "L1.1",
+          6,
+          9
+        ]
+      ]
     },
     {
-      "id": "ft-029", "part": "Part 1", "cat": "sport", "level": "B1",
+      "id": "ft-029",
+      "part": "Part 1",
+      "cat": "sport",
+      "level": "B1",
       "q": "What is the most popular sport in your country?",
       "zh": "你们国家最流行的运动是什么？",
-      "follow": ["What is your favorite sport to watch on TV?", "Do you like sport?", "What sports do you play?"],
-      "words": ["table tennis", "dominate", "grassroots", "passion", "following"],
+      "follow": [
+        "What is your favorite sport to watch on TV?",
+        "Do you like sport?",
+        "What sports do you play?"
+      ],
+      "words": [
+        "table tennis",
+        "dominate",
+        "grassroots",
+        "passion",
+        "following"
+      ],
       "tips": "不只报名字，说它流行在哪（ grassroots 参与 / 电视转播 / 民族情绪）。",
-      "sample": "Table tennis, without question. It is played at every level, from school yards to the national team, and the country treats it as more than a game. Basketball probably has a bigger following among young people now, but table tennis still dominates emotionally."
+      "sample": "Table tennis, without question. It's played everywhere, from school yards to the national team. Honestly, there are too many people playing it to count [L4.1]. I guess it's cheap and easy, and that's why it's everywhere [L1.2].",
+      "src": [
+        [
+          "there are too many …",
+          "L4.1",
+          17,
+          23
+        ],
+        [
+          "I guess",
+          "L1.2",
+          18,
+          21
+        ]
+      ]
     },
     {
-      "id": "ft-030", "part": "Part 1", "cat": "sport", "level": "B1",
+      "id": "ft-030",
+      "part": "Part 1",
+      "cat": "sport",
+      "level": "B1",
       "q": "What is your favorite sport to watch on TV?",
       "zh": "你最喜欢在电视上看什么运动？",
-      "follow": ["Do you like sport?", "What is the most popular sport in your country?", "What sports do you play?"],
-      "words": ["rally", "commentary", "live", "nail-biting", "replay"],
+      "follow": [
+        "Do you like sport?",
+        "What is the most popular sport in your country?",
+        "What sports do you play?"
+      ],
+      "words": [
+        "rally",
+        "commentary",
+        "live",
+        "nail-biting",
+        "replay"
+      ],
       "tips": "讲一个看的理由（节奏、悬念、解说），比报项目名更有话。",
-      "sample": "Table tennis, mostly because the rallies are so fast that every point feels decisive. I also watch the finals of big swimming events live, because the commentary builds the tension well. I rarely watch whole matches though, I just catch the last few minutes."
+      "sample": "I mostly watch swimming, because the races are fast and exciting. I can't stop watching once a big race gets started [L21.3]. I also like watching basketball. I guess I just enjoy the tension [L1.2].",
+      "src": [
+        [
+          "I couldn't stop … once I got started",
+          "L20.3",
+          3,
+          6
+        ],
+        [
+          "I guess",
+          "L1.2",
+          18,
+          21
+        ]
+      ]
     },
     {
-      "id": "ft-031", "part": "Part 1", "cat": "sport", "level": "B2",
+      "id": "ft-031",
+      "part": "Part 1",
+      "cat": "sport",
+      "level": "B2",
       "q": "Do you think children should play sport?",
       "zh": "你觉得孩子应该参加体育运动吗？",
-      "follow": ["What are the benefits of playing sport?", "Do you like sport?", "How important is it for students to learn practical skills?"],
-      "words": ["teamwork", "resilience", "burnout", "pressure", "balance"],
+      "follow": [
+        "What are the benefits of playing sport?",
+        "Do you like sport?",
+        "How important is it for students to learn practical skills?"
+      ],
+      "words": [
+        "teamwork",
+        "resilience",
+        "burnout",
+        "pressure",
+        "balance"
+      ],
       "tips": "观点题用 I think so, as long as… 加条件，观点更严密。",
-      "sample": "I think so, as long as it stays fun. Team sport teaches things a classroom cannot, like handling a loss without falling apart. The risk is that adults turn it into pressure far too early, and children burn out by fourteen. Balance is the whole difficulty."
+      "sample": "I think so, as long as it stays fun. Sport teaches kids to handle losing, which is hard to learn anywhere else. But too much pressure turns them off. I wish more schools understood that [L8.2] — it's the same thing with any activity [L2.1].",
+      "src": [
+        [
+          "I wish …",
+          "L8.2",
+          14,
+          20
+        ],
+        [
+          "that's not the same thing",
+          "L2.1",
+          46,
+          52
+        ]
+      ]
     },
     {
-      "id": "ft-032", "part": "Part 1", "cat": "sport", "level": "B1",
+      "id": "ft-032",
+      "part": "Part 1",
+      "cat": "sport",
+      "level": "B1",
       "q": "What are the benefits of playing sport?",
       "zh": "运动有什么好处？",
-      "follow": ["Do you think children should play sport?", "What sports do you play?", "Do you like sport?"],
-      "words": ["mental health", "endurance", "routine", "sleep", "mood"],
+      "follow": [
+        "Do you think children should play sport?",
+        "What sports do you play?",
+        "Do you like sport?"
+      ],
+      "words": [
+        "mental health",
+        "endurance",
+        "routine",
+        "sleep",
+        "mood"
+      ],
       "tips": "身体 + 心理各说一条，再落到自己的体验，最有说服力。",
-      "sample": "Physically it builds endurance and keeps sleep regular, which sounds boring but changes everything. Mentally it is better than I expected, my mood after a run is noticeably different. And there is the routine itself, having one fixed thing in a chaotic week."
+      "sample": "The obvious one is health, but for me it's more about the head. After I move, my mood is completely different. When I was a kid I used to be outside all day [L3.1], and I really enjoyed it [L3.2]. I guess our bodies remember that [L1.2].",
+      "src": [
+        [
+          "When I was a kid …",
+          "L3.1",
+          8,
+          11
+        ],
+        [
+          "used to really enjoy",
+          "L3.2",
+          20,
+          27
+        ],
+        [
+          "I guess",
+          "L1.2",
+          18,
+          21
+        ]
+      ]
     },
     {
-      "id": "ft-033", "part": "Part 2", "cat": "card", "level": "B1",
+      "id": "ft-033",
+      "part": "Part 2",
+      "cat": "card",
+      "level": "B1",
       "q": "Describe a person you admire.",
       "zh": "描述一个你敬佩的人。",
-      "bullets": ["Who this person is", "How you know about this person", "What this person does", "And explain why you admire this person"],
-      "follow": ["What qualities make a person admirable?", "Do you think children need role models?", "What influence can famous people have on society?"],
-      "words": ["admire", "perseverance", "mentor", "humble", "impact"],
+      "bullets": [
+        "Who this person is",
+        "How you know about this person",
+        "What this person does",
+        "And explain why you admire this person"
+      ],
+      "follow": [
+        "What qualities make a person admirable?",
+        "Do you think children need role models?",
+        "What influence can famous people have on society?"
+      ],
+      "words": [
+        "admire",
+        "perseverance",
+        "mentor",
+        "humble",
+        "impact"
+      ],
       "tips": "四个要点逐个覆盖，最后 why 那条要多说两句——那是考官真正等的部分。",
-      "sample": "The person I admire most is my high school physics teacher, Mr Chen. I met him in my second year, when I was close to giving up on the subject. He never raised his voice and never made anyone feel stupid for asking a basic question. What I admire is his patience rather than his knowledge. He would stay after class for anyone who needed it, and he made a difficult subject feel survivable. That changed what I chose to study later."
+      "sample": "The person I admire most is my aunt. I've known her my whole life, so I've watched how she lives. She runs a small restaurant, and she's in charge of everything [L1.2] — the cooking, the money, the people. What I really admire is that she never seems to lighten up [L14.1], in a good way: she's serious about her work but warm to everyone. It's hard to get a smile out of her when she's busy [L14.1], but when she does smile, the whole room changes. She's always giving people presents and help [L14.1], and I wish there were more people like her in this world [L14.1]. I guess that's why I admire her [L1.2] — she made a hard life look graceful.",
+      "src": [
+        [
+          "in charge of",
+          "L1.2",
+          13,
+          15
+        ],
+        [
+          "lighten up",
+          "L14.1",
+          6,
+          9
+        ],
+        [
+          "get a smile out of her",
+          "L14.1",
+          14,
+          17
+        ],
+        [
+          "She's always giving … presents",
+          "L14.1",
+          28,
+          34
+        ],
+        [
+          "I wish there were more people like her",
+          "L14.1",
+          34,
+          37
+        ],
+        [
+          "I guess",
+          "L1.2",
+          18,
+          21
+        ]
+      ]
     },
     {
-      "id": "ft-034", "part": "Part 2", "cat": "card", "level": "B1",
+      "id": "ft-034",
+      "part": "Part 2",
+      "cat": "card",
+      "level": "B1",
       "q": "Describe a memorable journey you have taken.",
       "zh": "描述一次难忘的旅行。",
-      "bullets": ["Where you went", "Who you went with", "How you traveled there", "And explain why this journey was memorable"],
-      "follow": ["What are the benefits of traveling?", "How has traveling changed over the years?", "Do you think space travel will be common in the future?"],
-      "words": ["overnight", "detour", "scenery", "stranded", "unforgettable"],
+      "bullets": [
+        "Where you went",
+        "Who you went with",
+        "How you traveled there",
+        "And explain why this journey was memorable"
+      ],
+      "follow": [
+        "What are the benefits of traveling?",
+        "How has traveling changed over the years?",
+        "Do you think space travel will be common in the future?"
+      ],
+      "words": [
+        "overnight",
+        "detour",
+        "scenery",
+        "stranded",
+        "unforgettable"
+      ],
       "tips": "「为什么难忘」要落在具体的一件事上（一次意外、一个人），不要只说风景很美。",
-      "sample": "Two summers ago I took an overnight train to a small town in the mountains with two friends. We went by train because it was cheap, and the journey took almost fourteen hours. What made it unforgettable was not the scenery but the fact that our train broke down in the middle of nowhere for three hours. We got off, sat on the platform, and talked until sunrise. I remember that night far better than the place we were going to."
+      "sample": "Two summers ago I took a long train ride to a mountain town with two friends. We went because it was cheap, and the journey was something else. You know, I'm so excited just thinking about it [L10.1]. The scenery was incredible — it was like nothing I'd seen, and I learned so much about the place just watching it go by [L21.4]. What made it unforgettable was a small accident: we missed our stop and had to spend the night in a tiny station. At first, I thought we were in trouble [L22.2], but then I realized it was the best part of the trip [L22.2]. We talked until sunrise, and every time I think of that night I smile [L3.2]. That's what I remember most about the whole journey [L3.2].",
+      "src": [
+        [
+          "I'm so excited",
+          "L10.1",
+          0,
+          5
+        ],
+        [
+          "I learned so much",
+          "L20.4",
+          3,
+          5
+        ],
+        [
+          "At first, I thought … But then I realized …",
+          "L21.2",
+          17,
+          20
+        ],
+        [
+          "every time I …",
+          "L3.2",
+          20,
+          27
+        ],
+        [
+          "what I remember most",
+          "L3.2",
+          0,
+          3
+        ]
+      ]
     },
     {
-      "id": "ft-035", "part": "Part 2", "cat": "card", "level": "B1",
+      "id": "ft-035",
+      "part": "Part 2",
+      "cat": "card",
+      "level": "B1",
       "q": "Describe a skill you learned recently.",
       "zh": "描述你最近学会的一项技能。",
-      "bullets": ["What the skill is", "How you learned it", "How long it took you to learn", "And explain how this skill has helped you"],
-      "follow": ["What skills are most important in today's world?", "How do people usually learn new skills?", "Should schools teach more practical skills?"],
-      "words": ["soldering", "tutorial", "frustrating", "milestone", "pay off"],
+      "bullets": [
+        "What the skill is",
+        "How you learned it",
+        "How long it took you to learn",
+        "And explain how this skill has helped you"
+      ],
+      "follow": [
+        "What skills are most important in today's world?",
+        "How do people usually learn new skills?",
+        "Should schools teach more practical skills?"
+      ],
+      "words": [
+        "soldering",
+        "tutorial",
+        "frustrating",
+        "milestone",
+        "pay off"
+      ],
       "tips": "讲学习过程中的一个挫败点 + 一个突破点，这是 Part 2 最有内容的结构。",
-      "sample": "Last year I taught myself to solder, which I needed for a small electronics project. I learned almost entirely from online tutorials, spending about an hour most evenings for two months. The first few weeks were frustrating, my joints were ugly and half of them did not conduct. The milestone came when I finally built a small circuit that worked on the first try. It has paid off since, because I no longer panic when something needs fixing physically."
+      "sample": "Recently I learned to rollerblade [L1.1]. I wanted to learn because I saw people doing it in the park near my house, and it looked like fun. I got a friend to give me some lessons [L1.1] — at first this was only my second time [L1.1], so I fell a lot. It took me about a month to feel steady. I'm not very good at it yet [L1.1], but I'm much better than when I started. The funny thing is how it's helped me: I'm less afraid of looking silly now, because I spent a month falling in public. And it's something I'll find useful later in life [L9.4], even if it's just a way to get around.",
+      "src": [
+        [
+          "learn to rollerblade",
+          "L1.1",
+          23,
+          25
+        ],
+        [
+          "give me some lessons",
+          "L1.1",
+          28,
+          32
+        ],
+        [
+          "This is only my second time",
+          "L1.1",
+          25,
+          28
+        ],
+        [
+          "I'm not very good at it",
+          "L1.1",
+          6,
+          9
+        ],
+        [
+          "something you'll find useful later in life",
+          "L9.4",
+          7,
+          9
+        ]
+      ]
     },
     {
-      "id": "ft-036", "part": "Part 2", "cat": "card", "level": "B1",
+      "id": "ft-036",
+      "part": "Part 2",
+      "cat": "card",
+      "level": "B1",
       "q": "Describe a place you would like to visit.",
       "zh": "描述一个你想去的地方。",
-      "bullets": ["Where this place is", "How you know about this place", "What you would do there", "And explain why you want to visit this place"],
-      "follow": ["Why do people like to travel to different places?", "What are the advantages and disadvantages of tourism?", "How do you think tourism will change in the future?"],
-      "words": ["remote", "documentary", "hike", "unspoiled", "bucket list"],
+      "bullets": [
+        "Where this place is",
+        "How you know about this place",
+        "What you would do there",
+        "And explain why you want to visit this place"
+      ],
+      "follow": [
+        "Why do people like to travel to different places?",
+        "What are the advantages and disadvantages of tourism?",
+        "How do you think tourism will change in the future?"
+      ],
+      "words": [
+        "remote",
+        "documentary",
+        "hike",
+        "unspoiled",
+        "bucket list"
+      ],
       "tips": "「你怎么知道这地方的」很容易被忽略，别漏——它让故事有来源。",
-      "sample": "I would love to visit the far north of Norway, a small fishing region well above the Arctic Circle. I first saw it in a documentary about winter light, and I have wanted to go ever since. I would hike during the day and sit by the water in the evening, which does not sound exciting but is exactly the point. I want to go somewhere unspoiled, and I suspect that quality will not survive another twenty years of tourism."
+      "sample": "I'd love to visit the Statue of Liberty in New York [L19.2]. I first learned about it in a school book — the statue was given to the United States by the people of France [L19.2], and it's a major tourist attraction, with about 2 million people from all over the world visiting every year [L19.1]. When I go, I'd climb the stairs all the way up to the crown [L19.2] — it's just 142 steps [L19.2]. I'd also just walk around the city, because there's so much to see and do [L11.1]. I want to go there and see it for myself [L21.4], not just in pictures.",
+      "src": [
+        [
+          "the famous Statue of Liberty",
+          "L18.2",
+          0,
+          7
+        ],
+        [
+          "given to the United States by the people of France",
+          "L18.2",
+          14,
+          18
+        ],
+        [
+          "a major tourist attraction … from all over the world",
+          "L18.1",
+          26,
+          32
+        ],
+        [
+          "climb the stairs … up to the crown",
+          "L18.2",
+          26,
+          29
+        ],
+        [
+          "it's just 142 steps",
+          "L18.2",
+          33,
+          35
+        ],
+        [
+          "There's so much to see and do",
+          "L11.1",
+          10,
+          14
+        ],
+        [
+          "see it for myself",
+          "L20.4",
+          14,
+          18
+        ]
+      ]
     },
     {
-      "id": "ft-037", "part": "Part 3", "cat": "edu", "level": "B2",
+      "id": "ft-037",
+      "part": "Part 3",
+      "cat": "edu",
+      "level": "B2",
       "q": "What are the advantages of online learning?",
       "zh": "在线学习有哪些优势？",
-      "follow": ["Do you think traditional teaching methods are still effective?", "What role should technology play in education?", "How has education changed in recent years?"],
-      "words": ["flexibility", "self-paced", "access", "dropout", "engagement"],
+      "follow": [
+        "Do you think traditional teaching methods are still effective?",
+        "What role should technology play in education?",
+        "How has education changed in recent years?"
+      ],
+      "words": [
+        "flexibility",
+        "self-paced",
+        "access",
+        "dropout",
+        "engagement"
+      ],
       "tips": "Part 3 要给「分析型」答案：先答，再说条件或反例，别停在描述。",
-      "sample": "The obvious advantage is flexibility, since students can learn at their own pace and revisit difficult parts. It also widens access, which matters enormously outside big cities. That said, the completion rates tell a different story, because studying alone without structure is hard for most people. So the advantage is real but conditional on the learner being disciplined."
+      "sample": "The main advantage is flexibility — you can learn when it suits you. I'd love something like that [L8.1], because not everyone has the same routine [L9.2]. But I think there's a real difficulty: studying alone is hard, and it's not the same thing as being in a room with a teacher [L2.1]. I guess the best version mixes both [L1.2].",
+      "src": [
+        [
+          "I'd love something that would …",
+          "L8.1",
+          23,
+          28
+        ],
+        [
+          "the same routine",
+          "L9.2",
+          8,
+          15
+        ],
+        [
+          "that's not the same thing",
+          "L2.1",
+          46,
+          52
+        ],
+        [
+          "I guess",
+          "L1.2",
+          18,
+          21
+        ]
+      ]
     },
     {
-      "id": "ft-038", "part": "Part 3", "cat": "edu", "level": "B2",
+      "id": "ft-038",
+      "part": "Part 3",
+      "cat": "edu",
+      "level": "B2",
       "q": "How has education changed in recent years?",
       "zh": "近年来教育发生了怎样的变化？",
-      "follow": ["What role should technology play in education?", "Do you think traditional teaching methods are still effective?", "What are the advantages of online learning?"],
-      "words": ["shift", "rote learning", "assessment", "skill-based", "gradually"],
+      "follow": [
+        "What role should technology play in education?",
+        "Do you think traditional teaching methods are still effective?",
+        "What are the advantages of online learning?"
+      ],
+      "words": [
+        "shift",
+        "rote learning",
+        "assessment",
+        "skill-based",
+        "gradually"
+      ],
       "tips": "讲「从什么变成什么」，用 There has been a shift from… to… 结构。",
-      "sample": "There has been a gradual shift from rote learning towards something more skill-based, at least in policy. Classrooms have more technology, and assessment is slowly moving away from a single final exam. Whether the daily reality has changed as much as the documents suggest is another question, particularly in under-resourced schools."
+      "sample": "There has been a real change, that's for sure [L4.1]. When I was a kid, we used to learn mostly from books [L3.1]. Now there's so much to see and do online [L11.1], and classrooms have changed with it. I guess one of the biggest differences is that information is everywhere now [L2.1]. But more access isn't automatically the same thing as better learning [L2.1].",
+      "src": [
+        [
+          "That's for sure",
+          "L4.1",
+          23,
+          28
+        ],
+        [
+          "When I was a kid, we used to …",
+          "L3.1",
+          8,
+          11
+        ],
+        [
+          "There's so much to see and do",
+          "L11.1",
+          10,
+          14
+        ],
+        [
+          "one of the biggest … is that …",
+          "L2.1",
+          40,
+          46
+        ],
+        [
+          "that's not the same thing",
+          "L2.1",
+          46,
+          52
+        ]
+      ]
     },
     {
-      "id": "ft-039", "part": "Part 3", "cat": "edu", "level": "B2",
+      "id": "ft-039",
+      "part": "Part 3",
+      "cat": "edu",
+      "level": "B2",
       "q": "Do you think traditional teaching methods are still effective?",
       "zh": "你觉得传统教学方法还有效吗？",
-      "follow": ["What role should technology play in education?", "What are the advantages of online learning?", "How has education changed in recent years?"],
-      "words": ["chalk and talk", "outdated", "interaction", "context", "blend"],
+      "follow": [
+        "What role should technology play in education?",
+        "What are the advantages of online learning?",
+        "How has education changed in recent years?"
+      ],
+      "words": [
+        "chalk and talk",
+        "outdated",
+        "interaction",
+        "context",
+        "blend"
+      ],
       "tips": "不要一刀切。说清「在什么条件下有效」，这是 Part 3 的高分思维。",
-      "sample": "I would not call them outdated. A clear explanation by someone who knows the subject still beats most videos, especially for difficult ideas. What is outdated is pretending that attention works the way it did fifty years ago. The effective version now is probably a blend, with the teacher explaining and technology handling practice."
+      "sample": "I wouldn't call them outdated. A clear explanation from a good teacher is hard to beat — I know, because I had some great ones. But I also think you can't just do the same routine every day [L9.2] and expect attention. The best mix uses both. I guess that's where we're heading [L1.2].",
+      "src": [
+        [
+          "the same routine every day",
+          "L9.2",
+          8,
+          15
+        ],
+        [
+          "I guess",
+          "L1.2",
+          18,
+          21
+        ]
+      ]
     },
     {
-      "id": "ft-040", "part": "Part 3", "cat": "edu", "level": "B2",
+      "id": "ft-040",
+      "part": "Part 3",
+      "cat": "edu",
+      "level": "B2",
       "q": "What role should technology play in education?",
       "zh": "技术在教育中应扮演什么角色？",
-      "follow": ["Do you think traditional teaching methods are still effective?", "What are the advantages of online learning?", "What are the potential risks of our increasing dependence on technology?"],
-      "words": ["tool", "substitute", "personalise", "distract", "judgement"],
+      "follow": [
+        "Do you think traditional teaching methods are still effective?",
+        "What are the advantages of online learning?",
+        "What are the potential risks of our increasing dependence on technology?"
+      ],
+      "words": [
+        "tool",
+        "substitute",
+        "personalise",
+        "distract",
+        "judgement"
+      ],
       "tips": "用 should 类题目给立场 + 边界：It should be…, but it must not become…。",
-      "sample": "It should be a tool that personalises practice, not a substitute for a teacher. Used well, it frees the teacher to do the part only a human can do, which is noticing when a student has quietly stopped understanding. Used badly, it becomes an expensive way to distract a room. The difference is a judgement call, not a technical one."
+      "sample": "It should be a tool, not a replacement. Used well, it frees teachers to do the part only people can do. Used badly, it's just another screen. I think the biggest mistake is giving kids screens and thinking that's teaching [L11.1]. Another thing to remember is that technology breaks, and people don't [L11.1].",
+      "src": [
+        [
+          "the biggest mistake … is …",
+          "L11.1",
+          5,
+          10
+        ],
+        [
+          "Another thing to remember is …",
+          "L11.1",
+          59,
+          66
+        ]
+      ]
     },
     {
-      "id": "ft-041", "part": "Part 3", "cat": "edu", "level": "B2",
+      "id": "ft-041",
+      "part": "Part 3",
+      "cat": "edu",
+      "level": "B2",
       "q": "How important is it for students to learn practical skills?",
       "zh": "学生学习实用技能有多重要？",
-      "follow": ["Should schools teach more practical skills?", "What skills are most important in today's world?", "How has education changed in recent years?"],
-      "words": ["employability", "transferable", "vocational", "trade-off", "foundation"],
+      "follow": [
+        "Should schools teach more practical skills?",
+        "What skills are most important in today's world?",
+        "How has education changed in recent years?"
+      ],
+      "words": [
+        "employability",
+        "transferable",
+        "vocational",
+        "trade-off",
+        "foundation"
+      ],
       "tips": "承认 trade-off（时间有限）再表态，观点更成熟。",
-      "sample": "Important, but there is a real trade-off, because time in school is finite. Practical skills improve employability and make abstract knowledge feel useful. Still, I would not trade away the foundation that lets people retrain later. The aim should be transferable skills, not training teenagers for the job market of one particular year."
+      "sample": "Important, but there's a trade-off, because time is limited. Practical skills are something you'll find useful later in life [L9.4], that's for sure [L4.1]. But I wouldn't give up the basics for them. I think the best schools give you both. I guess it's about balance [L1.2].",
+      "src": [
+        [
+          "something you'll find useful later in life",
+          "L9.4",
+          7,
+          9
+        ],
+        [
+          "That's for sure",
+          "L4.1",
+          23,
+          28
+        ],
+        [
+          "I guess",
+          "L1.2",
+          18,
+          21
+        ]
+      ]
     },
     {
-      "id": "ft-042", "part": "Part 3", "cat": "edu", "level": "B2",
+      "id": "ft-042",
+      "part": "Part 3",
+      "cat": "edu",
+      "level": "B2",
       "q": "What are the benefits of studying abroad?",
       "zh": "出国留学有什么好处？",
-      "follow": ["How has education changed in recent years?", "What are the main challenges facing young people today?", "How important is it to preserve cultural traditions?"],
-      "words": ["immersion", "adapt", "perspective", "cost", "privilege"],
+      "follow": [
+        "How has education changed in recent years?",
+        "What are the main challenges facing young people today?",
+        "How important is it to preserve cultural traditions?"
+      ],
+      "words": [
+        "immersion",
+        "adapt",
+        "perspective",
+        "cost",
+        "privilege"
+      ],
       "tips": "说好处的同时提一句代价（成本/不公平），显示你能看两面。",
-      "sample": "Language immersion is the obvious one, but the deeper benefit is perspective, since living inside another system quietly questions your assumptions about your own. Students also learn to adapt quickly, which employers value. The uncomfortable part is that this is largely a privilege, and the benefits are distributed very unevenly."
+      "sample": "The biggest benefit is that you change. I came here after I graduated [L2.1], so I know this firsthand. Being an immigrant is hard — one of the biggest difficulties is that I don't have any relatives here [L2.1], and I miss my mother's cooking [L2.1]. But I learned to stand on my own feet, and that's not something a classroom gives you. It takes a bit of getting used to [L22.2], but it's worth it.",
+      "src": [
+        [
+          "I came here after I graduated",
+          "L2.1",
+          9,
+          16
+        ],
+        [
+          "one of the biggest difficulties is that I don't have any relatives here",
+          "L2.1",
+          40,
+          46
+        ],
+        [
+          "I really miss my mother's cooking",
+          "L2.1",
+          69,
+          72
+        ],
+        [
+          "It takes a bit of getting used to",
+          "L21.2",
+          25,
+          27
+        ]
+      ]
     },
     {
-      "id": "ft-043", "part": "Part 3", "cat": "env", "level": "B2",
+      "id": "ft-043",
+      "part": "Part 3",
+      "cat": "env",
+      "level": "B2",
       "q": "What are the main environmental problems in your country?",
       "zh": "你们国家主要的环境问题是什么？",
-      "follow": ["How can individuals help protect the environment?", "Do you think governments are doing enough to tackle climate change?", "What role should businesses play in environmental protection?"],
-      "words": ["air quality", "waste", "water shortage", "industrial", "degradation"],
+      "follow": [
+        "How can individuals help protect the environment?",
+        "Do you think governments are doing enough to tackle climate change?",
+        "What role should businesses play in environmental protection?"
+      ],
+      "words": [
+        "air quality",
+        "waste",
+        "water shortage",
+        "industrial",
+        "degradation"
+      ],
       "tips": "列 2 个问题并各说一句成因或影响，不要只报名词。",
-      "sample": "Air quality used to be the most visible one, and it has improved noticeably in big cities over the last decade. The harder problems now are water shortage in the north and plastic waste everywhere. Both are less dramatic than smog, so they get less attention, but their long-term cost is probably higher."
+      "sample": "The most visible one used to be traffic — there are too many cars and there isn't enough parking [L4.1]. It's impossible to find a parking space downtown [L4.1]. Air quality has got better, but there are still problems. I guess the biggest issue is that we make more waste than we can handle [L2.1].",
+      "src": [
+        [
+          "there are too many cars … not enough parking",
+          "L4.1",
+          17,
+          23
+        ],
+        [
+          "It's impossible to find a parking space",
+          "L4.1",
+          23,
+          28
+        ],
+        [
+          "one of the biggest … is that …",
+          "L2.1",
+          40,
+          46
+        ]
+      ]
     },
     {
-      "id": "ft-044", "part": "Part 3", "cat": "env", "level": "B2",
+      "id": "ft-044",
+      "part": "Part 3",
+      "cat": "env",
+      "level": "B2",
       "q": "How can individuals help protect the environment?",
       "zh": "个人可以如何保护环境？",
-      "follow": ["Is it realistic to expect people to change their lifestyle to help the environment?", "What role should businesses play in environmental protection?", "What are the main environmental problems in your country?"],
-      "words": ["reusable", "habit", "collective", "symbolic", "systemic"],
+      "follow": [
+        "Is it realistic to expect people to change their lifestyle to help the environment?",
+        "What role should businesses play in environmental protection?",
+        "What are the main environmental problems in your country?"
+      ],
+      "words": [
+        "reusable",
+        "habit",
+        "collective",
+        "symbolic",
+        "systemic"
+      ],
       "tips": "先给具体做法，再指出个人力量的边界，这是成熟答案的标志。",
-      "sample": "The everyday things still count, carrying a reusable cup, wasting less food, choosing trains over short flights. Habits spread socially, which is their real value. But I am uneasy when the whole burden is placed on individuals, because the largest part of the problem is systemic and cannot be fixed by shopping differently."
+      "sample": "The everyday things still matter. We need more people to take the bus or subway [L4.1], and fewer to drive. There should be more public transportation in general [L4.2]. Personally, I try to waste less food — my mom always said not to throw things out carelessly [L3.1]. But I also think the biggest changes have to come from governments, not just individuals [L11.1].",
+      "src": [
+        [
+          "We need more …",
+          "L4.1",
+          5,
+          15
+        ],
+        [
+          "There should be more public transportation in general",
+          "L4.2",
+          19,
+          23
+        ],
+        [
+          "throw … out",
+          "L3.1",
+          30,
+          32
+        ],
+        [
+          "the biggest …",
+          "L11.1",
+          5,
+          10
+        ]
+      ]
     },
     {
-      "id": "ft-045", "part": "Part 3", "cat": "env", "level": "B2",
+      "id": "ft-045",
+      "part": "Part 3",
+      "cat": "env",
+      "level": "B2",
       "q": "Do you think governments are doing enough to tackle climate change?",
       "zh": "你认为政府在应对气候变化上做得够吗？",
-      "follow": ["What role should businesses play in environmental protection?", "How can individuals help protect the environment?", "How might cities change in the future to be more environmentally friendly?"],
-      "words": ["commitment", "enforcement", "target", "lobby", "gap"],
+      "follow": [
+        "What role should businesses play in environmental protection?",
+        "How can individuals help protect the environment?",
+        "How might cities change in the future to be more environmentally friendly?"
+      ],
+      "words": [
+        "commitment",
+        "enforcement",
+        "target",
+        "lobby",
+        "gap"
+      ],
       "tips": "区分「承诺」和「执行」，用 There is a gap between… and…。",
-      "sample": "There is a visible gap between stated targets and actual enforcement. Many governments have committed to dates, which is genuine progress, but the difficult measures are repeatedly delayed when they become unpopular. I would say the direction is right and the speed is not, and speed is the thing that matters here."
+      "sample": "Honestly, I don't think enough, not yet. There's a gap between what they say and what they do, that's for sure [L4.1]. They should ban the worst polluters [L4.1], and they need to put more money into public transport [L4.1]. I guess it's easier to promise than to act [L1.2].",
+      "src": [
+        [
+          "That's for sure",
+          "L4.1",
+          23,
+          28
+        ],
+        [
+          "they should ban …",
+          "L4.1",
+          28,
+          33
+        ],
+        [
+          "they need to put more … on the road",
+          "L4.1",
+          15,
+          17
+        ],
+        [
+          "I guess",
+          "L1.2",
+          18,
+          21
+        ]
+      ]
     },
     {
-      "id": "ft-046", "part": "Part 3", "cat": "env", "level": "B2",
+      "id": "ft-046",
+      "part": "Part 3",
+      "cat": "env",
+      "level": "B2",
       "q": "What role should businesses play in environmental protection?",
       "zh": "企业在环保中应承担什么角色？",
-      "follow": ["Do you think governments are doing enough to tackle climate change?", "How can individuals help protect the environment?", "What are the main environmental problems in your country?"],
-      "words": ["accountable", "greenwashing", "supply chain", "regulation", "incentive"],
+      "follow": [
+        "Do you think governments are doing enough to tackle climate change?",
+        "How can individuals help protect the environment?",
+        "What are the main environmental problems in your country?"
+      ],
+      "words": [
+        "accountable",
+        "greenwashing",
+        "supply chain",
+        "regulation",
+        "incentive"
+      ],
       "tips": "提到 greenwashing（漂绿）这类概念能显出你有实质观点。",
-      "sample": "A large one, because most emissions sit inside supply chains rather than in households. But businesses respond to incentives, so I think regulation has to come first and voluntary promises second. Without that, environmental claims become marketing, and greenwashing is worse than saying nothing, because it delays real change."
+      "sample": "A large one, because companies produce most of the waste. I think they should be made to clean up their own mess [L4.1]. Another thing to remember is that companies follow the money [L11.1], so rules matter more than promises. It's a deal only if it's enforced [L1.2].",
+      "src": [
+        [
+          "they should …",
+          "L4.1",
+          28,
+          33
+        ],
+        [
+          "Another thing to remember is …",
+          "L11.1",
+          59,
+          66
+        ],
+        [
+          "It's a deal",
+          "L1.2",
+          31,
+          33
+        ]
+      ]
     },
     {
-      "id": "ft-047", "part": "Part 3", "cat": "env", "level": "B2",
+      "id": "ft-047",
+      "part": "Part 3",
+      "cat": "env",
+      "level": "B2",
       "q": "How might cities change in the future to be more environmentally friendly?",
       "zh": "未来城市会如何变得更环保？",
-      "follow": ["Is it realistic to expect people to change their lifestyle to help the environment?", "How might technology change education in the future?", "What are the advantages and disadvantages of living in a big city?"],
-      "words": ["dense", "public transport", "retrofit", "green space", "walkable"],
+      "follow": [
+        "Is it realistic to expect people to change their lifestyle to help the environment?",
+        "How might technology change education in the future?",
+        "What are the advantages and disadvantages of living in a big city?"
+      ],
+      "words": [
+        "dense",
+        "public transport",
+        "retrofit",
+        "green space",
+        "walkable"
+      ],
       "tips": "给 2~3 个具体方向（密度/公交/改造），避免空说 will be greener。",
-      "sample": "I suspect density will matter more than technology. Cities that are walkable, with reliable public transport, cut emissions without asking anyone to behave differently. The harder work is retrofitting what already exists, since most of the buildings that will stand in 2050 are already built."
+      "sample": "I think the biggest change will be in transport. Singapore is a great example — quite a number of things have been done there to help solve traffic problems [L5.1]. They built an excellent public transportation system, and their subway is one of the best in the world [L5.1]. Cities should ban private cars downtown [L4.1] and build more lines. There should be more public transportation in general [L4.2]. That's how cities get cleaner without making everyone change their whole life.",
+      "src": [
+        [
+          "quite a number of things have been done",
+          "L5.1",
+          0,
+          6
+        ],
+        [
+          "an excellent public transportation system … one of the best in the world",
+          "L5.1",
+          52,
+          55
+        ],
+        [
+          "ban private cars downtown",
+          "L4.1",
+          28,
+          33
+        ],
+        [
+          "There should be more public transportation in general",
+          "L4.2",
+          19,
+          23
+        ]
+      ]
     },
     {
-      "id": "ft-048", "part": "Part 3", "cat": "env", "level": "B2",
+      "id": "ft-048",
+      "part": "Part 3",
+      "cat": "env",
+      "level": "B2",
       "q": "Is it realistic to expect people to change their lifestyle to help the environment?",
       "zh": "期待人们为环保改变生活方式现实吗？",
-      "follow": ["How can individuals help protect the environment?", "What role should businesses play in environmental protection?", "How might cities change in the future to be more environmentally friendly?"],
-      "words": ["inconvenience", "default", "expect", "guilt", "design"],
+      "follow": [
+        "How can individuals help protect the environment?",
+        "What role should businesses play in environmental protection?",
+        "How might cities change in the future to be more environmentally friendly?"
+      ],
+      "words": [
+        "inconvenience",
+        "default",
+        "expect",
+        "guilt",
+        "design"
+      ],
       "tips": "关键论点：让环保成为「默认选项」而非道德选择——这是很强的 Part 3 观点。",
-      "sample": "Only partially. Most people will accept inconvenience, but not indefinitely, and guilt is a weak fuel. What works is changing the default, so that the easy choice is also the clean one. Expecting permanent sacrifice from billions of people is not a plan, it is a hope."
+      "sample": "Only partly. Most people will accept small changes, but not big sacrifices forever. I think it's more realistic to change the system than to change every person. I guess the truth is people follow the easiest path [L1.2]. So the answer is to make the easy path the clean one.",
+      "src": [
+        [
+          "I guess",
+          "L1.2",
+          18,
+          21
+        ]
+      ]
     },
     {
-      "id": "ft-049", "part": "Part 3", "cat": "tech", "level": "B2",
+      "id": "ft-049",
+      "part": "Part 3",
+      "cat": "tech",
+      "level": "B2",
       "q": "How has technology changed the way people communicate?",
       "zh": "科技如何改变了人们的沟通方式？",
-      "follow": ["What are the advantages and disadvantages of social media?", "What are the potential risks of our increasing dependence on technology?", "How has family life changed in recent decades?"],
-      "words": ["instant", "breadth", "depth", "misread", "tone"],
+      "follow": [
+        "What are the advantages and disadvantages of social media?",
+        "What are the potential risks of our increasing dependence on technology?",
+        "How has family life changed in recent decades?"
+      ],
+      "words": [
+        "instant",
+        "breadth",
+        "depth",
+        "misread",
+        "tone"
+      ],
       "tips": "对比 breadth 与 depth（广度 vs 深度）是这类题的经典高分框架。",
-      "sample": "It has made communication instant and constant, which widened the breadth of our contacts enormously. The question is what happened to depth. Text removes tone, so small comments get misread, and long conversations are replaced by quick reactions. We are more reachable than ever and possibly slightly less understood."
+      "sample": "It's made everything instant. You can reach anyone, anywhere. But I've noticed something: the way people talk online isn't the same thing as talking face to face [L2.1]. There are some things I find a bit unusual [L22.2], like how easy it is to misunderstand tone. At first, I thought it was just me [L22.2], but then I realized everyone feels it [L22.2]. It takes a bit of getting used to [L22.2].",
+      "src": [
+        [
+          "that's not the same thing",
+          "L2.1",
+          46,
+          52
+        ],
+        [
+          "some things I find a bit unusual",
+          "L21.2",
+          8,
+          10
+        ],
+        [
+          "At first, I thought … But then I realized …",
+          "L21.2",
+          17,
+          20
+        ],
+        [
+          "It takes a bit of getting used to",
+          "L21.2",
+          25,
+          27
+        ]
+      ]
     },
     {
-      "id": "ft-050", "part": "Part 3", "cat": "tech", "level": "B2",
+      "id": "ft-050",
+      "part": "Part 3",
+      "cat": "tech",
+      "level": "B2",
       "q": "What are the advantages and disadvantages of social media?",
       "zh": "社交媒体的利弊是什么？",
-      "follow": ["How has technology changed the way people communicate?", "What are the potential risks of our increasing dependence on technology?", "How can we ensure technology is used responsibly?"],
-      "words": ["community", "comparison", "echo chamber", "validation", "moderation"],
+      "follow": [
+        "How has technology changed the way people communicate?",
+        "What are the potential risks of our increasing dependence on technology?",
+        "How can we ensure technology is used responsibly?"
+      ],
+      "words": [
+        "community",
+        "comparison",
+        "echo chamber",
+        "validation",
+        "moderation"
+      ],
       "tips": "两边各给一条，并指出同一个机制如何同时产生利弊（例如连接 vs 比较）。",
-      "sample": "The advantage is genuine, people find communities they would never meet locally, especially those with niche interests. The disadvantage comes from the same mechanism, because constant comparison damages how people feel about ordinary lives. Add echo chambers and the need for validation, and the platform starts shaping opinions rather than carrying them."
+      "sample": "The advantage is connection — you can meet people and make new friends [L9.3] from anywhere. But the downside is real too. I'm sick of hearing the same arguments online [L21.1], and it's impossible to have a quiet moment [L4.1]. I think the biggest problem is that people compare their real lives to everyone's highlights [L11.1].",
+      "src": [
+        [
+          "meet people and make new friends",
+          "L9.3",
+          8,
+          11
+        ],
+        [
+          "I'm sick of hearing …",
+          "L20.1",
+          14,
+          19
+        ],
+        [
+          "It's impossible to …",
+          "L4.1",
+          23,
+          28
+        ],
+        [
+          "the biggest …",
+          "L11.1",
+          5,
+          10
+        ]
+      ]
     },
     {
-      "id": "ft-051", "part": "Part 3", "cat": "tech", "level": "B2",
+      "id": "ft-051",
+      "part": "Part 3",
+      "cat": "tech",
+      "level": "B2",
       "q": "Do you think artificial intelligence will replace human workers?",
       "zh": "你认为人工智能会取代人类劳动者吗？",
-      "follow": ["How can we ensure technology is used responsibly?", "What are the potential risks of our increasing dependence on technology?", "What skills are most important in today's world?"],
-      "words": ["automate", "task", "displace", "oversight", "transition"],
+      "follow": [
+        "How can we ensure technology is used responsibly?",
+        "What are the potential risks of our increasing dependence on technology?",
+        "What skills are most important in today's world?"
+      ],
+      "words": [
+        "automate",
+        "task",
+        "displace",
+        "oversight",
+        "transition"
+      ],
       "tips": "区分「任务」和「整个职业」是这题的关键区分点，说出来就显得专业。",
-      "sample": "It will automate tasks rather than whole occupations, at least for a long while. That distinction matters, because displacement happens faster than people can retrain, and the transition is the real problem. I also think oversight will stay human for a while, partly for accountability, partly because nobody trusts a system that cannot explain itself."
+      "sample": "I think it will change jobs more than replace them, at least for a while. I could never do some of the things machines do [L18.1], that's for sure [L4.1]. But there's a part of most jobs that's about people, and that's not the same thing as computing [L2.1]. I guess we'll have to learn to work with it [L1.2].",
+      "src": [
+        [
+          "I could never …",
+          "L17.1",
+          21,
+          23
+        ],
+        [
+          "That's for sure",
+          "L4.1",
+          23,
+          28
+        ],
+        [
+          "that's not the same thing",
+          "L2.1",
+          46,
+          52
+        ],
+        [
+          "I guess",
+          "L1.2",
+          18,
+          21
+        ]
+      ]
     },
     {
-      "id": "ft-052", "part": "Part 3", "cat": "tech", "level": "B2",
+      "id": "ft-052",
+      "part": "Part 3",
+      "cat": "tech",
+      "level": "B2",
       "q": "How might technology change education in the future?",
       "zh": "未来技术会如何改变教育？",
-      "follow": ["What role should technology play in education?", "What are the advantages of online learning?", "Do you think artificial intelligence will replace human workers?"],
-      "words": ["tutor", "adapt", "motivation", "screen", "equity"],
+      "follow": [
+        "What role should technology play in education?",
+        "What are the advantages of online learning?",
+        "Do you think artificial intelligence will replace human workers?"
+      ],
+      "words": [
+        "tutor",
+        "adapt",
+        "motivation",
+        "screen",
+        "equity"
+      ],
       "tips": "给一个具体设想 + 一个你担心的点，答案就有观点而不只是预测。",
-      "sample": "The most likely change is personalised tutoring at scale, where software adapts to each student's mistakes instead of teaching to the middle. That could be transformative for weak students. My worry is equity, since the best of it will be expensive, and the gap between schools may widen rather than close."
+      "sample": "I think it will make learning more personal. Software can adapt to each student's mistakes, which a single teacher can't do for thirty kids. But I also worry it becomes the same routine every day [L9.2], just on a screen. I guess the best use keeps the human part [L1.2].",
+      "src": [
+        [
+          "the same routine every day",
+          "L9.2",
+          8,
+          15
+        ],
+        [
+          "I guess",
+          "L1.2",
+          18,
+          21
+        ]
+      ]
     },
     {
-      "id": "ft-053", "part": "Part 3", "cat": "tech", "level": "B2",
+      "id": "ft-053",
+      "part": "Part 3",
+      "cat": "tech",
+      "level": "B2",
       "q": "What are the potential risks of our increasing dependence on technology?",
       "zh": "我们越来越依赖技术，有哪些潜在风险？",
-      "follow": ["How can we ensure technology is used responsibly?", "What are the advantages and disadvantages of social media?", "Do you think artificial intelligence will replace human workers?"],
-      "words": ["outage", "resilience", "atrophy", "single point of failure", "rely on"],
+      "follow": [
+        "How can we ensure technology is used responsibly?",
+        "What are the advantages and disadvantages of social media?",
+        "Do you think artificial intelligence will replace human workers?"
+      ],
+      "words": [
+        "outage",
+        "resilience",
+        "atrophy",
+        "single point of failure",
+        "rely on"
+      ],
       "tips": "举一个具体风险场景（断网、技能退化），比泛泛说 dangerous 有力。",
-      "sample": "Two risks worry me. The first is practical, we have built single points of failure everywhere, and a long outage now paralyses payments, transport and hospitals at once. The second is quieter, skills we stop practising slowly atrophy, including basic ones like navigating or remembering. Dependence is comfortable until the day it is not."
+      "sample": "Two things worry me. First, we depend on systems that can fail, and when they do, it's impossible to do anything [L4.1]. Second, we stop practising basic skills — I used to remember phone numbers [L3.1], and now I can't. I guess the danger is that we forget how to manage without it [L1.2].",
+      "src": [
+        [
+          "It's impossible to …",
+          "L4.1",
+          23,
+          28
+        ],
+        [
+          "I used to …",
+          "L3.1",
+          27,
+          30
+        ],
+        [
+          "I guess",
+          "L1.2",
+          18,
+          21
+        ]
+      ]
     },
     {
-      "id": "ft-054", "part": "Part 3", "cat": "tech", "level": "B2",
+      "id": "ft-054",
+      "part": "Part 3",
+      "cat": "tech",
+      "level": "B2",
       "q": "How can we ensure technology is used responsibly?",
       "zh": "如何确保技术被负责任地使用？",
-      "follow": ["What are the potential risks of our increasing dependence on technology?", "Do you think artificial intelligence will replace human workers?", "What role should governments play in people's lives?"],
-      "words": ["transparency", "accountability", "incentive", "literacy", "audit"],
+      "follow": [
+        "What are the potential risks of our increasing dependence on technology?",
+        "Do you think artificial intelligence will replace human workers?",
+        "What role should governments play in people's lives?"
+      ],
+      "words": [
+        "transparency",
+        "accountability",
+        "incentive",
+        "literacy",
+        "audit"
+      ],
       "tips": "给 2 条可操作措施（透明度/问责），再加一条教育层面的，结构完整。",
-      "sample": "Transparency and accountability, mainly. Systems that affect people should be auditable, and someone must be answerable when they fail. Beyond law, I think basic literacy matters, because a public that understands roughly how these systems work is harder to mislead. Incentives shape behaviour faster than rules alone."
+      "sample": "I think it comes down to two things. First, rules — companies should be made to explain what their systems do [L4.1]. Second, education. People need to understand enough not to be fooled. Another thing to remember is that no system is neutral [L11.1]. I guess the answer is to keep asking questions [L1.2].",
+      "src": [
+        [
+          "they should …",
+          "L4.1",
+          28,
+          33
+        ],
+        [
+          "Another thing to remember is …",
+          "L11.1",
+          59,
+          66
+        ],
+        [
+          "I guess",
+          "L1.2",
+          18,
+          21
+        ]
+      ]
     },
     {
-      "id": "ft-055", "part": "Part 3", "cat": "society", "level": "B2",
+      "id": "ft-055",
+      "part": "Part 3",
+      "cat": "society",
+      "level": "B2",
       "q": "How has family life changed in recent decades?",
       "zh": "近几十年家庭生活发生了什么变化？",
-      "follow": ["What are the main challenges facing young people today?", "What are the advantages and disadvantages of living in a big city?", "How important is it to preserve cultural traditions?"],
-      "words": ["household", "extended", "nuclear", "dual-income", "scattered"],
+      "follow": [
+        "What are the main challenges facing young people today?",
+        "What are the advantages and disadvantages of living in a big city?",
+        "How important is it to preserve cultural traditions?"
+      ],
+      "words": [
+        "household",
+        "extended",
+        "nuclear",
+        "dual-income",
+        "scattered"
+      ],
       "tips": "用具体变化对照（规模、地理分散、双职工），别只说 it changed a lot。",
-      "sample": "Households are smaller and more scattered than they were. The extended family living under one roof has largely become a nuclear one, and members are often in different cities entirely. Dual-income parents also mean children spend more time in structured care. The family has not weakened so much as stretched across distance."
+      "sample": "Families are smaller and more spread out now. When I was a kid, we used to visit relatives on holidays and stuff [L3.2], and the whole family lived nearby. Now people move to different cities for work, so we don't have any relatives close by [L2.1]. I guess one of the biggest changes is that we see each other less [L2.1]. I really miss that [L2.1].",
+      "src": [
+        [
+          "on holidays and stuff",
+          "L3.2",
+          6,
+          9
+        ],
+        [
+          "we visit relatives",
+          "L2.1",
+          52,
+          58
+        ],
+        [
+          "don't have any relatives here",
+          "L2.1",
+          40,
+          46
+        ],
+        [
+          "one of the biggest … is that …",
+          "L2.1",
+          40,
+          46
+        ],
+        [
+          "I really miss …",
+          "L2.1",
+          69,
+          72
+        ]
+      ]
     },
     {
-      "id": "ft-056", "part": "Part 3", "cat": "society", "level": "B2",
+      "id": "ft-056",
+      "part": "Part 3",
+      "cat": "society",
+      "level": "B2",
       "q": "What are the advantages and disadvantages of living in a big city?",
       "zh": "住在大城市有什么利弊？",
-      "follow": ["How can communities be made stronger?", "What are the main challenges facing young people today?", "How has family life changed in recent decades?"],
-      "words": ["opportunity", "anonymity", "cost of living", "commute", "trade-off"],
+      "follow": [
+        "How can communities be made stronger?",
+        "What are the main challenges facing young people today?",
+        "How has family life changed in recent decades?"
+      ],
+      "words": [
+        "opportunity",
+        "anonymity",
+        "cost of living",
+        "commute",
+        "trade-off"
+      ],
       "tips": "各给 2 条，并指出利弊同源（机会多 = 竞争和成本高）。",
-      "sample": "The advantage is opportunity, work, healthcare, and people who share your interests are all within reach. The disadvantage is the cost of that density, in rent, commuting and noise. There is also a quiet anonymity, which some find freeing and others find lonely. I think the trade-off is worth it for a while, not forever."
+      "sample": "The advantage is that everything is close — work, food, people. But there are too many cars and there isn't enough parking [L4.1], and it's impossible to find a quiet moment [L4.1]. I'm sick of the noise sometimes [L9.2]. I guess it's worth it while you're young [L1.2], but not forever.",
+      "src": [
+        [
+          "there are too many cars … not enough parking",
+          "L4.1",
+          17,
+          23
+        ],
+        [
+          "It's impossible to find …",
+          "L4.1",
+          23,
+          28
+        ],
+        [
+          "I'm sick of …",
+          "L9.2",
+          8,
+          15
+        ],
+        [
+          "I guess",
+          "L1.2",
+          18,
+          21
+        ]
+      ]
     },
     {
-      "id": "ft-057", "part": "Part 3", "cat": "society", "level": "B2",
+      "id": "ft-057",
+      "part": "Part 3",
+      "cat": "society",
+      "level": "B2",
       "q": "How important is it to preserve cultural traditions?",
       "zh": "保护文化传统有多重要？",
-      "follow": ["How can communities be made stronger?", "How has family life changed in recent decades?", "What role should governments play in people's lives?"],
-      "words": ["heritage", "continuity", "frozen", "selective", "belonging"],
+      "follow": [
+        "How can communities be made stronger?",
+        "How has family life changed in recent decades?",
+        "What role should governments play in people's lives?"
+      ],
+      "words": [
+        "heritage",
+        "continuity",
+        "frozen",
+        "selective",
+        "belonging"
+      ],
       "tips": "区分「保存」与「冻结」——传统要活着就得变，这是高分论点。",
-      "sample": "Important, though I would separate preserving from freezing. Traditions give people a sense of continuity and belonging, which is hard to replace. But a tradition that cannot change becomes a costume, performed rather than lived. The healthy version is selective, keeping the meaning while letting the form move with the times."
+      "sample": "Very important, I think. Traditions give people a sense of where they come from. The Chinese Spring Festival is a good example — it's the grandest and the most important festival for Chinese people [L23.1]. Couplets are pasted at both sides of the gates [L23.1], and dumplings and the reunion dinner are indispensable at this time [L23.1]. But I also think traditions have to change a little to stay alive. It's not the same thing as freezing them in place [L2.1].",
+      "src": [
+        [
+          "the grandest and the most important festival",
+          "L22.1",
+          15,
+          19
+        ],
+        [
+          "Couplets are pasted at both sides of the gates",
+          "L22.1",
+          39,
+          42
+        ],
+        [
+          "dumplings and the reunion dinner are indispensable",
+          "L22.1",
+          50,
+          54
+        ],
+        [
+          "that's not the same thing",
+          "L2.1",
+          46,
+          52
+        ]
+      ]
     },
     {
-      "id": "ft-058", "part": "Part 3", "cat": "society", "level": "B2",
+      "id": "ft-058",
+      "part": "Part 3",
+      "cat": "society",
+      "level": "B2",
       "q": "What role should governments play in people's lives?",
       "zh": "政府应在民众生活中扮演什么角色？",
-      "follow": ["What role should businesses play in environmental protection?", "How can communities be made stronger?", "What are the main challenges facing young people today?"],
-      "words": ["safety net", "interfere", "public goods", "autonomy", "legitimate"],
+      "follow": [
+        "What role should businesses play in environmental protection?",
+        "How can communities be made stronger?",
+        "What are the main challenges facing young people today?"
+      ],
+      "words": [
+        "safety net",
+        "interfere",
+        "public goods",
+        "autonomy",
+        "legitimate"
+      ],
       "tips": "这题要立场清晰：强在公共服务，弱在私人选择。给一条界线。",
-      "sample": "Strong on public goods, restrained on private choices. I think a government is legitimate when it provides a safety net, infrastructure and rules that nobody can supply alone. It oversteps when it manages how people live day to day. The line is not always obvious, but that is roughly where I would draw it."
+      "sample": "I think a government should do the things no single person can — roads, transport, safety. Singapore is a good example: quite a number of things have been done there to help solve traffic problems [L5.1], and that's exactly the kind of thing governments are for. But they shouldn't manage how people live day to day. I guess the line is where private life begins [L1.2].",
+      "src": [
+        [
+          "quite a number of things have been done",
+          "L5.1",
+          0,
+          6
+        ],
+        [
+          "I guess",
+          "L1.2",
+          18,
+          21
+        ]
+      ]
     },
     {
-      "id": "ft-059", "part": "Part 3", "cat": "society", "level": "B2",
+      "id": "ft-059",
+      "part": "Part 3",
+      "cat": "society",
+      "level": "B2",
       "q": "How can communities be made stronger?",
       "zh": "如何让社区更有凝聚力？",
-      "follow": ["What are the advantages and disadvantages of living in a big city?", "How might cities change in the future to be more environmentally friendly?", "How has family life changed in recent decades?"],
-      "words": ["shared space", "volunteer", "trust", "belonging", "participate"],
+      "follow": [
+        "What are the advantages and disadvantages of living in a big city?",
+        "How might cities change in the future to be more environmentally friendly?",
+        "How has family life changed in recent decades?"
+      ],
+      "words": [
+        "shared space",
+        "volunteer",
+        "trust",
+        "belonging",
+        "participate"
+      ],
       "tips": "给具体机制（共享空间 / 参与决策），避免口号式答案。",
-      "sample": "Shared space helps more than campaigns, because trust grows from repeated small contact. Parks, libraries and markets do that quietly. I would also give residents a real say in local decisions, since people support what they helped shape. Community is built by participating, not by being told to care."
+      "sample": "I think shared spaces help more than anything, because trust grows from small, repeated contact. Parks, markets, a good bus route — these bring people together without forcing it. When people meet regularly, they make new friends [L9.3]. I guess community is built slowly, by living side by side [L1.2].",
+      "src": [
+        [
+          "make new friends",
+          "L9.3",
+          8,
+          11
+        ],
+        [
+          "I guess",
+          "L1.2",
+          18,
+          21
+        ]
+      ]
     },
     {
-      "id": "ft-060", "part": "Part 3", "cat": "society", "level": "B2",
+      "id": "ft-060",
+      "part": "Part 3",
+      "cat": "society",
+      "level": "B2",
       "q": "What are the main challenges facing young people today?",
       "zh": "当今年轻人面临的主要挑战是什么？",
-      "follow": ["What are the main environmental problems in your country?", "How can communities be made stronger?", "What skills are most important in today's world?"],
-      "words": ["job market", "uncertainty", "comparison", "afford", "pressure"],
+      "follow": [
+        "What are the main environmental problems in your country?",
+        "How can communities be made stronger?",
+        "What skills are most important in today's world?"
+      ],
+      "words": [
+        "job market",
+        "uncertainty",
+        "comparison",
+        "afford",
+        "pressure"
+      ],
       "tips": "经济 + 心理两条线都说，并指出它们的关联，答案更有深度。",
-      "sample": "Uncertainty, mostly. The job market they prepared for keeps shifting, and housing in large cities is far less affordable than it was for their parents. On top of that there is constant comparison online, which turns ordinary progress into something that feels like failure. The two are connected, economic pressure makes the psychological part worse."
+      "sample": "I think the biggest challenge is uncertainty. The job market keeps changing, and it's impossible to plan too far ahead [L4.1]. On top of that, everyone compares themselves online. I know what you mean if you feel tired of it [L8.1]. I really need a change sometimes [L9.2], and I think a lot of young people feel the same. I guess the first step is to make up your mind about what you want [L14.2].",
+      "src": [
+        [
+          "the biggest …",
+          "L11.1",
+          5,
+          10
+        ],
+        [
+          "It's impossible to …",
+          "L4.1",
+          23,
+          28
+        ],
+        [
+          "I know what you mean",
+          "L8.1",
+          36,
+          37
+        ],
+        [
+          "I really need a change",
+          "L9.2",
+          0,
+          2
+        ],
+        [
+          "make up your mind",
+          "L14.2",
+          3,
+          6
+        ]
+      ]
     }
   ]
 }

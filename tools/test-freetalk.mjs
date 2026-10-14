@@ -19,7 +19,15 @@ if (!JSDOM_HOME) {
   process.exit(2);
 }
 const require = createRequire(JSDOM_HOME.endsWith('/') || JSDOM_HOME.endsWith('\\') ? JSDOM_HOME : JSDOM_HOME + '/');
-const { JSDOM } = require('jsdom');
+const { JSDOM, VirtualConsole } = require('jsdom');
+
+/* jsdom 的 location 是只读属性，没法拦 href 赋值；但赋值会触发 navigation，
+   jsdom 把「不支持导航」报成 jsdomError —— 捕获它当作「跳转被触发」的证据。 */
+let navAttempted = false;
+const virtualConsole = new VirtualConsole();
+virtualConsole.on('jsdomError', function (err) {
+  if (err && err.message && String(err.message).indexOf('navigation') >= 0) navAttempted = true;
+});
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const HTML = path.join(ROOT, 'writing.html');
@@ -42,6 +50,7 @@ async function boot(mutate) {
     runScripts: 'dangerously',
     resources: 'usable',
     pretendToBeVisual: true,
+    virtualConsole,
     beforeParse(win) {
       const mem = new Map();
       Object.defineProperty(win, 'localStorage', {
@@ -60,9 +69,15 @@ async function boot(mutate) {
         ok: true, status: 200,
         json: () => Promise.resolve(JSON.parse(raw))
       });
-      /* jsdom 没有 Audio：打个桩，顺便记录被请求过的音频地址 */
+      /* 跳转验证用模块级的 navAttempted（见顶部 virtualConsole），这里不需要拦 location */
+      /* jsdom 没有 Audio：打个桩，记录被请求的地址（词汇发音用） */
       win.__played = [];
-      win.Audio = class { constructor(src) { win.__played.push(src); } play() {} };
+      win.Audio = class {
+        constructor(src) { this.src = src; this.currentTime = 0; win.__played.push(src); }
+        play() {}
+        pause() {}
+        addEventListener() {}
+      };
       win.HTMLElement.prototype.scrollIntoView = () => {};
     }
   });
@@ -110,6 +125,21 @@ ok('参考回答默认折叠', $('secSample').className.indexOf('open') < 0);
 D.querySelector('#secSample .ft-h').dispatchEvent(new W.Event('click', { bubbles: true }));
 ok('点标题后参考回答展开', $('secSample').className.indexOf('open') >= 0);
 ok('参考回答正文非空', txt('ftSample').length > 30, txt('ftSample').slice(0, 40) + '…');
+
+/* 4.5 星一班表达溯源 */
+const srcItems = D.querySelectorAll('#ftSrcList .ft-src-item');
+ok('溯源区渲染了星一班表达', $('ftSrc').hidden === false && srcItems.length >= 1, '实测 ' + srcItems.length);
+ok('溯源条目含表达 + 编号', srcItems.length && srcItems[0].textContent.indexOf('L') >= 0,
+  srcItems.length ? srcItems[0].textContent : '无');
+
+/* 4.6 点击溯源 chip 跳转到文本跟读页 */
+const chip0 = srcItems[0];
+const chip0Ref = chip0 ? chip0.getAttribute('data-ref') : '';
+ok('溯源 chip 带跳转属性（ref/s）',
+  !!chip0Ref && chip0.getAttribute('data-s') !== null, chip0Ref);
+navAttempted = false;
+if (chip0) chip0.dispatchEvent(new W.Event('click', { bubbles: true }));
+ok('点 chip 后触发跳转到跟读页', navAttempted === true, 'navAttempted=' + navAttempted);
 
 /* 5 词汇发音走有道标准美音 */
 words[0].dispatchEvent(new W.Event('click', { bubbles: true }));
@@ -179,6 +209,22 @@ const bad3 = await boot();
 bad3.window.document.getElementById('ftAI').disabled = false;
 ok('AI 按钮若被放开，断言确实会红', bad3.window.document.getElementById('ftAI').disabled === false);
 bad3.window.close();
+
+/* 反例 D：src 为空 → 溯源区应隐藏（证明溯源渲染逻辑有效） */
+const bad4 = await boot((raw) => {
+  const d = JSON.parse(raw);
+  d.topics = d.topics.map(t => Object.assign({}, t, { src: [] }));
+  return JSON.stringify(d);
+});
+ok('src 为空时溯源区隐藏', bad4.window.document.getElementById('ftSrc').hidden === true);
+bad4.window.close();
+
+/* 反例 E：ref 缺失的 chip 点击 → 不跳转（navAttempted 保持 false） */
+navAttempted = false;
+const chipNoRef = D.querySelector('.ft-src-item');
+if (chipNoRef) chipNoRef.removeAttribute('data-ref');
+if (chipNoRef) chipNoRef.dispatchEvent(new W.Event('click', { bubbles: true }));
+ok('ref 缺失的 chip 点击不跳转', navAttempted === false, 'navAttempted=' + navAttempted);
 
 d0.window.close();
 console.log('\n合计：' + pass + ' PASS / ' + fail + ' FAIL');

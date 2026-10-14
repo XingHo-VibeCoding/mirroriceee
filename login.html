@@ -75,8 +75,7 @@
 
     <main class="appmain">
       <header class="site-header">
-        <h1>登录</h1>
-        <p class="page-sub">已有账号就登录；没有就注册一个，只要用户名和密码。</p>
+        <h1>登录<span class="auth-h1-en">Sign in</span></h1>
       </header>
 
       <div class="auth-wrap">
@@ -95,12 +94,12 @@
         <!-- 登录表单 -->
         <form id="form-login" class="auth-card item" novalidate>
           <label class="auth-label">
-            <span>用户名</span>
+            <span>用户名（3~20 位，字母 / 数字 / 下划线）</span>
             <input class="auth-field" type="text" name="username"
                    autocomplete="username" maxlength="20" required>
           </label>
           <label class="auth-label">
-            <span>密码</span>
+            <span>密码（至少 8 位）</span>
             <input class="auth-field" type="password" name="password"
                    autocomplete="current-password" required>
           </label>
@@ -120,12 +119,10 @@
                    autocomplete="new-password" required>
           </label>
           <label class="auth-label">
-            <span>验证码（看不清就点图换一张）</span>
-            <input class="auth-field" type="text" name="captchaCode"
-                   maxlength="4" autocomplete="off" required>
+            <span>邀请码（向开发者获取，没有邀请码无法注册）</span>
+            <input class="auth-field" type="text" name="inviteCode"
+                   maxlength="32" autocomplete="off" required>
           </label>
-          <!-- 验证码图。内容由 login.js 从 /api/auth/captcha 拉回来插进来，点一下换一张 -->
-          <div class="captcha-box" id="captcha-box" title="点一下换一张"></div>
           <button type="submit" class="btn acct-btn">注册</button>
         </form>
       </div>

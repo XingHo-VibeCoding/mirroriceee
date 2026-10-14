@@ -1,37 +1,450 @@
 {
-  "levels": ["L1", "L2", "L3"],
+  "levels": [
+    "L1",
+    "L2",
+    "L3"
+  ],
   "lessons": [
-    { "level": "L1", "id": "Lesson1",  "title": "Lesson1"  },
-    { "level": "L1", "id": "Lesson2",  "title": "Lesson2"  },
-    { "level": "L1", "id": "Lesson3",  "title": "Lesson3"  },
-    { "level": "L1", "id": "Lesson4",  "title": "Lesson4"  },
-    { "level": "L1", "id": "Lesson5",  "title": "Lesson5"  },
-    { "level": "L1", "id": "Lesson6",  "title": "Lesson6"  },
-    { "level": "L1", "id": "Lesson7",  "title": "Lesson7"  },
-    { "level": "L1", "id": "Lesson8",  "title": "Lesson8"  },
-    { "level": "L1", "id": "Lesson9",  "title": "Lesson9"  },
-    { "level": "L1", "id": "Lesson10", "title": "Lesson10" },
-    { "level": "L1", "id": "Lesson11", "title": "Lesson11" },
-    { "level": "L1", "id": "Lesson12", "title": "Lesson12" },
-    { "level": "L1", "id": "Lesson13", "title": "Lesson13" },
-    { "level": "L1", "id": "Lesson14", "title": "Lesson14" },
-    { "level": "L1", "id": "Lesson15", "title": "Lesson15" },
-    { "level": "L1", "id": "Lesson16", "title": "Lesson16" },
-    { "level": "L1", "id": "Lesson17", "title": "Lesson17" },
-    { "level": "L1", "id": "Lesson18", "title": "Lesson18" },
-    { "level": "L1", "id": "Lesson19", "title": "Lesson19" },
-    { "level": "L1", "id": "Lesson20", "title": "Lesson20" },
-    { "level": "L1", "id": "Lesson21", "title": "Lesson21" },
-    { "level": "L1", "id": "Lesson22", "title": "Lesson22" },
-    { "level": "L1", "id": "Lesson23", "title": "Lesson23" }
+    {
+      "level": "L1",
+      "id": "Lesson1",
+      "title": "Lesson1"
+    },
+    {
+      "level": "L1",
+      "id": "Lesson2",
+      "title": "Lesson2"
+    },
+    {
+      "level": "L1",
+      "id": "Lesson3",
+      "title": "Lesson3"
+    },
+    {
+      "level": "L1",
+      "id": "Lesson4",
+      "title": "Lesson4"
+    },
+    {
+      "level": "L1",
+      "id": "Lesson5",
+      "title": "Lesson5"
+    },
+    {
+      "level": "L1",
+      "id": "Lesson6",
+      "title": "Lesson6"
+    },
+    {
+      "level": "L1",
+      "id": "Lesson7",
+      "title": "Lesson7"
+    },
+    {
+      "level": "L1",
+      "id": "Lesson8",
+      "title": "Lesson8"
+    },
+    {
+      "level": "L1",
+      "id": "Lesson9",
+      "title": "Lesson9"
+    },
+    {
+      "level": "L1",
+      "id": "Lesson10",
+      "title": "Lesson10"
+    },
+    {
+      "level": "L1",
+      "id": "Lesson11",
+      "title": "Lesson11"
+    },
+    {
+      "level": "L1",
+      "id": "Lesson12",
+      "title": "Lesson12"
+    },
+    {
+      "level": "L1",
+      "id": "Lesson13",
+      "title": "Lesson13"
+    },
+    {
+      "level": "L1",
+      "id": "Lesson14",
+      "title": "Lesson14"
+    },
+    {
+      "level": "L1",
+      "id": "Lesson15",
+      "title": "Lesson15"
+    },
+    {
+      "level": "L1",
+      "id": "Lesson16",
+      "title": "Lesson15"
+    },
+    {
+      "level": "L1",
+      "id": "Lesson17",
+      "title": "Lesson16"
+    },
+    {
+      "level": "L1",
+      "id": "Lesson18",
+      "title": "Lesson17"
+    },
+    {
+      "level": "L1",
+      "id": "Lesson19",
+      "title": "Lesson18"
+    },
+    {
+      "level": "L1",
+      "id": "Lesson20",
+      "title": "Lesson19"
+    },
+    {
+      "level": "L1",
+      "id": "Lesson21",
+      "title": "Lesson20"
+    },
+    {
+      "level": "L1",
+      "id": "Lesson22",
+      "title": "Lesson21"
+    }
   ],
   "materials": [
     {
-      "id": "oh-im-really-sorry",
+      "id": "L1.1",
       "level": "L1",
       "lesson": "Lesson1",
       "title": "Oh, I'm really sorry",
-      "audio": "assets/audio/oh-im-really-sorry.mp3"
+      "audio": "assets/audio/Lesson1/L1.1.mp3"
+    },
+    {
+      "id": "L1.2",
+      "level": "L1",
+      "lesson": "Lesson1",
+      "title": "That was fun",
+      "audio": "assets/audio/Lesson1/L1.2.mp3"
+    },
+    {
+      "id": "L2.1",
+      "level": "L1",
+      "lesson": "Lesson2",
+      "title": "Where are you from originally",
+      "audio": "assets/audio/Lesson2/L2.1.mp3"
+    },
+    {
+      "id": "L3.1",
+      "level": "L1",
+      "lesson": "Lesson3",
+      "title": "Are these pictures of you",
+      "audio": "assets/audio/Lesson3/L3.1.mp3"
+    },
+    {
+      "id": "L3.2",
+      "level": "L1",
+      "lesson": "Lesson3",
+      "title": "You know what I remember most about",
+      "audio": "assets/audio/Lesson3/L3.2.mp3"
+    },
+    {
+      "id": "L4.1",
+      "level": "L1",
+      "lesson": "Lesson4",
+      "title": "So are you really going to",
+      "audio": "assets/audio/Lesson4/L4.1.mp3"
+    },
+    {
+      "id": "L4.2",
+      "level": "L1",
+      "lesson": "Lesson4",
+      "title": "Why is there never a bus",
+      "audio": "assets/audio/Lesson4/L4.2.mp3"
+    },
+    {
+      "id": "L5.1",
+      "level": "L1",
+      "lesson": "Lesson5",
+      "title": "Quite a number of things",
+      "audio": "assets/audio/Lesson5/L5.1.mp3"
+    },
+    {
+      "id": "L6.1",
+      "level": "L1",
+      "lesson": "Lesson6",
+      "title": "Excuse me,  could you",
+      "audio": "assets/audio/Lesson6/L6.1.mp3"
+    },
+    {
+      "id": "L6.2",
+      "level": "L1",
+      "lesson": "Lesson6",
+      "title": "Excuse me,  it's me again",
+      "audio": "assets/audio/Lesson6/L6.2.mp3"
+    },
+    {
+      "id": "L7.1",
+      "level": "L1",
+      "lesson": "Lesson7",
+      "title": "Creative Rentals",
+      "audio": "assets/audio/Lesson7/L7.1.mp3"
+    },
+    {
+      "id": "L7.2",
+      "level": "L1",
+      "lesson": "Lesson7",
+      "title": "Hello",
+      "audio": "assets/audio/Lesson7/L7.2.mp3"
+    },
+    {
+      "id": "L8.1",
+      "level": "L1",
+      "lesson": "Lesson8",
+      "title": "How are things going with you",
+      "audio": "assets/audio/Lesson8/L8.1.mp3"
+    },
+    {
+      "id": "L8.2",
+      "level": "L1",
+      "lesson": "Lesson8",
+      "title": "Where are you working now",
+      "audio": "assets/audio/Lesson8/L8.2.mp3"
+    },
+    {
+      "id": "L9.1",
+      "level": "L1",
+      "lesson": "Lesson9",
+      "title": "Gosh I  really go on a diet",
+      "audio": "assets/audio/Lesson9/L9.1.mp3"
+    },
+    {
+      "id": "L9.2",
+      "level": "L1",
+      "lesson": "Lesson9",
+      "title": "I really need a change",
+      "audio": "assets/audio/Lesson9/L9.2.mp3"
+    },
+    {
+      "id": "L9.3",
+      "level": "L1",
+      "lesson": "Lesson9",
+      "title": "I really need to join a club",
+      "audio": "assets/audio/Lesson9/L9.3.mp3"
+    },
+    {
+      "id": "L9.4",
+      "level": "L1",
+      "lesson": "Lesson9",
+      "title": "I should take a typing course",
+      "audio": "assets/audio/Lesson9/L9.4.mp3"
+    },
+    {
+      "id": "L10.1",
+      "level": "L1",
+      "lesson": "Lesson10",
+      "title": "I'm so excited",
+      "audio": "assets/audio/Lesson10/L10.1.mp3"
+    },
+    {
+      "id": "L10.2",
+      "level": "L1",
+      "lesson": "Lesson10",
+      "title": "What are you planing to do for your vocation",
+      "audio": "assets/audio/Lesson10/L10.2.mp3"
+    },
+    {
+      "id": "L11.1",
+      "level": "L1",
+      "lesson": "Lesson11",
+      "title": "What should people do to make their visit to NY",
+      "audio": "assets/audio/Lesson11/L11.1.mp3"
+    },
+    {
+      "id": "L12.1",
+      "level": "L1",
+      "lesson": "Lesson12",
+      "title": "Have you noticed how forgetful",
+      "audio": "assets/audio/Lesson12/L12.1.mp3"
+    },
+    {
+      "id": "L12.2",
+      "level": "L1",
+      "lesson": "Lesson12",
+      "title": "Jason,  Jason turn down the TV a little please",
+      "audio": "assets/audio/Lesson12/L12.2.mp3"
+    },
+    {
+      "id": "L13.1",
+      "level": "L1",
+      "lesson": "Lesson13",
+      "title": "Aimee, I think the dog is trying to tell you something",
+      "audio": "assets/audio/Lesson13/L13.1.mp3"
+    },
+    {
+      "id": "L13.2",
+      "level": "L1",
+      "lesson": "Lesson13",
+      "title": "James,  please turn that down",
+      "audio": "assets/audio/Lesson13/L13.2.mp3"
+    },
+    {
+      "id": "L13.3",
+      "level": "L1",
+      "lesson": "Lesson13",
+      "title": "Justin come help me",
+      "audio": "assets/audio/Lesson13/L13.3.mp3"
+    },
+    {
+      "id": "L13.4",
+      "level": "L1",
+      "lesson": "Lesson13",
+      "title": "Molly, put the groceries away",
+      "audio": "assets/audio/Lesson13/L13.4.mp3"
+    },
+    {
+      "id": "L13.5",
+      "level": "L1",
+      "lesson": "Lesson13",
+      "title": "What's this",
+      "audio": "assets/audio/Lesson13/L13.5.mp3"
+    },
+    {
+      "id": "L14.1",
+      "level": "L1",
+      "lesson": "Lesson14",
+      "title": "A boss A co-worker A teacher A relative",
+      "audio": "assets/audio/Lesson14/L14.1.mp3"
+    },
+    {
+      "id": "L14.2",
+      "level": "L1",
+      "lesson": "Lesson14",
+      "title": "What kind of job are you looking for",
+      "audio": "assets/audio/Lesson14/L14.2.mp3"
+    },
+    {
+      "id": "L15.1",
+      "level": "L1",
+      "lesson": "Lesson15",
+      "title": "Oh good,  here comes",
+      "audio": "assets/audio/Lesson15/L15.1.mp3"
+    },
+    {
+      "id": "L15.2",
+      "level": "L1",
+      "lesson": "Lesson15",
+      "title": "This sounds good",
+      "audio": "assets/audio/Lesson15/L15.2.mp3"
+    },
+    {
+      "id": "L16.1",
+      "level": "L1",
+      "lesson": "Lesson16",
+      "title": "Are we going to wear costumes to the parties",
+      "audio": "assets/audio/Lesson16/L16.1.mp3"
+    },
+    {
+      "id": "L16.2",
+      "level": "L1",
+      "lesson": "Lesson16",
+      "title": "Did you know next week is Halloween",
+      "audio": "assets/audio/Lesson16/L16.2.mp3"
+    },
+    {
+      "id": "L17.1",
+      "level": "L1",
+      "lesson": "Lesson17",
+      "title": "I don't know what classes",
+      "audio": "assets/audio/Lesson17/L17.1.mp3"
+    },
+    {
+      "id": "L17.2",
+      "level": "L1",
+      "lesson": "Lesson17",
+      "title": "My history professor says",
+      "audio": "assets/audio/Lesson17/L17.2.mp3"
+    },
+    {
+      "id": "L18.1",
+      "level": "L1",
+      "lesson": "Lesson18",
+      "title": "Let me tell you a little more",
+      "audio": "assets/audio/Lesson18/L18.1.mp3"
+    },
+    {
+      "id": "L18.2",
+      "level": "L1",
+      "lesson": "Lesson18",
+      "title": "We are now approaching the famous statue",
+      "audio": "assets/audio/Lesson18/L18.2.mp3"
+    },
+    {
+      "id": "L19.1",
+      "level": "L1",
+      "lesson": "Lesson19",
+      "title": "How did you get into modeling",
+      "audio": "assets/audio/Lesson19/L19.1.mp3"
+    },
+    {
+      "id": "L19.2",
+      "level": "L1",
+      "lesson": "Lesson19",
+      "title": "What did you do after you graduated",
+      "audio": "assets/audio/Lesson19/L19.2.mp3"
+    },
+    {
+      "id": "L20.1",
+      "level": "L1",
+      "lesson": "Lesson20",
+      "title": "Have you read that book",
+      "audio": "assets/audio/Lesson20/L20.1.mp3"
+    },
+    {
+      "id": "L20.2",
+      "level": "L1",
+      "lesson": "Lesson20",
+      "title": "How did you like the movie",
+      "audio": "assets/audio/Lesson20/L20.2.mp3"
+    },
+    {
+      "id": "L20.3",
+      "level": "L1",
+      "lesson": "Lesson20",
+      "title": "What did you think of the new Stephen King book",
+      "audio": "assets/audio/Lesson20/L20.3.mp3"
+    },
+    {
+      "id": "L20.4",
+      "level": "L1",
+      "lesson": "Lesson20",
+      "title": "What do you think of that documentary",
+      "audio": "assets/audio/Lesson20/L20.4.mp3"
+    },
+    {
+      "id": "L21.1",
+      "level": "L1",
+      "lesson": "Lesson21",
+      "title": "Have you met Raj",
+      "audio": "assets/audio/Lesson21/L21.1.mp3"
+    },
+    {
+      "id": "L21.2",
+      "level": "L1",
+      "lesson": "Lesson21",
+      "title": "How are things at school",
+      "audio": "assets/audio/Lesson21/L21.2.mp3"
+    },
+    {
+      "id": "L22.1",
+      "level": "L1",
+      "lesson": "Lesson22",
+      "title": "Spring Festival 教学音频",
+      "audio": "assets/audio/Lesson22/L22.1.mp3"
     }
   ]
 }

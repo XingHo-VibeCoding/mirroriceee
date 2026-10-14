@@ -11,6 +11,8 @@
   <!-- 外壳层。⚠️ 必须排在 style.css 之后，详见 app-shell.css 开头 -->
   <link rel="stylesheet" href="assets/css/app-shell.css">
   <link rel="stylesheet" href="assets/css/page-loader.css">
+  <!-- 登录门禁：未登录不能进学习页（版权要求）。⚠️ login.html 不引本脚本，否则死循环 -->
+  <script src="assets/js/guard.js"></script>
   <style>
   /* free talk 页专属样式（.ft- 前缀，避开 echoread 与 .vg- 命名空间） */
   .appmain{padding:24px 32px 32px;max-width:1080px}
@@ -63,6 +65,16 @@
   .ft-tips{font-size:13px;color:#4c545e;line-height:1.8;margin-top:14px;padding-top:14px;border-top:1px solid #f1f2f4}
   .ft-sample{font-size:14px;line-height:1.9;color:#16181d;white-space:pre-wrap}
   .ft-empty{font-size:13px;color:#a0a8b2}
+  /* 星一班表达溯源 */
+  .ft-src{margin-top:14px;padding-top:14px;border-top:1px solid #f1f2f4}
+  .ft-src-title{font-size:12px;color:#a0a8b2;margin-bottom:8px}
+  .ft-src-list{display:flex;flex-wrap:wrap;gap:6px}
+  .ft-src-item{font-size:12px;color:#4c545e;border:1px solid #e6e8eb;border-radius:999px;padding:3px 10px;background:#fafbfc;
+    cursor:pointer;display:inline-flex;align-items:center;gap:5px}
+  .ft-src-item:hover{border-color:#0f6e56}
+  .ft-src-item b{color:#0f6e56;font-weight:600}
+  .ft-src-item em{font-style:normal;color:#a0a8b2;margin-left:5px}
+  .ft-src-item svg{width:11px;height:11px;flex:none;color:#a0a8b2}
   /* 左栏分类列表 */
   .levels{display:flex;flex-direction:column;gap:6px;margin-top:16px}
   .ft-cat-row{display:flex;align-items:center;justify-content:space-between;width:100%}
@@ -193,7 +205,13 @@
             参考回答
             <span class="hint">先自己写完再展开</span>
           </div>
-          <div class="ft-body"><div class="ft-sample" id="ftSample"></div></div>
+          <div class="ft-body">
+            <div class="ft-sample" id="ftSample"></div>
+            <div class="ft-src" id="ftSrc" hidden>
+              <div class="ft-src-title">用了这些「星一班」表达</div>
+              <div class="ft-src-list" id="ftSrcList"></div>
+            </div>
+          </div>
         </section>
       </div>
     </main>
@@ -303,6 +321,23 @@
       $('ftTips').textContent = t.tips || '';
       $('ftSample').textContent = t.sample || '';
 
+      // 星一班表达溯源：src = [[表达, 编号, 起始秒, 结束秒], ...]，点击跳转到文本跟读页定位该句
+      var srcBox = $('ftSrc'), srcList = $('ftSrcList');
+      if (t.src && t.src.length) {
+        srcBox.hidden = false;
+        srcList.innerHTML = t.src.map(function (s) {
+          return '<span class="ft-src-item" data-ref="' + esc(s[1]) + '"' +
+            ' data-s="' + (s[2] || 0) + '">' +
+            '<b>' + esc(s[0]) + '</b><em>' + esc(s[1]) + '</em>' +
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"' +
+            ' stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 17 7"/><path d="M8 7h9v9"/></svg>' +
+            '</span>';
+        }).join('');
+      } else {
+        srcBox.hidden = true;
+        srcList.innerHTML = '';
+      }
+
       $('secSample').classList.remove('open');
 
       var draft = readJSON(KEY_DRAFT, {});
@@ -355,6 +390,17 @@
       h.addEventListener('click', function () {
         $(h.getAttribute('data-toggle')).classList.toggle('open');
       });
+    });
+
+    /* ---------- 星一班跳转：点绿字 → 文本跟读页定位到该句（停止状态） ---------- */
+    $('ftSrcList').addEventListener('click', function (ev) {
+      var chip = ev.target.closest ? ev.target.closest('.ft-src-item') : null;
+      if (!chip) return;
+      var ref = chip.getAttribute('data-ref');
+      var s = chip.getAttribute('data-s');
+      if (!ref) return;
+      window.location.href = 'index.html?file=' + encodeURIComponent(ref) +
+        (s ? '&t=' + encodeURIComponent(s) : '');
     });
 
     /* ---------- 载入数据 ---------- */

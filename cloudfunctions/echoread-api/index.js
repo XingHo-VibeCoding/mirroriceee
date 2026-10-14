@@ -137,6 +137,16 @@ function authSecret() {
 var TOKEN_TTL_DAYS  = 30;      /* 登录态有效期：30 天。到期后 /me 会回 401，重新登录即可 */
 var CAPTCHA_TTL_MS  = 120000;  /* 验证码 2 分钟有效 —— 够人看清并输入，长了只会帮倒忙 */
 
+/* ---- 邀请码（Day 26 起替代图片验证码）----
+   ⚠️ 音频有版权，注册门槛改成「开发者发放的邀请码」：不是所有人都能注册。
+   邀请码配在环境变量 INVITE_CODES 里，逗号分隔可放多个 —— 现在先放一个固定码，
+   后期要「批量生产一次性码」时再升级（届时可能改走数据库表 + 已用标记）。
+   ⚠️ 默认值 '1'：斌哥临时定的占位码（先跑通门槛），后期换成环境变量的正式码。 */
+function inviteCodes() {
+  var s = process.env.INVITE_CODES || '1';
+  return s.split(',').map(function (x) { return x.trim(); }).filter(Boolean);
+}
+
 /* 用户名 / 密码的规矩。
    用户名 3~20 位、字母数字下划线（中文不收：URL 和展示层对它的处理差别太多，本期不趟）；
    密码至少 8 位 —— 再低就是摆设；上限 64 位是防"一个 1MB 的密码"这种纯恶意的输入。 */
@@ -619,28 +629,14 @@ async function deleteWords(query, event) {
    ⚠️ 纯新增，不动 /api/words 的任何行为（契约冻结）。
    =========================================================================== */
 
-/* ---- GET /api/auth/captcha —— 发一张验证码 ----
-   返回 { ok:true, data:{ captchaId, svg, expiresInMs } }
-   前端把 svg 直接 innerHTML 进容器；注册时把 captchaId 和用户抄的码一起交回来。
-   ⚠️ 答案本身只存在于 SVG 图里 —— captchaId 里只有答案的 HMAC（lib/auth.js），
-      就算把 captchaId 解开也读不出答案。 */
-async function getCaptcha() {
-  var answer = auth.genCaptchaText();
-  var signed = auth.signCaptcha(answer, authSecret(), CAPTCHA_TTL_MS);
-  return json(200, {
-    ok: true,
-    data: {
-      captchaId: signed.captchaId,
-      svg: auth.renderCaptchaSvg(answer),
-      expiresInMs: CAPTCHA_TTL_MS
-    }
-  });
-}
+/* ---- GET /api/auth/captcha 已停用（Day 26 起改用邀请码，见 postRegister）----
+   图片验证码的签发 / 校验函数仍在 lib/auth.js 里保留着，以备后期
+   「批量生产一次性邀请码」时复用它的 HMAC 签名机制。 */
 
 /* ---- POST /api/auth/register —— 注册 ----
-   请求体 { username, password, captchaId, captchaCode }
+   请求体 { username, password, inviteCode }
    成功 201 { ok:true, data:{ id, username } }
-   错误 400 invalid_captcha / 400 invalid_field / 409 username_taken
+   错误 400 invalid_invite / 400 invalid_field / 409 username_taken
    ⚠️ 注册成功【不自动登录】—— 前端紧接着调 login 走一遍完整流程。
       多一次往返，换来"注册和登录是两条路"这件事始终清晰。 */
 async function postRegister(query, event) {
@@ -648,12 +644,13 @@ async function postRegister(query, event) {
   if (!parsed.ok) return fail(400, parsed.error, parsed.message);
   var body = parsed.data;
 
-  /* ① 先验验证码 —— 它不查库、不耗数据库往返（纯本地算 HMAC），
-        把机器流量拦在最便宜的一步。 */
-  var cap = auth.verifyCaptcha(body.captchaId, body.captchaCode, authSecret());
-  if (!cap.ok) {
-    console.log('[echoread-api] 注册被拒：验证码未通过（' + cap.reason + '）');
-    return fail(400, 'invalid_captcha', '验证码不对或已过期，请换一张再试');
+  /* ① 先验邀请码 —— 开发者预设的固定码，不是所有人都能注册。
+        不查库、不耗数据库往返（纯内存比对），把没拿到码的人拦在最便宜的一步。 */
+  var invite = (typeof body.inviteCode === 'string') ? body.inviteCode.trim() : '';
+  var codes = inviteCodes();
+  if (!codes.length || codes.indexOf(invite) === -1) {
+    console.log('[echoread-api] 注册被拒：邀请码未通过');
+    return fail(400, 'invalid_invite', '邀请码不对，请向开发者获取');
   }
 
   /* ② 校验用户名 / 密码。一次收集齐再报，同 words 那套「不挤牙膏」的规矩。 */
@@ -927,7 +924,6 @@ var ROUTES = {
   '/api/boards': { GET: getBoards },
   '/api/words':  { GET: getWords, POST: postWords, PATCH: patchWords, DELETE: deleteWords },
   /* Day 28：认证五个端点，纯新增。⚠️ /api/words 一行没动（契约冻结）。 */
-  '/api/auth/captcha':  { GET: getCaptcha },
   '/api/auth/register': { POST: postRegister },
   '/api/auth/login':    { POST: postLogin },
   '/api/auth/me':       { GET: getMe },

@@ -518,6 +518,43 @@ body.right-open .scrim {
 .page-auth .site-header { animation: riseIn .45s var(--ease-out) both; }
 .page-auth .auth-wrap   { animation: riseIn .5s  var(--ease-out) both; animation-delay: .08s; }
 
+/* ⚠️ Day 26 修 bug：.auth-card 设了 display:flex，会盖掉 HTML 的 hidden 属性 ——
+   注册表单（带 hidden）本该默认藏起来，结果跟着登录表单一起显示了。
+   补一条 [hidden] 规则把它重新藏住。 */
+.auth-card[hidden] {
+  display: none;
+}
+
+/* 登录页：把登录界面（标题 + 表单）摆到页面正中（水平 + 垂直居中）。
+   ⚠️⚠️ 必须用 body.page-auth 而不是 .page-auth：
+      .page-auth .site-header 只有 (0,2,0)，打不过 body.app .site-header 的 (0,2,1)，
+      于是那条 max-width:none 把这里的 420 盖掉 ——
+      症状就是"标题区比表单区宽、左边缘对不齐"（实测 site-header 宽 788、auth-wrap 宽 420）。
+      body.page-auth 是 (0,2,1)，与 body.app 同级、且本文件里写在后面 → 胜出。 */
+body.page-auth .appmain {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+body.page-auth .site-header {
+  width: 100%;
+  max-width: 420px;
+  margin: 0 auto var(--space-5);
+}
+body.page-auth .auth-wrap {
+  width: 100%;
+  max-width: 420px;
+  margin: 0 auto;
+}
+/* 「登录」右边的英文小字（Sign in）—— 比中文标题小一档、颜色淡一点 */
+body.page-auth .site-header h1 .auth-h1-en {
+  margin-left: 8px;
+  font-size: .62em;
+  font-weight: 400;
+  color: var(--text-muted);
+  letter-spacing: 0;
+}
+
 /* 表单区收窄：登录框太宽了空，420 是"一眼看完"的宽度 */
 .auth-wrap {
   max-width: 420px;
@@ -773,4 +810,110 @@ body.right-open .scrim {
 .usage-row.is-empty .usage-row__name {
   color: var(--text-faint);
   font-weight: 400;
+}
+
+/* ============================================
+   Day 26 · 按钮交互增强层（Extension，不动既有规则）
+   ------------------------------------------------------------
+   现有按钮已经有了：hover 改描边、active 改 opacity、各自的 transition。
+   这一层【只补「物理反馈」这一个维度】，与上面所有规则【叠加】而非替换：
+     hover  → 浮起 + 阴影升级  （现有只改描边，缺"抬起来"的手感）
+     active → 下沉 + 微缩 + 阴影收掉（现有只有 opacity，缺"按下去"的力感）
+     图标键 → 悬停铺薄荷底 + 一圈光晕（从"描边圈"变成"实体键"）
+   ⚠️ 位移/缩放只给【能悬停的设备】（@media hover:hover）——
+      触屏点一下会留下"粘住的悬停态"，那是 bug 不是效果。
+   ⚠️ prefers-reduced-motion 下全关，只留颜色变化。
+   ⚠️ 颜色/阴影全部取自现有 token，不引入新色、不用 AI 味的紫粉渐变。
+   ============================================ */
+
+/* 起步快、收尾缓 —— 比线性的 --ease-out 更有"重量"，抬起来不飘 */
+:root {
+  --ease-lift: cubic-bezier(.2, .7, .2, 1);
+}
+
+/* ---------- ① hover：浮起 + 阴影升级 ---------- */
+@media (hover: hover) {
+  .btn:not([aria-pressed='true']):hover,
+  .level-btn:not([aria-pressed='true']):hover,
+  .file-btn:not([aria-current='true']):hover,
+  .acct-btn:hover,
+  .acct-cta:hover,
+  .back-link:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-sm);
+  }
+  /* 卡片抬得更高一档，和列表行拉开层次 */
+  .board:has(.board-link):hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-md);
+  }
+  /* 图标键：铺一层薄荷底 + 一圈柔和光晕 */
+  .icon-btn:not([aria-pressed='true']):hover {
+    background: var(--ok-bg);
+    box-shadow: 0 0 0 4px rgba(15, 110, 86, .10);
+    transform: translateY(-1px) scale(1.05);
+  }
+}
+
+/* ⚠️ 顺带修一个既有 bug（Day 26 预览截图抓出来的，不是本次增强引入的）：
+   .btn 的通用 hover（style.css）把文字染成 accent 色，
+   而绿底主按钮（.acct-btn / .acct-cta）hover 的底色本身就是深绿 ——
+   深绿字压在深绿底上，文字直接消失（实测：color=rgb(15,110,86) / bg=rgb(11,90,70)）。
+   这里用「同特异度 + 本文件后加载」压过那条规则，让绿底按钮 hover 保持白字。 */
+.btn.acct-btn:hover,
+.btn.acct-cta:hover {
+  color: #fff;
+}
+
+/* ---------- ② active：物理按下（下沉 + 微缩 + 阴影收掉）---------- */
+.btn:active,
+.level-btn:active,
+.file-btn:active,
+.acct-btn:active,
+.acct-cta:active,
+.sidenav__item:active,
+.ft-btn:active,
+.ft-chg:active,
+.back-link:active {
+  transform: translateY(0) scale(.97);
+  box-shadow: none;
+}
+/* 图标键按得更狠一点，手感更明确 */
+.icon-btn:active {
+  transform: scale(.92);
+}
+
+/* ---------- ③ 过渡补齐：让位移/阴影"滑"过去而不是"跳" ---------- */
+.btn, .level-btn, .file-btn,
+.acct-btn, .acct-cta, .back-link, .sidenav__item {
+  transition: border-color var(--duration-fast) var(--ease-out),
+              background-color var(--duration-fast) var(--ease-out),
+              color var(--duration-fast) var(--ease-out),
+              box-shadow var(--duration-normal) var(--ease-lift),
+              transform var(--duration-normal) var(--ease-lift);
+}
+
+/* ---------- ④ 键盘焦点：统一焦点环（高对比度模式会抹掉装饰，所以留 outline）---------- */
+.btn:focus-visible,
+.level-btn:focus-visible,
+.file-btn:focus-visible,
+.icon-btn:focus-visible,
+.acct-btn:focus-visible,
+.acct-cta:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+/* ---------- ⑤ 降级：不想看动效的用户 ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .btn, .level-btn, .file-btn, .acct-btn, .acct-cta, .back-link,
+  .sidenav__item, .icon-btn, .board {
+    transition-duration: .01ms !important;
+  }
+  .btn:hover, .level-btn:hover, .file-btn:hover, .acct-btn:hover,
+  .acct-cta:hover, .icon-btn:hover, .back-link:hover,
+  .board:has(.board-link):hover,
+  .btn:active, .level-btn:active, .file-btn:active, .icon-btn:active {
+    transform: none;
+  }
 }
