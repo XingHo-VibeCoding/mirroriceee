@@ -71,7 +71,7 @@ cd /d <仓库路径>
 | 3 | 离线检查（密钥 / 发布包不夹带） | `node skills\verify-project\scripts\check-offline.mjs` | 退出码 `0`，10/10 全绿 | ✅ 10/10 |
 | 4 | 联网检查（跨域 / 契约 / 线上可达） | `node skills\verify-project\scripts\check-online.mjs` | 退出码 `0`；红项按下方放行表处理 | ⚠️ 12 PASS / 2 FAIL（C1、C2 跨域） |
 | 5 | 本地四个页面能开 | `curl -o /dev/null -w "%{http_code}\n" http://localhost:8000/` 等四条 | 四个都是 `200` | 待跑（先 `node dev-server.js`） |
-| 6 | 本地 Range 可用 | `curl -s -o /dev/null -D - -H "Range: bytes=1000-1999" http://localhost:8000/assets/audio/oh-im-really-sorry.mp3` | `206 Partial Content` + `Content-Range` | 待跑 |
+| 6 | 本地 Range 可用 | `curl -s -o /dev/null -D - -H "Range: bytes=1000-1999" http://localhost:8000/assets/audio/Lesson1/L1.1.1.mp3` ⚠️ **2026-10-16 换过**：原写 `assets/audio/oh-im-really-sorry.mp3`，编号改名后该文件已不存在 | `206 Partial Content` + `Content-Range` | 待跑 |
 | 7 | 数据基线没动 | 记录当前库容（六表各多少条） | 与上次发布时一致 | 待填 |
 | 8 | 备份就位 | 见「五」 | 备份存在且能说清路径 | 待做 |
 
@@ -124,6 +124,20 @@ curl -s -o wb-index.html https://echoread.app.workbuddy.host/index.html
 > | `git checkout e2e5ddb -- index.html`（转成 CRLF） | 3398 | `eb104634…` ❌ 对不上 |
 >
 > ⇒ **凡是要拿去发布、或要跟线上比哈希的内容，一律用 `git show <ref>:<路径> > <路径>`。**
+
+> ⚠️⚠️ **2026-10-16 纠正：「一律用 `git show`」这条现在只对一半 —— 拿它当线上比哈希的基准会永远对不上。**
+> 上面原文保留不删。改名当天实测：`git ls-files --eol index.html` = **`i/lf w/crlf`**
+> —— **工作区是 CRLF**，而**部署通道上传的正是工作区文件**，所以**线上现在也是 CRLF**。
+> 拿 LF 的 git blob 去比，必然差一截。
+>
+> | 取法 | 字节 | sha256 | 跟线上比 |
+> |---|---|---|---|
+> | `curl …/index.html`（线上） | 10890 | `9a33b1cd…` | — |
+> | 工作区文件 `index.html` | 10890 | `9a33b1cd…` | ✅ **一致 → 这才是正确基准** |
+> | `git show 4b11530:index.html`（LF blob） | 10713 | `29c1e6d1…` | ❌ 对不上（差的正好是 177 行 × 1 个 `\r`） |
+>
+> ⇒ **正解：线上文件只跟「工作区文件」逐字节比**（`cmp` 或两侧各算一次 `sha256sum`）。
+> `git show` 仍适用于「取某个历史版本的文件内容」，但**不要拿它当线上哈希的基准**。
 
 | # | 检查 | 命令 | 怎么算过 | 现在（发布前基线） |
 |---|---|---|---|---|
@@ -197,3 +211,4 @@ tar -cf /c/Users/20769/Desktop/echoread-v1.0-snapshot.tar --exclude=node_modules
 | 版本 | 日期 | commit | 发布人 | shareLink | deployedAs | 结果 |
 |---|---|---|---|---|---|---|
 | v1.0.0 | 待填 | 待填 | 斌哥 | `https://echoread.app.workbuddy.host/` | `http-service` | 待填 |
+| Day 30（未打标签） | 2026-10-16 | `4b11530` | 斌哥（AI 执行） | `https://echoread.app.workbuddy.host/` | `http-service` | ✅ 发布后 7 项全过（第 7 项人工 F12 待斌哥）；发布前 C4 红项由**斌哥明确放行**；线上锚点：`audio` 47→103、`L1.1.1` 0→1、新文件音频 404→200 |
