@@ -226,4 +226,4 @@ tar -cf /c/Users/20769/Desktop/echoread-v1.0-snapshot.tar --exclude=node_modules
 | 版本 | 日期 | commit | 发布人 | shareLink | deployedAs | 结果 |
 |---|---|---|---|---|---|---|
 | v1.0.0 | 2026-10-13 | `79134c1` | 斌哥 | `https://echoread.app.workbuddy.host/` | `http-service` | ✅ 发布后 1–6 项实测全过（线上首页 sha256 `6c314fb9…` = 本地；四页 200 / Range 206 / 私有物 403·404 / 新文档 404）；第 7 项人工 F12 当时未执行；跨域红项 C1·C2 按 §2.1 放行 |
-| Day 30（未打标签） | 2026-10-16 | `4b11530` | 斌哥（AI 执行） | `https://echoread.app.workbuddy.host/` | `http-service` | ✅ 发布后 7 项全过（第 7 项人工 F12 待斌哥）；发布前 C4 红项由**斌哥明确放行**；线上锚点：`audio` 47→103、`L1.1.1` 0→1、新文件音频 404→200 |
+| Day 30（标签 `day30`，2026-10-16 补打） | 2026-10-16 | `4b11530` | 斌哥（AI 执行） | `https://echoread.app.workbuddy.host/` | `http-service` | ✅ 发布后 7 项全过（第 7 项人工 F12 待斌哥）；发布前 C4 红项由**斌哥明确放行**；线上锚点：`audio` 47→103、`L1.1.1` 0→1、新文件音频 404→200 |
