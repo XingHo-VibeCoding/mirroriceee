@@ -1,0 +1,694 @@
+[
+  {
+    "id": "ft-001",
+    "sample": "I'm from China, from near Shanghai [L1.2.1]. I was born in [L1.1.1] a smaller city not far from there. My family moved here eight years ago when I was in high school [L1.1.1], so I've lived in two very different places and I like both for different reasons.",
+    "refs": [
+      [
+        "I'm from China, from near Shanghai",
+        "L1.2.1"
+      ],
+      [
+        "I was born in",
+        "L1.1.1"
+      ],
+      [
+        "my family moved here eight years ago when I was in high school",
+        "L1.1.1"
+      ]
+    ]
+  },
+  {
+    "id": "ft-002",
+    "sample": "I'm still a student, in my third year. To be honest [L2.2.1], I haven't made up my mind [L1.14.2] about the future, but I guess I still had a lot to learn [L2.24.1], which is fine for now.",
+    "refs": [
+      [
+        "to be honest",
+        "L2.2.1"
+      ],
+      [
+        "I haven't made up my mind",
+        "L1.14.2"
+      ],
+      [
+        "I still had a lot to learn",
+        "L2.24.1"
+      ]
+    ]
+  },
+  {
+    "id": "ft-003",
+    "sample": "I study computer science, and most of my week goes into coursework and one long lab project. Last summer I was working as an intern [L2.5.1] at a small company, which taught me more than a semester of lectures.",
+    "refs": [
+      [
+        "working as an intern",
+        "L2.5.1"
+      ]
+    ]
+  },
+  {
+    "id": "ft-004",
+    "sample": "I do like it, though it can be tiring. At the end of the day [L2.U7.1] I'm usually pretty worn out [L2.U7.1], but I'd rather be busy than bored, and the subject itself keeps me interested.",
+    "refs": [
+      [
+        "At the end of the day",
+        "L2.U7.1"
+      ],
+      [
+        "pretty worn out",
+        "L2.U7.1"
+      ]
+    ]
+  },
+  {
+    "id": "ft-005",
+    "sample": "Not really. There are four of us [L2.3.1] at home, so it's a small family. I don't have any relatives here [L1.2.1], which means most of my extended family I only get to see on holidays.",
+    "refs": [
+      [
+        "there are four of us",
+        "L2.3.1"
+      ],
+      [
+        "I don't have any relatives here",
+        "L1.2.1"
+      ]
+    ]
+  },
+  {
+    "id": "ft-006",
+    "sample": "Most evenings, really. On weekends we visit relatives [L1.2.1] or just sit and talk over dinner. I've been meaning to call [L2.2.1] my cousins more often, but I haven't gotten around to it [L2.7.1].",
+    "refs": [
+      [
+        "we visit relatives",
+        "L1.2.1"
+      ],
+      [
+        "I've been meaning to call",
+        "L2.2.1"
+      ],
+      [
+        "I haven't gotten around to it",
+        "L2.7.1"
+      ]
+    ]
+  },
+  {
+    "id": "ft-007",
+    "sample": "We like cooking and eating together, mostly. My mom's soup [L1.2.1] is the best part of any gathering. On holidays we always had a great time [L1.3.1] around the table, talking for hours.",
+    "refs": [
+      [
+        "My mom's soup",
+        "L1.2.1"
+      ],
+      [
+        "we always had a great time",
+        "L1.3.1"
+      ]
+    ]
+  },
+  {
+    "id": "ft-008",
+    "sample": "It depends on [L1.6.2] my mood. With family I can just relax and be myself, with friends I joke around more. I'd say family for rest, friends for fun.",
+    "refs": [
+      [
+        "it depends on",
+        "L1.6.2"
+      ]
+    ]
+  },
+  {
+    "id": "ft-009",
+    "sample": "Not as often as I'd like, maybe once a week. We're all busy with coursework, but when we do meet we got along really well [L2.1.2] and lose track of time.",
+    "refs": [
+      [
+        "we got along really well",
+        "L2.1.2"
+      ]
+    ]
+  },
+  {
+    "id": "ft-010",
+    "sample": "Last time we went to my friend James's place for dinner. What a feast [L2.2.2]! He's a great cook and he loves inviting people over [L2.2.2], so we just ate and talked all night.",
+    "refs": [
+      [
+        "What a feast",
+        "L2.2.2"
+      ],
+      [
+        "inviting people over",
+        "L2.2.2"
+      ]
+    ]
+  },
+  {
+    "id": "ft-011",
+    "sample": "I read a lot, and I go for walks. I'm not very good at [L1.1.1] team sports, so I prefer things I can do alone, where I can clear my head.",
+    "refs": [
+      [
+        "I'm not very good at",
+        "L1.1.1"
+      ]
+    ]
+  },
+  {
+    "id": "ft-012",
+    "sample": "I do, photography. I'm not very serious about it, but when I started I found I was actually pretty good at it [L2.25.1], which is why I kept going.",
+    "refs": [
+      [
+        "I found I was actually pretty good at it",
+        "L2.25.1"
+      ]
+    ]
+  },
+  {
+    "id": "ft-013",
+    "sample": "I started in high school, when I first got a camera of my own. Before that I'd always used my phone. It felt good to go out on my own [L2.24.2] and take pictures.",
+    "refs": [
+      [
+        "go out on my own",
+        "L2.24.2"
+      ]
+    ]
+  },
+  {
+    "id": "ft-014",
+    "sample": "It can be, but it doesn't have to be. The gear adds up, but I buy second-hand. To be honest [L2.2.1], my best photos were taken with my cheapest lens.",
+    "refs": [
+      [
+        "to be honest",
+        "L2.2.1"
+      ]
+    ]
+  },
+  {
+    "id": "ft-015",
+    "sample": "Running and short videos, honestly. Jogging has really taken off among young people here, especially in the evening. And almost everyone watches short videos now — it's hard to predict [L2.2.3] what's next.",
+    "refs": [
+      [
+        "hard to predict",
+        "L2.2.3"
+      ]
+    ]
+  },
+  {
+    "id": "ft-016",
+    "sample": "I think it depends on the person. Some hobbies are better shared, because other people push you. On the other hand [L2.U7.1], I also need quiet time alone to recharge.",
+    "refs": [
+      [
+        "On the other hand",
+        "L2.U7.1"
+      ]
+    ]
+  },
+  {
+    "id": "ft-017",
+    "sample": "Far too much. Several hours a day, easily. I use it for classes and research, but also for scrolling. I'm trying to cut down, but it's hard to predict [L2.2.3] where the time goes.",
+    "refs": [
+      [
+        "hard to predict",
+        "L2.2.3"
+      ]
+    ]
+  },
+  {
+    "id": "ft-018",
+    "sample": "Back then we had one family desktop, and the connection was slow. Now it's everywhere. It's amazing how much computers have changed the way computers work [L2.U4.2] in my lifetime.",
+    "refs": [
+      [
+        "changed the way computers work",
+        "L2.U4.2"
+      ]
+    ]
+  },
+  {
+    "id": "ft-019",
+    "sample": "Two kinds. The useful side, tutorials and courses, and the rabbit hole, which I fall into too often. I'm not very good at [L1.1.1] balancing the two, honestly.",
+    "refs": [
+      [
+        "I'm not very good at",
+        "L1.1.1"
+      ]
+    ]
+  },
+  {
+    "id": "ft-020",
+    "sample": "It's useful, but it's a double-edged sword. It gives you access to everything, but a lot of it is noise. You have to use your common sense [L1.11.1] to separate the two.",
+    "refs": [
+      [
+        "use your common sense",
+        "L1.11.1"
+      ]
+    ]
+  },
+  {
+    "id": "ft-021",
+    "sample": "On the one hand, kids can learn almost anything online, which is incredible. On the other hand [L2.U7.1], too much screen time is a real problem. I think supervision matters more than banning it.",
+    "refs": [
+      [
+        "On the other hand",
+        "L2.U7.1"
+      ]
+    ]
+  },
+  {
+    "id": "ft-022",
+    "sample": "I do, music is a big part of my life. I listen while I study and when I walk. I can't stand it when [L2.4.3] a room is totally silent, so there's always something playing.",
+    "refs": [
+      [
+        "I can't stand it when",
+        "L2.4.3"
+      ]
+    ]
+  },
+  {
+    "id": "ft-023",
+    "sample": "Mostly mellow stuff, and some rock. When I'm working I like soft instrumentals, when I'm out I want energy. It depends on [L1.6.2] my mood, honestly.",
+    "refs": [
+      [
+        "it depends on",
+        "L1.6.2"
+      ]
+    ]
+  },
+  {
+    "id": "ft-024",
+    "sample": "I tried piano as a kid and gave up. To be honest [L2.2.1] I'm not very good at [L1.1.1] practising, and I lost patience. I wish I'd stuck with it.",
+    "refs": [
+      [
+        "to be honest",
+        "L2.2.1"
+      ],
+      [
+        "I'm not very good at",
+        "L1.1.1"
+      ]
+    ]
+  },
+  {
+    "id": "ft-025",
+    "sample": "The piano, because I already know a little. The violin sounds beautiful, but it's much harder to begin. I'd rather [L2.12.1] pick up where I left off with the piano than start from zero.",
+    "refs": [
+      [
+        "I'd rather",
+        "L2.12.1"
+      ]
+    ]
+  },
+  {
+    "id": "ft-026",
+    "sample": "Admittedly it's not for everyone. But I think it builds discipline and patience, which matter everywhere. I should have studied [L2.26.1] music more seriously when I was young — I really regret that [L2.26.2] now.",
+    "refs": [
+      [
+        "I should have studied",
+        "L2.26.1"
+      ],
+      [
+        "I really regret that",
+        "L2.26.2"
+      ]
+    ]
+  },
+  {
+    "id": "ft-027",
+    "sample": "I like watching more than playing. I'm not very good at [L1.1.1] most sports, but I love watching basketball for the pace.",
+    "refs": [
+      [
+        "I'm not very good at",
+        "L1.1.1"
+      ]
+    ]
+  },
+  {
+    "id": "ft-028",
+    "sample": "I jog twice a week, badly but happily, and I swim sometimes. I'm trying to get in shape [L2.21.1] for summer, so I've been more consistent lately.",
+    "refs": [
+      [
+        "get in shape",
+        "L2.21.1"
+      ]
+    ]
+  },
+  {
+    "id": "ft-029",
+    "sample": "Table tennis, that's for sure [L1.4.1]. It's everywhere, from schoolyards to office buildings, and almost everyone knows how to play.",
+    "refs": [
+      [
+        "That's for sure",
+        "L1.4.1"
+      ]
+    ]
+  },
+  {
+    "id": "ft-030",
+    "sample": "Basketball, because of the pace. With most sports I zone out [L2.23.1] after a while, but a close basketball game keeps me glued to the screen.",
+    "refs": [
+      [
+        "zone out",
+        "L2.23.1"
+      ]
+    ]
+  },
+  {
+    "id": "ft-031",
+    "sample": "I think so, as long as it's not forced. Sport teaches teamwork and how to handle losing. For kids, playing with friends — that's half the fun [L1.16.1] — so it should stay fun.",
+    "refs": [
+      [
+        "That's half the fun",
+        "L1.16.1"
+      ]
+    ]
+  },
+  {
+    "id": "ft-032",
+    "sample": "Two big ones: physical health, and mental. When I'm working out [L2.10.1] regularly I sleep better and my mood is steadier. It's the routine as much as the exercise.",
+    "refs": [
+      [
+        "working out",
+        "L2.10.1"
+      ]
+    ]
+  },
+  {
+    "id": "ft-033",
+    "sample": "The person I admire most is my mother. She has a good sense of humor [L2.1.1] but also this quiet strength. She's the sort of person who [L2.19.1] quietly fixes everything, and she never once complained about it. I remember she worked long hours while she was sick herself, yet she was still waiting for me when I came home from school [L2.24.2]. In her own small way she helped make the world a better place [L2.U4.1], and that's who I want to become.",
+    "refs": [
+      [
+        "a good sense of humor",
+        "L2.1.1"
+      ],
+      [
+        "the sort of person who",
+        "L2.19.1"
+      ],
+      [
+        "waiting for me when I came home from school",
+        "L2.24.2"
+      ],
+      [
+        "make the world a better place",
+        "L2.U4.1"
+      ]
+    ]
+  },
+  {
+    "id": "ft-034",
+    "sample": "The most memorable was a family trip years ago. We took a wrong turn and ended up in a tiny village with no signal. It wasn't a disaster — we always had a great time [L1.3.1] and met people we still talk about. On the way back our car broke down: our map was long gone [L2.10.2], our phones were dead, and I started to panic. My father just laughed and asked a farmer for help. It made me want to go out on my own [L2.24.2] more often.",
+    "refs": [
+      [
+        "we always had a great time",
+        "L1.3.1"
+      ],
+      [
+        "long gone",
+        "L2.10.2"
+      ],
+      [
+        "go out on my own",
+        "L2.24.2"
+      ]
+    ]
+  },
+  {
+    "id": "ft-035",
+    "sample": "I recently learned to cook, by watching my mom [L2.18.2]. At first everything went wrong, which was frustrating. But once I reached that breakthrough stage [L2.25.1], it started to feel natural. I also learned how to communicate with people [L2.19.2] in the kitchen — you taste, you adjust, you explain what you are doing. The first time I cooked a whole meal for my family, I felt really proud of myself [L2.25.1].",
+    "refs": [
+      [
+        "learned to cook by watching my mom",
+        "L2.18.2"
+      ],
+      [
+        "breakthrough stage",
+        "L2.25.1"
+      ],
+      [
+        "learned how to communicate with people",
+        "L2.19.2"
+      ],
+      [
+        "felt really proud of myself",
+        "L2.25.1"
+      ]
+    ]
+  },
+  {
+    "id": "ft-036",
+    "sample": "I'd love to visit Tibet someday. I saw a documentary about it, and it made me want to go there and see it for myself [L1.20.4]. The landscape looks unreal — huge mountains and almost nobody around. What I really want is to go out on my own [L2.24.2] for a couple of weeks, slow down, and just walk. I've been meaning to [L2.7.1] plan it for years, but I haven't gotten around to it [L2.7.1]. Maybe this summer.",
+    "refs": [
+      [
+        "see it for myself",
+        "L1.20.4"
+      ],
+      [
+        "go out on my own",
+        "L2.24.2"
+      ],
+      [
+        "I've been meaning to",
+        "L2.7.1"
+      ],
+      [
+        "I haven't gotten around to it",
+        "L2.7.1"
+      ]
+    ]
+  },
+  {
+    "id": "ft-037",
+    "sample": "The big advantage is flexibility. You can learn at your own pace, wherever you are. But you have to be aware of [L2.13.2] the downside — without a teacher there, it's easy to fall behind.",
+    "refs": [
+      [
+        "aware of",
+        "L2.13.2"
+      ]
+    ]
+  },
+  {
+    "id": "ft-038",
+    "sample": "Education has changed a lot. Back then it was rote learning, that's for sure [L1.4.1]. Now it's more about problem-solving and working in teams, which I think is better.",
+    "refs": [
+      [
+        "That's for sure",
+        "L1.4.1"
+      ]
+    ]
+  },
+  {
+    "id": "ft-039",
+    "sample": "Traditional methods still work in some contexts. Are they outdated? Not at all [L1.17.2] if they involve real discussion. But pure rote learning feels like a thing of the past.",
+    "refs": [
+      [
+        "not at all",
+        "L1.17.2"
+      ]
+    ]
+  },
+  {
+    "id": "ft-040",
+    "sample": "Technology should be a tool, not a substitute. It can help students learn to be more independent [L2.24.1], but it must not replace a teacher who notices when you're stuck.",
+    "refs": [
+      [
+        "learn to be more independent",
+        "L2.24.1"
+      ]
+    ]
+  },
+  {
+    "id": "ft-041",
+    "sample": "Very important, because not everyone goes into academic work. Practical skills help you make good money [L1.14.2] and stay flexible. But there's a trade-off — time is limited.",
+    "refs": [
+      [
+        "make good money",
+        "L1.14.2"
+      ]
+    ]
+  },
+  {
+    "id": "ft-042",
+    "sample": "The main benefit is immersion. You learn the language for real, though it takes a bit of getting used to [L1.21.2] at first. But it's expensive, and not everyone can afford it.",
+    "refs": [
+      [
+        "It takes a bit of getting used to",
+        "L1.21.2"
+      ]
+    ]
+  },
+  {
+    "id": "ft-043",
+    "sample": "Air quality is the obvious one in big cities, and waste is another. That's not an easy question to answer [L1.2.1], how to fix it, but it's hard to ignore.",
+    "refs": [
+      [
+        "that's not an easy question to answer",
+        "L1.2.1"
+      ]
+    ]
+  },
+  {
+    "id": "ft-044",
+    "sample": "Individuals can do a lot — reuse, cut waste, take public transport. Some cities even ban private cars [L1.4.1] downtown. But the big changes have to come from companies and government too.",
+    "refs": [
+      [
+        "ban private cars",
+        "L1.4.1"
+      ]
+    ]
+  },
+  {
+    "id": "ft-045",
+    "sample": "Honestly, not enough. There's a gap between what's promised and what's enforced. So no, not yet anyway [L2.14.2].",
+    "refs": [
+      [
+        "Not yet anyway",
+        "L2.14.2"
+      ]
+    ]
+  },
+  {
+    "id": "ft-046",
+    "sample": "Businesses have a big responsibility. But before we celebrate any company's promises, we should make sure we've got our facts straight [L2.14.1] — a lot of it turns out to be greenwashing.",
+    "refs": [
+      [
+        "we've got our facts straight",
+        "L2.14.1"
+      ]
+    ]
+  },
+  {
+    "id": "ft-047",
+    "sample": "I think cities will get denser and greener. More public transportation [L1.4.2], more walking and cycling, more green space. The suburbs might even shrink.",
+    "refs": [
+      [
+        "more public transportation",
+        "L1.4.2"
+      ]
+    ]
+  },
+  {
+    "id": "ft-048",
+    "sample": "Partly realistic. People can change, but only if it's made easy — after a while I got used to it [L2.11.3] with reusable bags, for example. The trick is making the green option the default.",
+    "refs": [
+      [
+        "after a while I got used to it",
+        "L2.11.3"
+      ]
+    ]
+  },
+  {
+    "id": "ft-049",
+    "sample": "It's made communication instant. You can keep in touch with everyone you need to [L2.23.1], anywhere, anytime. But we talk more and connect less — broader, but shallower.",
+    "refs": [
+      [
+        "keep in touch with everyone you need to",
+        "L2.23.1"
+      ]
+    ]
+  },
+  {
+    "id": "ft-050",
+    "sample": "The good part is connection and community. The bad part is comparison — everyone shows their best side. People are at their best when you're sincerely interested in other people [L2.19.2], not just scrolling.",
+    "refs": [
+      [
+        "sincerely interested in other people",
+        "L2.19.2"
+      ]
+    ]
+  },
+  {
+    "id": "ft-051",
+    "sample": "I think it'll replace some tasks, not whole jobs. Repetitive work will go, but work that needs judgment and human contact will stay. The challenge is helping people retrain for something more practical [L2.26.1].",
+    "refs": [
+      [
+        "something more practical",
+        "L2.26.1"
+      ]
+    ]
+  },
+  {
+    "id": "ft-052",
+    "sample": "I think AI tutors will become normal, giving every student instant feedback. Learning anything will feel like it wasn't an impossible thing after all [L2.25.1]. But I worry students might become too passive.",
+    "refs": [
+      [
+        "wasn't an impossible thing after all",
+        "L2.25.1"
+      ]
+    ]
+  },
+  {
+    "id": "ft-053",
+    "sample": "The main risk is that we forget how to do things ourselves. If a system goes down, we're stuck — you can't always change by yourself [L2.21.2] when the tools do everything for you.",
+    "refs": [
+      [
+        "You can't always change by yourself",
+        "L2.21.2"
+      ]
+    ]
+  },
+  {
+    "id": "ft-054",
+    "sample": "Two things: transparency, so the public can have a clearer picture [L2.14.2] of how decisions are made, and accountability, so someone answers when it goes wrong. Plus education, so people understand what they're using.",
+    "refs": [
+      [
+        "have a clearer picture",
+        "L2.14.2"
+      ]
+    ]
+  },
+  {
+    "id": "ft-055",
+    "sample": "Families are smaller and more spread out now. I don't have any relatives here [L1.2.1], so I only see them on holidays. Many households are two-income, which changes how time gets spent.",
+    "refs": [
+      [
+        "I don't have any relatives here",
+        "L1.2.1"
+      ]
+    ]
+  },
+  {
+    "id": "ft-056",
+    "sample": "Cities offer opportunity, and you're right downtown [L1.7.2] where everything is. But the cost of living is brutal and the commute wears you down. The density gives and takes at the same time.",
+    "refs": [
+      [
+        "right downtown",
+        "L1.7.2"
+      ]
+    ]
+  },
+  {
+    "id": "ft-057",
+    "sample": "I think it matters, because traditions carry identity. It is said that [L1.22.1] they hold a people together. But they shouldn't be frozen — a tradition that doesn't change eventually dies.",
+    "refs": [
+      [
+        "It is said that",
+        "L1.22.1"
+      ]
+    ]
+  },
+  {
+    "id": "ft-058",
+    "sample": "Governments should provide the basics — safety, education, healthcare. But when they meddle in private choices, it's not worth the risk [L1.11.1] of losing freedom. Strong on public goods, light on private life.",
+    "refs": [
+      [
+        "it's not worth the risk",
+        "L1.11.1"
+      ]
+    ]
+  },
+  {
+    "id": "ft-059",
+    "sample": "Shared spaces and events, I think. When people actually say let's get together soon [L1.21.2] and mean it, trust grows. It's not complicated, just effort.",
+    "refs": [
+      [
+        "let's get together soon",
+        "L1.21.2"
+      ]
+    ]
+  },
+  {
+    "id": "ft-060",
+    "sample": "Two big ones. The job market is uncertain — unemployment is going to keep getting worse [L2.23.1] in some fields. And there's constant pressure from comparison on social media. The two feed each other.",
+    "refs": [
+      [
+        "keep getting worse",
+        "L2.23.1"
+      ]
+    ]
+  }
+]

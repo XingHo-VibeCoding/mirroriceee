@@ -90,14 +90,14 @@ async function boot(query, opts) {
   dom.window.close();
 }
 
-/* ---- 正例 2：深链 ?file=L1.1&t=13 → 自动打开并定位 ---- */
+/* ---- 正例 2：深链 ?file=L1.1.1&t=13 → 自动打开并定位 ---- */
 {
-  const dom = await boot('?file=L1.1&t=13');
+  const dom = await boot('?file=L1.1.1&t=13');
   const D = dom.window.document;
   const material = D.querySelector('#reader .material');
-  ok('深链自动打开 L1.1 素材', !!material, material && material.getAttribute('data-audio'));
+  ok('深链自动打开 L1.1.1 素材', !!material, material && material.getAttribute('data-audio'));
   const segs = D.querySelectorAll('#reader .seg');
-  ok('L1.1 渲染 12 句', segs.length === 12, '实测 ' + segs.length);
+  ok('L1.1.1 渲染 12 句', segs.length === 12, '实测 ' + segs.length);
   ok('分段不显示文字（无 .seg-text）', D.querySelectorAll('#reader .seg-text').length === 0);
   ok('分段显示时间戳（有 .seg-time）', D.querySelectorAll('#reader .seg-time').length === segs.length);
   const firstTime = D.querySelector('#reader .seg-time');
@@ -133,7 +133,7 @@ async function boot(query, opts) {
 /* ---- 反例：故意注入缺陷，证明断言真能抓到 ---- */
 {
   /* 反例 A：segments 里塞回 text → 「不显示文字」断言应当失败 */
-  const dom = await boot('?file=L1.1&t=13');
+  const dom = await boot('?file=L1.1.1&t=13');
   const D = dom.window.document;
   D.querySelectorAll('#reader .seg').forEach((li) => {
     const body = li.querySelector('.seg-body');

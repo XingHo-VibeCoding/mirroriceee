@@ -4,7 +4,8 @@
     "version": "1.0",
     "count": 60,
     "source": "英文问句取自 GitHub 1599570912/IELTS-Speaking-AI（MIT License）题库，实测 62 条剔除 2 条考官身份核验题后为 60 条；中文翻译、追问、参考词汇、表达支架、参考回答为本项目自撰",
-    "licenseNote": "MIT 条款要求保留原作者版权声明，见文末 source 字段及 tools/freetalk/README.md"
+    "licenseNote": "MIT 条款要求保留原作者版权声明，见文末 source 字段及 tools/freetalk/README.md",
+    "mixNote": "范文语料池 = 星一班 L1（47 段）+ 高级班 L2（56 段，已剔除 L9 单元），两批混用；src 四元组 [表达, 编号, 起始秒, 结束秒]，逐字命中原文"
   },
   "cats": [
     {
@@ -73,31 +74,25 @@
         "neighbourhood"
       ],
       "tips": "用 I come from… / I grew up in… 开头，再补一句这个地方的特点（食物、天气、节奏）。",
-      "sample": "Nice to meet you. I'm originally from China — I was born in a city near Shanghai [L1.1]. Actually, I'm from the south, but my family moved here eight years ago, when I was in high school [L1.1]. I came here after I graduated from college [L2.1].",
+      "sample": "I'm from China, from near Shanghai [L1.2.1]. I was born in [L1.1.1] a smaller city not far from there. My family moved here eight years ago when I was in high school [L1.1.1], so I've lived in two very different places and I like both for different reasons.",
       "src": [
         [
-          "originally from",
-          "L1.1",
+          "I'm from China, from near Shanghai",
+          "L1.2.1",
+          3,
+          7
+        ],
+        [
+          "I was born in",
+          "L1.1.1",
           13,
           16
         ],
         [
-          "was born in",
-          "L1.1",
-          13,
-          16
-        ],
-        [
-          "moved here … in high school",
-          "L1.1",
+          "my family moved here eight years ago when I was in high school",
+          "L1.1.1",
           18,
           23
-        ],
-        [
-          "came here after I graduated",
-          "L2.1",
-          9,
-          16
         ]
       ]
     },
@@ -121,31 +116,25 @@
         "graduate"
       ],
       "tips": "直接说现状，再加一句专业或年级：I am a … major in my … year.",
-      "sample": "I'm still a student [L8.2]. I'm in my third year now, and I'm not sure what I want to do with my life, to be honest [L18.1]. Actually, I majored in English Literature [L20.2], but I haven't made up my mind about the future yet [L14.2].",
+      "sample": "I'm still a student, in my third year. To be honest [L2.2.1], I haven't made up my mind [L1.14.2] about the future, but I guess I still had a lot to learn [L2.24.1], which is fine for now.",
       "src": [
         [
-          "I'm still … (a student)",
-          "L8.2",
-          5,
-          8
+          "to be honest",
+          "L2.2.1",
+          8,
+          13
         ],
         [
-          "I can't decide what I want to do with my life",
-          "L17.1",
+          "I haven't made up my mind",
+          "L1.14.2",
           3,
           6
         ],
         [
-          "I majored in …",
-          "L19.2",
-          5,
-          10
-        ],
-        [
-          "haven't made up my mind",
-          "L14.2",
-          3,
-          6
+          "I still had a lot to learn",
+          "L2.24.1",
+          14,
+          18
         ]
       ]
     },
@@ -169,31 +158,13 @@
         "deadline"
       ],
       "tips": "别只报专业名，说一件具体的日常事（做实验、写代码、赶报告），内容才立得住。",
-      "sample": "Most of my time goes to my coursework. I work with computers a lot — sort of like being in charge of the class project [L1.2]. It's not easy, and I'm not very good at it yet [L1.1], but I'm getting better. The same routine every day can get boring [L9.2], but it's worth it.",
+      "sample": "I study computer science, and most of my week goes into coursework and one long lab project. Last summer I was working as an intern [L2.5.1] at a small company, which taught me more than a semester of lectures.",
       "src": [
         [
-          "in charge of",
-          "L1.2",
-          13,
-          15
-        ],
-        [
-          "sort of",
-          "L1.2",
-          18,
-          21
-        ],
-        [
-          "I'm not very good at …",
-          "L1.1",
-          6,
-          9
-        ],
-        [
-          "the same routine every day",
-          "L9.2",
-          8,
-          15
+          "working as an intern",
+          "L2.5.1",
+          12,
+          16
         ]
       ]
     },
@@ -217,31 +188,19 @@
         "tiring"
       ],
       "tips": "喜欢就说喜欢什么，不喜欢就说哪一点烦，但结尾要转回积极：But overall…。",
-      "sample": "Mostly, yes. I like the part where I get to build something real. But I'm really sick of sitting in front of a computer all day [L9.2]. I think I need to try something totally different [L9.2] — I'd love something that would involve travel [L8.1]. Still, at this point in my life, I'm learning a lot [L14.2].",
+      "sample": "I do like it, though it can be tiring. At the end of the day [L2.U7.1] I'm usually pretty worn out [L2.U7.1], but I'd rather be busy than bored, and the subject itself keeps me interested.",
       "src": [
         [
-          "sick of sitting in front of a computer",
-          "L9.2",
-          8,
+          "At the end of the day",
+          "L2.U7.1",
+          12,
           15
         ],
         [
-          "try something totally different",
-          "L9.2",
-          15,
-          18
-        ],
-        [
-          "something that would involve travel",
-          "L8.1",
-          23,
-          28
-        ],
-        [
-          "at this point in my life",
-          "L14.2",
-          21,
-          25
+          "pretty worn out",
+          "L2.U7.1",
+          12,
+          15
         ]
       ]
     },
@@ -265,25 +224,19 @@
         "gathering"
       ],
       "tips": "先答大不大，再补人数构成：There are … of us / I am an only child.",
-      "sample": "Not really. It's just my parents and me at home — I don't have any relatives here [L2.1]. In China, on holidays or the weekend, we visit relatives [L2.1], so our big family gets together then. I have a lot of friends, but that's not the same thing [L2.1].",
+      "sample": "Not really. There are four of us [L2.3.1] at home, so it's a small family. I don't have any relatives here [L1.2.1], which means most of my extended family I only get to see on holidays.",
       "src": [
         [
+          "there are four of us",
+          "L2.3.1",
+          10,
+          15
+        ],
+        [
           "I don't have any relatives here",
-          "L2.1",
+          "L1.2.1",
           40,
           46
-        ],
-        [
-          "we visit relatives",
-          "L2.1",
-          52,
-          58
-        ],
-        [
-          "that's not the same thing",
-          "L2.1",
-          46,
-          52
         ]
       ]
     },
@@ -307,19 +260,25 @@
         "quality time"
       ],
       "tips": "用频率副词（most evenings / once a week / during holidays）把时间说具体。",
-      "sample": "On weekdays, not much — I'm busy and so are my parents. But on the weekend we do things together. I really miss my mother's cooking [L2.1], so I try to be home for dinner. I guess that's when we really talk.",
+      "sample": "Most evenings, really. On weekends we visit relatives [L1.2.1] or just sit and talk over dinner. I've been meaning to call [L2.2.1] my cousins more often, but I haven't gotten around to it [L2.7.1].",
       "src": [
         [
-          "I really miss my mother's cooking",
-          "L2.1",
-          69,
-          72
-        ],
-        [
-          "on the weekend we … together",
-          "L2.1",
+          "we visit relatives",
+          "L1.2.1",
           52,
           58
+        ],
+        [
+          "I've been meaning to call",
+          "L2.2.1",
+          5,
+          8
+        ],
+        [
+          "I haven't gotten around to it",
+          "L2.7.1",
+          24,
+          29
         ]
       ]
     },
@@ -343,37 +302,19 @@
         "chat"
       ],
       "tips": "挑一件具体的事讲细节（谁做什么、什么时候），比罗列三个活动强。",
-      "sample": "We cook together, mostly. My mom makes great soup [L2.1], and I'm in charge of the rest [L1.2]. I'm not very good at it [L1.1], but we always have a great time [L3.1]. On holidays and stuff, the whole family gets together [L3.2].",
+      "sample": "We like cooking and eating together, mostly. My mom's soup [L1.2.1] is the best part of any gathering. On holidays we always had a great time [L1.3.1] around the table, talking for hours.",
       "src": [
         [
-          "she makes great soup",
-          "L2.1",
+          "My mom's soup",
+          "L1.2.1",
           63,
           69
         ],
         [
-          "in charge of",
-          "L1.2",
-          13,
-          15
-        ],
-        [
-          "I'm not very good at it",
-          "L1.1",
-          6,
-          9
-        ],
-        [
           "we always had a great time",
-          "L3.1",
+          "L1.3.1",
           14,
           17
-        ],
-        [
-          "on holidays and stuff",
-          "L3.2",
-          6,
-          9
         ]
       ]
     },
@@ -397,19 +338,13 @@
         "judge"
       ],
       "tips": "用 It depends on … 分情况回答，能自然把两面都说出来。",
-      "sample": "It depends. With my family I can be completely myself — they never make me feel judged. But I know what you mean about friends [L8.1]; with them I talk about things my parents wouldn't get. I'd love to say both, but if I had to choose, family on quiet days, friends on loud ones.",
+      "sample": "It depends on [L1.6.2] my mood. With family I can just relax and be myself, with friends I joke around more. I'd say family for rest, friends for fun.",
       "src": [
         [
-          "I know what you mean",
-          "L8.1",
-          36,
-          37
-        ],
-        [
-          "I'd love to …",
-          "L10.1",
-          30,
-          33
+          "it depends on",
+          "L1.6.2",
+          13,
+          18
         ]
       ]
     },
@@ -433,19 +368,13 @@
         "plan"
       ],
       "tips": "给频率 + 原因（课表冲突、住得远），再补一句线上联系也算。",
-      "sample": "Probably once or twice a week. We used to meet more when we were students [L3.1], but now everybody's busy. We still text a lot. I hope we can get together more often [L22.2] — it's just a matter of time.",
+      "sample": "Not as often as I'd like, maybe once a week. We're all busy with coursework, but when we do meet we got along really well [L2.1.2] and lose track of time.",
       "src": [
         [
-          "we used to …",
-          "L3.1",
-          8,
-          11
-        ],
-        [
-          "get together",
-          "L21.2",
-          15,
-          17
+          "we got along really well",
+          "L2.1.2",
+          17,
+          20
         ]
       ]
     },
@@ -469,25 +398,19 @@
         "memory"
       ],
       "tips": "讲一次具体的经历，用 Last time we… 开头，回答立刻有画面。",
-      "sample": "Mostly ordinary things — we walk around, grab a bite, talk about nothing. Sometimes we just play video games [L12.1]. You know, I really enjoy spending time with them [L3.2]. We always have a great time, even when we're doing nothing [L3.1].",
+      "sample": "Last time we went to my friend James's place for dinner. What a feast [L2.2.2]! He's a great cook and he loves inviting people over [L2.2.2], so we just ate and talked all night.",
       "src": [
         [
-          "play a video game",
-          "L12.1",
-          31,
-          33
+          "What a feast",
+          "L2.2.2",
+          18,
+          22
         ],
         [
-          "really enjoy spending time",
-          "L3.2",
-          20,
-          27
-        ],
-        [
-          "we always had a great time",
-          "L3.1",
+          "inviting people over",
+          "L2.2.2",
           14,
-          17
+          18
         ]
       ]
     },
@@ -511,25 +434,13 @@
         "outdoors"
       ],
       "tips": "给一个主活动 + 一个替补（when I am too tired…），答案更立体。",
-      "sample": "I read a lot, and I go for long walks. When I was a kid, I used to collect shells [L3.1], and walking along the beach is still my favourite thing. I also like to catch up on my reading [L10.1] when I have a free weekend.",
+      "sample": "I read a lot, and I go for walks. I'm not very good at [L1.1.1] team sports, so I prefer things I can do alone, where I can clear my head.",
       "src": [
         [
-          "I used to collect shells",
-          "L3.1",
-          27,
-          30
-        ],
-        [
-          "walk along the beach",
-          "L3.1",
-          17,
-          21
-        ],
-        [
-          "catch up on my reading",
-          "L10.1",
-          5,
-          11
+          "I'm not very good at",
+          "L1.1.1",
+          6,
+          9
         ]
       ]
     },
@@ -553,25 +464,13 @@
         "amateur"
       ],
       "tips": "说清「认真到什么程度」：I am not serious about it / I take it fairly seriously.",
-      "sample": "I do, though I'm not serious about any of them. I used to collect shells when I was a kid [L3.1] — I had a great shell collection [L3.1]. These days I read and take photos. Nothing expensive, I'm not very good at most of it [L1.1], but I enjoy it.",
+      "sample": "I do, photography. I'm not very serious about it, but when I started I found I was actually pretty good at it [L2.25.1], which is why I kept going.",
       "src": [
         [
-          "I used to collect shells",
-          "L3.1",
-          27,
-          30
-        ],
-        [
-          "a great shell collection",
-          "L3.1",
-          21,
-          23
-        ],
-        [
-          "I'm not very good at",
-          "L1.1",
-          6,
-          9
+          "I found I was actually pretty good at it",
+          "L2.25.1",
+          10,
+          15
         ]
       ]
     },
@@ -595,19 +494,13 @@
         "gap"
       ],
       "tips": "用 I picked it up … ago / I have been doing it on and off since … 表达断续坚持。",
-      "sample": "I started when I was in high school. When I was a kid, we used to spend two weeks at the beach every summer [L3.1], and that's where the habit came from. I've kept it on and off since then. It takes a bit of getting used to at first [L22.2], but now it's part of me.",
+      "sample": "I started in high school, when I first got a camera of my own. Before that I'd always used my phone. It felt good to go out on my own [L2.24.2] and take pictures.",
       "src": [
         [
-          "When I was a kid, we used to spend …",
-          "L3.1",
-          8,
-          11
-        ],
-        [
-          "It takes a bit of getting used to",
-          "L21.2",
-          25,
-          27
+          "go out on my own",
+          "L2.24.2",
+          29,
+          32
         ]
       ]
     },
@@ -631,13 +524,13 @@
         "worth it"
       ],
       "tips": "先给结论 It can be / Not really，再举一个价格细节支撑，比空说贵不贵有力。",
-      "sample": "Not really. My camera is second-hand, and I've used the same one for years. The expensive version exists, of course — it costs three or four times as much [L5.1] — but I don't need it. I'd rather keep it simple.",
+      "sample": "It can be, but it doesn't have to be. The gear adds up, but I buy second-hand. To be honest [L2.2.1], my best photos were taken with my cheapest lens.",
       "src": [
         [
-          "it costs three or four times as much",
-          "L5.1",
-          34,
-          40
+          "to be honest",
+          "L2.2.1",
+          8,
+          13
         ]
       ]
     },
@@ -661,19 +554,13 @@
         "take off"
       ],
       "tips": "用 … has really taken off recently 描述流行趋势，别只列清单。",
-      "sample": "Short videos are everywhere now, and running has really taken off. Honestly, I think people are a bit too busy for hobbies these days — there's so much to see and do [L11.1] online that nobody slows down. I guess that's just how it is [L1.2].",
+      "sample": "Running and short videos, honestly. Jogging has really taken off among young people here, especially in the evening. And almost everyone watches short videos now — it's hard to predict [L2.2.3] what's next.",
       "src": [
         [
-          "There's so much to see and do",
-          "L11.1",
-          10,
-          14
-        ],
-        [
-          "I guess so",
-          "L1.2",
-          18,
-          21
+          "hard to predict",
+          "L2.2.3",
+          7,
+          11
         ]
       ]
     },
@@ -697,19 +584,13 @@
         "personal"
       ],
       "tips": "观点题用 I think it depends on the person 开头，再分两面说，最后落到自己。",
-      "sample": "I think it depends on the person. Some hobbies are better shared, because you get to meet people and make new friends [L9.3]. Others are private, and that's fine too. At first, I thought I should share mine [L22.2], but then I realized I like doing them alone [L22.2].",
+      "sample": "I think it depends on the person. Some hobbies are better shared, because other people push you. On the other hand [L2.U7.1], I also need quiet time alone to recharge.",
       "src": [
         [
-          "get to meet people and make new friends",
-          "L9.3",
-          8,
-          11
-        ],
-        [
-          "At first, I thought … But then I realized …",
-          "L21.2",
+          "On the other hand",
+          "L2.U7.1",
           17,
-          20
+          21
         ]
       ]
     },
@@ -733,25 +614,13 @@
         "addicted"
       ],
       "tips": "给一个量化的说法（several hours a day / far too much），比 very much 更实。",
-      "sample": "Far too much, honestly. I'm really sick of sitting in front of a screen all day [L9.2], but I keep doing it. It's impossible to avoid [L4.1] — everything is online now. I know what you mean if you say the same [L8.1].",
+      "sample": "Far too much. Several hours a day, easily. I use it for classes and research, but also for scrolling. I'm trying to cut down, but it's hard to predict [L2.2.3] where the time goes.",
       "src": [
         [
-          "sick of sitting in front of a computer",
-          "L9.2",
-          8,
-          15
-        ],
-        [
-          "It's impossible to …",
-          "L4.1",
-          23,
-          28
-        ],
-        [
-          "I know what you mean",
-          "L8.1",
-          36,
-          37
+          "hard to predict",
+          "L2.2.3",
+          7,
+          11
         ]
       ]
     },
@@ -775,19 +644,13 @@
         "generation"
       ],
       "tips": "对比过去和现在的设备/速度，用 Back then… Now… 结构。",
-      "sample": "When I was a kid, I used to get up early and play outside [L3.1], not stare at a screen. I started using the internet in high school, on the family computer. Back then it was slow — but it's not the same thing at all now [L2.1].",
+      "sample": "Back then we had one family desktop, and the connection was slow. Now it's everywhere. It's amazing how much computers have changed the way computers work [L2.U4.2] in my lifetime.",
       "src": [
         [
-          "Every day we used to get up early",
-          "L3.1",
-          17,
-          21
-        ],
-        [
-          "that's not the same thing",
-          "L2.1",
-          46,
-          52
+          "changed the way computers work",
+          "L2.U4.2",
+          3,
+          8
         ]
       ]
     },
@@ -811,19 +674,13 @@
         "distract"
       ],
       "tips": "分两类说：有用的（查资料/学东西）+ 纯消遣的，显出自我觉察。",
-      "sample": "Two kinds of things. The useful kind: tutorials, news, things for my school work. The other kind is just scrolling. I'm not very good at controlling it [L1.1], to be honest. I keep meaning to use it less, but I guess that's easier said than done [L1.2].",
+      "sample": "Two kinds. The useful side, tutorials and courses, and the rabbit hole, which I fall into too often. I'm not very good at [L1.1.1] balancing the two, honestly.",
       "src": [
         [
-          "I'm not very good at …",
-          "L1.1",
+          "I'm not very good at",
+          "L1.1.1",
           6,
           9
-        ],
-        [
-          "I guess so",
-          "L1.2",
-          18,
-          21
         ]
       ]
     },
@@ -847,25 +704,13 @@
         "critical"
       ],
       "tips": "别一边倒。用 It is useful, but… 承认代价，观点更可信。",
-      "sample": "Yes, but it's double-edged. There's so much to see and do [L11.1], and that's wonderful. But there are also too many distractions [L4.1]. I think the biggest mistake people make is trying to do too much [L11.1] — online, just like in real life.",
+      "sample": "It's useful, but it's a double-edged sword. It gives you access to everything, but a lot of it is noise. You have to use your common sense [L1.11.1] to separate the two.",
       "src": [
         [
-          "There's so much to see and do",
-          "L11.1",
-          10,
-          14
-        ],
-        [
-          "there are too many …",
-          "L4.1",
-          17,
-          23
-        ],
-        [
-          "the biggest mistake many people make is trying to do too much",
-          "L11.1",
-          5,
-          10
+          "use your common sense",
+          "L1.11.1",
+          100,
+          106
         ]
       ]
     },
@@ -889,31 +734,13 @@
         "boundary"
       ],
       "tips": "利弊题用 On the one hand… On the other hand…，最后给一条自己的建议收尾。",
-      "sample": "On the one hand, children can learn so much — there's so much to see and do [L11.1]. On the other hand, they can get lost in it. I think the biggest mistake parents make is not watching what kids do online [L11.1]. Another thing to remember is to set limits [L11.1] — otherwise it's impossible to keep up with them [L4.1].",
+      "sample": "On the one hand, kids can learn almost anything online, which is incredible. On the other hand [L2.U7.1], too much screen time is a real problem. I think supervision matters more than banning it.",
       "src": [
         [
-          "There's so much to see and do",
-          "L11.1",
-          10,
-          14
-        ],
-        [
-          "the biggest mistake … is …",
-          "L11.1",
-          5,
-          10
-        ],
-        [
-          "Another thing to remember is …",
-          "L11.1",
-          59,
-          66
-        ],
-        [
-          "It's impossible to …",
-          "L4.1",
-          23,
-          28
+          "On the other hand",
+          "L2.U7.1",
+          17,
+          21
         ]
       ]
     },
@@ -937,25 +764,13 @@
         "playlist"
       ],
       "tips": "说清音乐在你生活里的角色（背景音 / 专注用 / 睡前），比 yes, very much 有内容。",
-      "sample": "I do, though I'm not a big music person. I mostly use it as background. You know, it's funny — I'm not very good at singing or anything [L1.1], but I love listening. I guess I sort of just enjoy the feeling [L1.2].",
+      "sample": "I do, music is a big part of my life. I listen while I study and when I walk. I can't stand it when [L2.4.3] a room is totally silent, so there's always something playing.",
       "src": [
         [
-          "I'm not very good at …",
-          "L1.1",
-          6,
-          9
-        ],
-        [
-          "sort of",
-          "L1.2",
-          18,
-          21
-        ],
-        [
-          "I guess",
-          "L1.2",
-          18,
-          21
+          "I can't stand it when",
+          "L2.4.3",
+          3,
+          7
         ]
       ]
     },
@@ -979,19 +794,13 @@
         "guilty pleasure"
       ],
       "tips": "给一主一次两种风格，并说「什么时候听哪种」，答案立刻具体。",
-      "sample": "Mostly quiet things — I like music I can think to. I'm not very good at explaining it [L1.1], but slow songs with guitar are my thing. I go through phases, though. I guess I just like whatever fits the mood [L1.2].",
+      "sample": "Mostly mellow stuff, and some rock. When I'm working I like soft instrumentals, when I'm out I want energy. It depends on [L1.6.2] my mood, honestly.",
       "src": [
         [
-          "I'm not very good at …",
-          "L1.1",
-          6,
-          9
-        ],
-        [
-          "I guess",
-          "L1.2",
-          18,
-          21
+          "it depends on",
+          "L1.6.2",
+          13,
+          18
         ]
       ]
     },
@@ -1015,37 +824,19 @@
         "rusty"
       ],
       "tips": "学过又放弃是很真实的答案，用 I gave up because… 讲清原因即可。",
-      "sample": "I had piano lessons as a kid, but I gave up. I'm not very good at it [L1.1] and I never practised. I used to really enjoy it at first [L3.2], but then it became the same routine every day [L9.2], and I got sick of it [L9.2]. Sometimes I wish I had kept it up [L8.2].",
+      "sample": "I tried piano as a kid and gave up. To be honest [L2.2.1] I'm not very good at [L1.1.1] practising, and I lost patience. I wish I'd stuck with it.",
       "src": [
         [
-          "I'm not very good at it",
-          "L1.1",
+          "to be honest",
+          "L2.2.1",
+          8,
+          13
+        ],
+        [
+          "I'm not very good at",
+          "L1.1.1",
           6,
           9
-        ],
-        [
-          "used to really enjoy",
-          "L3.2",
-          20,
-          27
-        ],
-        [
-          "the same routine every day",
-          "L9.2",
-          8,
-          15
-        ],
-        [
-          "sick of …",
-          "L9.2",
-          8,
-          15
-        ],
-        [
-          "I wish I had …",
-          "L8.2",
-          20,
-          27
         ]
       ]
     },
@@ -1069,19 +860,13 @@
         "rewarding"
       ],
       "tips": "二选一题要给出「为什么不是另一个」的理由，这是得分点。",
-      "sample": "The piano, definitely. It's more forgiving at the start — you get a nice sound right away. The violin sounds terrible for months. I'm not very good at being patient [L1.1], so I'd rather play something I can enjoy quickly. It's a deal for me [L1.2].",
+      "sample": "The piano, because I already know a little. The violin sounds beautiful, but it's much harder to begin. I'd rather [L2.12.1] pick up where I left off with the piano than start from zero.",
       "src": [
         [
-          "I'm not very good at …",
-          "L1.1",
-          6,
-          9
-        ],
-        [
-          "It's a deal",
-          "L1.2",
-          31,
-          33
+          "I'd rather",
+          "L2.12.1",
+          33,
+          35
         ]
       ]
     },
@@ -1105,25 +890,19 @@
         "drop"
       ],
       "tips": "观点题先让步 Admittedly…，再转折 But I think…,显得思考过两面。",
-      "sample": "I think it depends on the child. Some kids love it, and some are forced into it and end up sick of it [L9.2]. I'd say let them try — but don't be afraid to let them stop [L11.1] if it's not for them. It's best to let them decide [L11.1].",
+      "sample": "Admittedly it's not for everyone. But I think it builds discipline and patience, which matter everywhere. I should have studied [L2.26.1] music more seriously when I was young — I really regret that [L2.26.2] now.",
       "src": [
         [
-          "sick of …",
-          "L9.2",
-          8,
-          15
+          "I should have studied",
+          "L2.26.1",
+          11,
+          13
         ],
         [
-          "don't be afraid to …",
-          "L11.1",
-          59,
-          66
-        ],
-        [
-          "It's best to …",
-          "L11.1",
-          14,
-          21
+          "I really regret that",
+          "L2.26.2",
+          33,
+          35
         ]
       ]
     },
@@ -1147,25 +926,13 @@
         "sweat"
       ],
       "tips": "区分「看」和「做」：I like watching… more than playing…，这是很自然的展开。",
-      "sample": "I like watching it more than playing it. When I was a kid, I used to run around all day [L3.1], but now I'm not very good at keeping it up [L1.1]. I do swim when I can. I guess I'm more of a fan [L1.2].",
+      "sample": "I like watching more than playing. I'm not very good at [L1.1.1] most sports, but I love watching basketball for the pace.",
       "src": [
         [
-          "I used to …",
-          "L3.1",
-          27,
-          30
-        ],
-        [
-          "I'm not very good at …",
-          "L1.1",
+          "I'm not very good at",
+          "L1.1.1",
           6,
           9
-        ],
-        [
-          "I guess",
-          "L1.2",
-          18,
-          21
         ]
       ]
     },
@@ -1189,31 +956,13 @@
         "pull a muscle"
       ],
       "tips": "说频率和水平（twice a week / badly but happily），避免空泛。",
-      "sample": "I swim, and I rollerblade sometimes [L1.1]. Where did I learn to rollerblade? [L1.1] In the park near my house. This is only my second time at some of these [L1.1], so I'm not very good at them [L1.1], but I enjoy it.",
+      "sample": "I jog twice a week, badly but happily, and I swim sometimes. I'm trying to get in shape [L2.21.1] for summer, so I've been more consistent lately.",
       "src": [
         [
-          "rollerblade",
-          "L1.1",
-          23,
-          25
-        ],
-        [
-          "Where did you learn to rollerblade?",
-          "L1.1",
-          23,
-          25
-        ],
-        [
-          "This is only my second time",
-          "L1.1",
-          25,
-          28
-        ],
-        [
-          "I'm not very good at",
-          "L1.1",
-          6,
-          9
+          "get in shape",
+          "L2.21.1",
+          0,
+          3
         ]
       ]
     },
@@ -1237,19 +986,13 @@
         "following"
       ],
       "tips": "不只报名字，说它流行在哪（ grassroots 参与 / 电视转播 / 民族情绪）。",
-      "sample": "Table tennis, without question. It's played everywhere, from school yards to the national team. Honestly, there are too many people playing it to count [L4.1]. I guess it's cheap and easy, and that's why it's everywhere [L1.2].",
+      "sample": "Table tennis, that's for sure [L1.4.1]. It's everywhere, from schoolyards to office buildings, and almost everyone knows how to play.",
       "src": [
         [
-          "there are too many …",
-          "L4.1",
-          17,
-          23
-        ],
-        [
-          "I guess",
-          "L1.2",
-          18,
-          21
+          "That's for sure",
+          "L1.4.1",
+          23,
+          28
         ]
       ]
     },
@@ -1273,19 +1016,13 @@
         "replay"
       ],
       "tips": "讲一个看的理由（节奏、悬念、解说），比报项目名更有话。",
-      "sample": "I mostly watch swimming, because the races are fast and exciting. I can't stop watching once a big race gets started [L21.3]. I also like watching basketball. I guess I just enjoy the tension [L1.2].",
+      "sample": "Basketball, because of the pace. With most sports I zone out [L2.23.1] after a while, but a close basketball game keeps me glued to the screen.",
       "src": [
         [
-          "I couldn't stop … once I got started",
-          "L20.3",
-          3,
-          6
-        ],
-        [
-          "I guess",
-          "L1.2",
-          18,
-          21
+          "zone out",
+          "L2.23.1",
+          50,
+          57
         ]
       ]
     },
@@ -1309,19 +1046,13 @@
         "balance"
       ],
       "tips": "观点题用 I think so, as long as… 加条件，观点更严密。",
-      "sample": "I think so, as long as it stays fun. Sport teaches kids to handle losing, which is hard to learn anywhere else. But too much pressure turns them off. I wish more schools understood that [L8.2] — it's the same thing with any activity [L2.1].",
+      "sample": "I think so, as long as it's not forced. Sport teaches teamwork and how to handle losing. For kids, playing with friends — that's half the fun [L1.16.1] — so it should stay fun.",
       "src": [
         [
-          "I wish …",
-          "L8.2",
-          14,
-          20
-        ],
-        [
-          "that's not the same thing",
-          "L2.1",
-          46,
-          52
+          "That's half the fun",
+          "L1.16.1",
+          3,
+          6
         ]
       ]
     },
@@ -1345,25 +1076,13 @@
         "mood"
       ],
       "tips": "身体 + 心理各说一条，再落到自己的体验，最有说服力。",
-      "sample": "The obvious one is health, but for me it's more about the head. After I move, my mood is completely different. When I was a kid I used to be outside all day [L3.1], and I really enjoyed it [L3.2]. I guess our bodies remember that [L1.2].",
+      "sample": "Two big ones: physical health, and mental. When I'm working out [L2.10.1] regularly I sleep better and my mood is steadier. It's the routine as much as the exercise.",
       "src": [
         [
-          "When I was a kid …",
-          "L3.1",
-          8,
-          11
-        ],
-        [
-          "used to really enjoy",
-          "L3.2",
-          20,
-          27
-        ],
-        [
-          "I guess",
-          "L1.2",
-          18,
-          21
+          "working out",
+          "L2.10.1",
+          4,
+          8
         ]
       ]
     },
@@ -1393,43 +1112,31 @@
         "impact"
       ],
       "tips": "四个要点逐个覆盖，最后 why 那条要多说两句——那是考官真正等的部分。",
-      "sample": "The person I admire most is my aunt. I've known her my whole life, so I've watched how she lives. She runs a small restaurant, and she's in charge of everything [L1.2] — the cooking, the money, the people. What I really admire is that she never seems to lighten up [L14.1], in a good way: she's serious about her work but warm to everyone. It's hard to get a smile out of her when she's busy [L14.1], but when she does smile, the whole room changes. She's always giving people presents and help [L14.1], and I wish there were more people like her in this world [L14.1]. I guess that's why I admire her [L1.2] — she made a hard life look graceful.",
+      "sample": "The person I admire most is my mother. She has a good sense of humor [L2.1.1] but also this quiet strength. She's the sort of person who [L2.19.1] quietly fixes everything, and she never once complained about it. I remember she worked long hours while she was sick herself, yet she was still waiting for me when I came home from school [L2.24.2]. In her own small way she helped make the world a better place [L2.U4.1], and that's who I want to become.",
       "src": [
         [
-          "in charge of",
-          "L1.2",
-          13,
-          15
-        ],
-        [
-          "lighten up",
-          "L14.1",
-          6,
-          9
-        ],
-        [
-          "get a smile out of her",
-          "L14.1",
-          14,
+          "a good sense of humor",
+          "L2.1.1",
+          11,
           17
         ],
         [
-          "She's always giving … presents",
-          "L14.1",
-          28,
-          34
+          "the sort of person who",
+          "L2.19.1",
+          2,
+          6
         ],
         [
-          "I wish there were more people like her",
-          "L14.1",
-          34,
-          37
-        ],
-        [
-          "I guess",
-          "L1.2",
-          18,
+          "waiting for me when I came home from school",
+          "L2.24.2",
+          17,
           21
+        ],
+        [
+          "make the world a better place",
+          "L2.U4.1",
+          9,
+          13
         ]
       ]
     },
@@ -1459,37 +1166,25 @@
         "unforgettable"
       ],
       "tips": "「为什么难忘」要落在具体的一件事上（一次意外、一个人），不要只说风景很美。",
-      "sample": "Two summers ago I took a long train ride to a mountain town with two friends. We went because it was cheap, and the journey was something else. You know, I'm so excited just thinking about it [L10.1]. The scenery was incredible — it was like nothing I'd seen, and I learned so much about the place just watching it go by [L21.4]. What made it unforgettable was a small accident: we missed our stop and had to spend the night in a tiny station. At first, I thought we were in trouble [L22.2], but then I realized it was the best part of the trip [L22.2]. We talked until sunrise, and every time I think of that night I smile [L3.2]. That's what I remember most about the whole journey [L3.2].",
+      "sample": "The most memorable was a family trip years ago. We took a wrong turn and ended up in a tiny village with no signal. It wasn't a disaster — we always had a great time [L1.3.1] and met people we still talk about. On the way back our car broke down: our map was long gone [L2.10.2], our phones were dead, and I started to panic. My father just laughed and asked a farmer for help. It made me want to go out on my own [L2.24.2] more often.",
       "src": [
         [
-          "I'm so excited",
-          "L10.1",
-          0,
-          5
+          "we always had a great time",
+          "L1.3.1",
+          14,
+          17
         ],
         [
-          "I learned so much",
-          "L20.4",
-          3,
-          5
+          "long gone",
+          "L2.10.2",
+          39,
+          44
         ],
         [
-          "At first, I thought … But then I realized …",
-          "L21.2",
-          17,
-          20
-        ],
-        [
-          "every time I …",
-          "L3.2",
-          20,
-          27
-        ],
-        [
-          "what I remember most",
-          "L3.2",
-          0,
-          3
+          "go out on my own",
+          "L2.24.2",
+          29,
+          32
         ]
       ]
     },
@@ -1519,37 +1214,31 @@
         "pay off"
       ],
       "tips": "讲学习过程中的一个挫败点 + 一个突破点，这是 Part 2 最有内容的结构。",
-      "sample": "Recently I learned to rollerblade [L1.1]. I wanted to learn because I saw people doing it in the park near my house, and it looked like fun. I got a friend to give me some lessons [L1.1] — at first this was only my second time [L1.1], so I fell a lot. It took me about a month to feel steady. I'm not very good at it yet [L1.1], but I'm much better than when I started. The funny thing is how it's helped me: I'm less afraid of looking silly now, because I spent a month falling in public. And it's something I'll find useful later in life [L9.4], even if it's just a way to get around.",
+      "sample": "I recently learned to cook, by watching my mom [L2.18.2]. At first everything went wrong, which was frustrating. But once I reached that breakthrough stage [L2.25.1], it started to feel natural. I also learned how to communicate with people [L2.19.2] in the kitchen — you taste, you adjust, you explain what you are doing. The first time I cooked a whole meal for my family, I felt really proud of myself [L2.25.1].",
       "src": [
         [
-          "learn to rollerblade",
-          "L1.1",
-          23,
-          25
+          "learned to cook by watching my mom",
+          "L2.18.2",
+          0,
+          2
         ],
         [
-          "give me some lessons",
-          "L1.1",
-          28,
-          32
+          "breakthrough stage",
+          "L2.25.1",
+          15,
+          21
         ],
         [
-          "This is only my second time",
-          "L1.1",
-          25,
-          28
+          "learned how to communicate with people",
+          "L2.19.2",
+          0,
+          3
         ],
         [
-          "I'm not very good at it",
-          "L1.1",
-          6,
-          9
-        ],
-        [
-          "something you'll find useful later in life",
-          "L9.4",
-          7,
-          9
+          "felt really proud of myself",
+          "L2.25.1",
+          21,
+          23
         ]
       ]
     },
@@ -1579,49 +1268,31 @@
         "bucket list"
       ],
       "tips": "「你怎么知道这地方的」很容易被忽略，别漏——它让故事有来源。",
-      "sample": "I'd love to visit the Statue of Liberty in New York [L19.2]. I first learned about it in a school book — the statue was given to the United States by the people of France [L19.2], and it's a major tourist attraction, with about 2 million people from all over the world visiting every year [L19.1]. When I go, I'd climb the stairs all the way up to the crown [L19.2] — it's just 142 steps [L19.2]. I'd also just walk around the city, because there's so much to see and do [L11.1]. I want to go there and see it for myself [L21.4], not just in pictures.",
+      "sample": "I'd love to visit Tibet someday. I saw a documentary about it, and it made me want to go there and see it for myself [L1.20.4]. The landscape looks unreal — huge mountains and almost nobody around. What I really want is to go out on my own [L2.24.2] for a couple of weeks, slow down, and just walk. I've been meaning to [L2.7.1] plan it for years, but I haven't gotten around to it [L2.7.1]. Maybe this summer.",
       "src": [
         [
-          "the famous Statue of Liberty",
-          "L18.2",
-          0,
-          7
-        ],
-        [
-          "given to the United States by the people of France",
-          "L18.2",
+          "see it for myself",
+          "L1.20.4",
           14,
           18
         ],
         [
-          "a major tourist attraction … from all over the world",
-          "L18.1",
-          26,
+          "go out on my own",
+          "L2.24.2",
+          29,
           32
         ],
         [
-          "climb the stairs … up to the crown",
-          "L18.2",
-          26,
+          "I've been meaning to",
+          "L2.7.1",
+          24,
           29
         ],
         [
-          "it's just 142 steps",
-          "L18.2",
-          33,
-          35
-        ],
-        [
-          "There's so much to see and do",
-          "L11.1",
-          10,
-          14
-        ],
-        [
-          "see it for myself",
-          "L20.4",
-          14,
-          18
+          "I haven't gotten around to it",
+          "L2.7.1",
+          24,
+          29
         ]
       ]
     },
@@ -1645,31 +1316,13 @@
         "engagement"
       ],
       "tips": "Part 3 要给「分析型」答案：先答，再说条件或反例，别停在描述。",
-      "sample": "The main advantage is flexibility — you can learn when it suits you. I'd love something like that [L8.1], because not everyone has the same routine [L9.2]. But I think there's a real difficulty: studying alone is hard, and it's not the same thing as being in a room with a teacher [L2.1]. I guess the best version mixes both [L1.2].",
+      "sample": "The big advantage is flexibility. You can learn at your own pace, wherever you are. But you have to be aware of [L2.13.2] the downside — without a teacher there, it's easy to fall behind.",
       "src": [
         [
-          "I'd love something that would …",
-          "L8.1",
-          23,
-          28
-        ],
-        [
-          "the same routine",
-          "L9.2",
-          8,
-          15
-        ],
-        [
-          "that's not the same thing",
-          "L2.1",
-          46,
-          52
-        ],
-        [
-          "I guess",
-          "L1.2",
-          18,
-          21
+          "aware of",
+          "L2.13.2",
+          3,
+          5
         ]
       ]
     },
@@ -1693,37 +1346,13 @@
         "gradually"
       ],
       "tips": "讲「从什么变成什么」，用 There has been a shift from… to… 结构。",
-      "sample": "There has been a real change, that's for sure [L4.1]. When I was a kid, we used to learn mostly from books [L3.1]. Now there's so much to see and do online [L11.1], and classrooms have changed with it. I guess one of the biggest differences is that information is everywhere now [L2.1]. But more access isn't automatically the same thing as better learning [L2.1].",
+      "sample": "Education has changed a lot. Back then it was rote learning, that's for sure [L1.4.1]. Now it's more about problem-solving and working in teams, which I think is better.",
       "src": [
         [
           "That's for sure",
-          "L4.1",
+          "L1.4.1",
           23,
           28
-        ],
-        [
-          "When I was a kid, we used to …",
-          "L3.1",
-          8,
-          11
-        ],
-        [
-          "There's so much to see and do",
-          "L11.1",
-          10,
-          14
-        ],
-        [
-          "one of the biggest … is that …",
-          "L2.1",
-          40,
-          46
-        ],
-        [
-          "that's not the same thing",
-          "L2.1",
-          46,
-          52
         ]
       ]
     },
@@ -1747,19 +1376,13 @@
         "blend"
       ],
       "tips": "不要一刀切。说清「在什么条件下有效」，这是 Part 3 的高分思维。",
-      "sample": "I wouldn't call them outdated. A clear explanation from a good teacher is hard to beat — I know, because I had some great ones. But I also think you can't just do the same routine every day [L9.2] and expect attention. The best mix uses both. I guess that's where we're heading [L1.2].",
+      "sample": "Traditional methods still work in some contexts. Are they outdated? Not at all [L1.17.2] if they involve real discussion. But pure rote learning feels like a thing of the past.",
       "src": [
         [
-          "the same routine every day",
-          "L9.2",
-          8,
-          15
-        ],
-        [
-          "I guess",
-          "L1.2",
-          18,
-          21
+          "not at all",
+          "L1.17.2",
+          29,
+          31
         ]
       ]
     },
@@ -1783,19 +1406,13 @@
         "judgement"
       ],
       "tips": "用 should 类题目给立场 + 边界：It should be…, but it must not become…。",
-      "sample": "It should be a tool, not a replacement. Used well, it frees teachers to do the part only people can do. Used badly, it's just another screen. I think the biggest mistake is giving kids screens and thinking that's teaching [L11.1]. Another thing to remember is that technology breaks, and people don't [L11.1].",
+      "sample": "Technology should be a tool, not a substitute. It can help students learn to be more independent [L2.24.1], but it must not replace a teacher who notices when you're stuck.",
       "src": [
         [
-          "the biggest mistake … is …",
-          "L11.1",
-          5,
-          10
-        ],
-        [
-          "Another thing to remember is …",
-          "L11.1",
-          59,
-          66
+          "learn to be more independent",
+          "L2.24.1",
+          25,
+          28
         ]
       ]
     },
@@ -1819,23 +1436,11 @@
         "foundation"
       ],
       "tips": "承认 trade-off（时间有限）再表态，观点更成熟。",
-      "sample": "Important, but there's a trade-off, because time is limited. Practical skills are something you'll find useful later in life [L9.4], that's for sure [L4.1]. But I wouldn't give up the basics for them. I think the best schools give you both. I guess it's about balance [L1.2].",
+      "sample": "Very important, because not everyone goes into academic work. Practical skills help you make good money [L1.14.2] and stay flexible. But there's a trade-off — time is limited.",
       "src": [
         [
-          "something you'll find useful later in life",
-          "L9.4",
-          7,
-          9
-        ],
-        [
-          "That's for sure",
-          "L4.1",
-          23,
-          28
-        ],
-        [
-          "I guess",
-          "L1.2",
+          "make good money",
+          "L1.14.2",
           18,
           21
         ]
@@ -1861,29 +1466,11 @@
         "privilege"
       ],
       "tips": "说好处的同时提一句代价（成本/不公平），显示你能看两面。",
-      "sample": "The biggest benefit is that you change. I came here after I graduated [L2.1], so I know this firsthand. Being an immigrant is hard — one of the biggest difficulties is that I don't have any relatives here [L2.1], and I miss my mother's cooking [L2.1]. But I learned to stand on my own feet, and that's not something a classroom gives you. It takes a bit of getting used to [L22.2], but it's worth it.",
+      "sample": "The main benefit is immersion. You learn the language for real, though it takes a bit of getting used to [L1.21.2] at first. But it's expensive, and not everyone can afford it.",
       "src": [
         [
-          "I came here after I graduated",
-          "L2.1",
-          9,
-          16
-        ],
-        [
-          "one of the biggest difficulties is that I don't have any relatives here",
-          "L2.1",
-          40,
-          46
-        ],
-        [
-          "I really miss my mother's cooking",
-          "L2.1",
-          69,
-          72
-        ],
-        [
           "It takes a bit of getting used to",
-          "L21.2",
+          "L1.21.2",
           25,
           27
         ]
@@ -1909,25 +1496,13 @@
         "degradation"
       ],
       "tips": "列 2 个问题并各说一句成因或影响，不要只报名词。",
-      "sample": "The most visible one used to be traffic — there are too many cars and there isn't enough parking [L4.1]. It's impossible to find a parking space downtown [L4.1]. Air quality has got better, but there are still problems. I guess the biggest issue is that we make more waste than we can handle [L2.1].",
+      "sample": "Air quality is the obvious one in big cities, and waste is another. That's not an easy question to answer [L1.2.1], how to fix it, but it's hard to ignore.",
       "src": [
         [
-          "there are too many cars … not enough parking",
-          "L4.1",
-          17,
-          23
-        ],
-        [
-          "It's impossible to find a parking space",
-          "L4.1",
-          23,
-          28
-        ],
-        [
-          "one of the biggest … is that …",
-          "L2.1",
-          40,
-          46
+          "that's not an easy question to answer",
+          "L1.2.1",
+          32,
+          36
         ]
       ]
     },
@@ -1951,31 +1526,13 @@
         "systemic"
       ],
       "tips": "先给具体做法，再指出个人力量的边界，这是成熟答案的标志。",
-      "sample": "The everyday things still matter. We need more people to take the bus or subway [L4.1], and fewer to drive. There should be more public transportation in general [L4.2]. Personally, I try to waste less food — my mom always said not to throw things out carelessly [L3.1]. But I also think the biggest changes have to come from governments, not just individuals [L11.1].",
+      "sample": "Individuals can do a lot — reuse, cut waste, take public transport. Some cities even ban private cars [L1.4.1] downtown. But the big changes have to come from companies and government too.",
       "src": [
         [
-          "We need more …",
-          "L4.1",
-          5,
-          15
-        ],
-        [
-          "There should be more public transportation in general",
-          "L4.2",
-          19,
-          23
-        ],
-        [
-          "throw … out",
-          "L3.1",
-          30,
-          32
-        ],
-        [
-          "the biggest …",
-          "L11.1",
-          5,
-          10
+          "ban private cars",
+          "L1.4.1",
+          28,
+          33
         ]
       ]
     },
@@ -1999,31 +1556,13 @@
         "gap"
       ],
       "tips": "区分「承诺」和「执行」，用 There is a gap between… and…。",
-      "sample": "Honestly, I don't think enough, not yet. There's a gap between what they say and what they do, that's for sure [L4.1]. They should ban the worst polluters [L4.1], and they need to put more money into public transport [L4.1]. I guess it's easier to promise than to act [L1.2].",
+      "sample": "Honestly, not enough. There's a gap between what's promised and what's enforced. So no, not yet anyway [L2.14.2].",
       "src": [
         [
-          "That's for sure",
-          "L4.1",
-          23,
-          28
-        ],
-        [
-          "they should ban …",
-          "L4.1",
-          28,
-          33
-        ],
-        [
-          "they need to put more … on the road",
-          "L4.1",
-          15,
-          17
-        ],
-        [
-          "I guess",
-          "L1.2",
-          18,
-          21
+          "Not yet anyway",
+          "L2.14.2",
+          22,
+          26
         ]
       ]
     },
@@ -2047,25 +1586,13 @@
         "incentive"
       ],
       "tips": "提到 greenwashing（漂绿）这类概念能显出你有实质观点。",
-      "sample": "A large one, because companies produce most of the waste. I think they should be made to clean up their own mess [L4.1]. Another thing to remember is that companies follow the money [L11.1], so rules matter more than promises. It's a deal only if it's enforced [L1.2].",
+      "sample": "Businesses have a big responsibility. But before we celebrate any company's promises, we should make sure we've got our facts straight [L2.14.1] — a lot of it turns out to be greenwashing.",
       "src": [
         [
-          "they should …",
-          "L4.1",
-          28,
-          33
-        ],
-        [
-          "Another thing to remember is …",
-          "L11.1",
-          59,
-          66
-        ],
-        [
-          "It's a deal",
-          "L1.2",
-          31,
-          33
+          "we've got our facts straight",
+          "L2.14.1",
+          43,
+          48
         ]
       ]
     },
@@ -2089,29 +1616,11 @@
         "walkable"
       ],
       "tips": "给 2~3 个具体方向（密度/公交/改造），避免空说 will be greener。",
-      "sample": "I think the biggest change will be in transport. Singapore is a great example — quite a number of things have been done there to help solve traffic problems [L5.1]. They built an excellent public transportation system, and their subway is one of the best in the world [L5.1]. Cities should ban private cars downtown [L4.1] and build more lines. There should be more public transportation in general [L4.2]. That's how cities get cleaner without making everyone change their whole life.",
+      "sample": "I think cities will get denser and greener. More public transportation [L1.4.2], more walking and cycling, more green space. The suburbs might even shrink.",
       "src": [
         [
-          "quite a number of things have been done",
-          "L5.1",
-          0,
-          6
-        ],
-        [
-          "an excellent public transportation system … one of the best in the world",
-          "L5.1",
-          52,
-          55
-        ],
-        [
-          "ban private cars downtown",
-          "L4.1",
-          28,
-          33
-        ],
-        [
-          "There should be more public transportation in general",
-          "L4.2",
+          "more public transportation",
+          "L1.4.2",
           19,
           23
         ]
@@ -2137,13 +1646,13 @@
         "design"
       ],
       "tips": "关键论点：让环保成为「默认选项」而非道德选择——这是很强的 Part 3 观点。",
-      "sample": "Only partly. Most people will accept small changes, but not big sacrifices forever. I think it's more realistic to change the system than to change every person. I guess the truth is people follow the easiest path [L1.2]. So the answer is to make the easy path the clean one.",
+      "sample": "Partly realistic. People can change, but only if it's made easy — after a while I got used to it [L2.11.3] with reusable bags, for example. The trick is making the green option the default.",
       "src": [
         [
-          "I guess",
-          "L1.2",
-          18,
-          21
+          "after a while I got used to it",
+          "L2.11.3",
+          9,
+          16
         ]
       ]
     },
@@ -2167,31 +1676,13 @@
         "tone"
       ],
       "tips": "对比 breadth 与 depth（广度 vs 深度）是这类题的经典高分框架。",
-      "sample": "It's made everything instant. You can reach anyone, anywhere. But I've noticed something: the way people talk online isn't the same thing as talking face to face [L2.1]. There are some things I find a bit unusual [L22.2], like how easy it is to misunderstand tone. At first, I thought it was just me [L22.2], but then I realized everyone feels it [L22.2]. It takes a bit of getting used to [L22.2].",
+      "sample": "It's made communication instant. You can keep in touch with everyone you need to [L2.23.1], anywhere, anytime. But we talk more and connect less — broader, but shallower.",
       "src": [
         [
-          "that's not the same thing",
-          "L2.1",
-          46,
-          52
-        ],
-        [
-          "some things I find a bit unusual",
-          "L21.2",
-          8,
-          10
-        ],
-        [
-          "At first, I thought … But then I realized …",
-          "L21.2",
-          17,
-          20
-        ],
-        [
-          "It takes a bit of getting used to",
-          "L21.2",
-          25,
-          27
+          "keep in touch with everyone you need to",
+          "L2.23.1",
+          41,
+          50
         ]
       ]
     },
@@ -2215,31 +1706,13 @@
         "moderation"
       ],
       "tips": "两边各给一条，并指出同一个机制如何同时产生利弊（例如连接 vs 比较）。",
-      "sample": "The advantage is connection — you can meet people and make new friends [L9.3] from anywhere. But the downside is real too. I'm sick of hearing the same arguments online [L21.1], and it's impossible to have a quiet moment [L4.1]. I think the biggest problem is that people compare their real lives to everyone's highlights [L11.1].",
+      "sample": "The good part is connection and community. The bad part is comparison — everyone shows their best side. People are at their best when you're sincerely interested in other people [L2.19.2], not just scrolling.",
       "src": [
         [
-          "meet people and make new friends",
-          "L9.3",
-          8,
-          11
-        ],
-        [
-          "I'm sick of hearing …",
-          "L20.1",
-          14,
-          19
-        ],
-        [
-          "It's impossible to …",
-          "L4.1",
-          23,
-          28
-        ],
-        [
-          "the biggest …",
-          "L11.1",
-          5,
-          10
+          "sincerely interested in other people",
+          "L2.19.2",
+          18,
+          20
         ]
       ]
     },
@@ -2263,31 +1736,13 @@
         "transition"
       ],
       "tips": "区分「任务」和「整个职业」是这题的关键区分点，说出来就显得专业。",
-      "sample": "I think it will change jobs more than replace them, at least for a while. I could never do some of the things machines do [L18.1], that's for sure [L4.1]. But there's a part of most jobs that's about people, and that's not the same thing as computing [L2.1]. I guess we'll have to learn to work with it [L1.2].",
+      "sample": "I think it'll replace some tasks, not whole jobs. Repetitive work will go, but work that needs judgment and human contact will stay. The challenge is helping people retrain for something more practical [L2.26.1].",
       "src": [
         [
-          "I could never …",
-          "L17.1",
-          21,
-          23
-        ],
-        [
-          "That's for sure",
-          "L4.1",
-          23,
-          28
-        ],
-        [
-          "that's not the same thing",
-          "L2.1",
-          46,
-          52
-        ],
-        [
-          "I guess",
-          "L1.2",
-          18,
-          21
+          "something more practical",
+          "L2.26.1",
+          11,
+          13
         ]
       ]
     },
@@ -2311,19 +1766,13 @@
         "equity"
       ],
       "tips": "给一个具体设想 + 一个你担心的点，答案就有观点而不只是预测。",
-      "sample": "I think it will make learning more personal. Software can adapt to each student's mistakes, which a single teacher can't do for thirty kids. But I also worry it becomes the same routine every day [L9.2], just on a screen. I guess the best use keeps the human part [L1.2].",
+      "sample": "I think AI tutors will become normal, giving every student instant feedback. Learning anything will feel like it wasn't an impossible thing after all [L2.25.1]. But I worry students might become too passive.",
       "src": [
         [
-          "the same routine every day",
-          "L9.2",
-          8,
-          15
-        ],
-        [
-          "I guess",
-          "L1.2",
-          18,
-          21
+          "wasn't an impossible thing after all",
+          "L2.25.1",
+          23,
+          27
         ]
       ]
     },
@@ -2347,25 +1796,13 @@
         "rely on"
       ],
       "tips": "举一个具体风险场景（断网、技能退化），比泛泛说 dangerous 有力。",
-      "sample": "Two things worry me. First, we depend on systems that can fail, and when they do, it's impossible to do anything [L4.1]. Second, we stop practising basic skills — I used to remember phone numbers [L3.1], and now I can't. I guess the danger is that we forget how to manage without it [L1.2].",
+      "sample": "The main risk is that we forget how to do things ourselves. If a system goes down, we're stuck — you can't always change by yourself [L2.21.2] when the tools do everything for you.",
       "src": [
         [
-          "It's impossible to …",
-          "L4.1",
-          23,
-          28
-        ],
-        [
-          "I used to …",
-          "L3.1",
-          27,
-          30
-        ],
-        [
-          "I guess",
-          "L1.2",
-          18,
-          21
+          "You can't always change by yourself",
+          "L2.21.2",
+          4,
+          8
         ]
       ]
     },
@@ -2389,25 +1826,13 @@
         "audit"
       ],
       "tips": "给 2 条可操作措施（透明度/问责），再加一条教育层面的，结构完整。",
-      "sample": "I think it comes down to two things. First, rules — companies should be made to explain what their systems do [L4.1]. Second, education. People need to understand enough not to be fooled. Another thing to remember is that no system is neutral [L11.1]. I guess the answer is to keep asking questions [L1.2].",
+      "sample": "Two things: transparency, so the public can have a clearer picture [L2.14.2] of how decisions are made, and accountability, so someone answers when it goes wrong. Plus education, so people understand what they're using.",
       "src": [
         [
-          "they should …",
-          "L4.1",
-          28,
-          33
-        ],
-        [
-          "Another thing to remember is …",
-          "L11.1",
-          59,
-          66
-        ],
-        [
-          "I guess",
-          "L1.2",
-          18,
-          21
+          "have a clearer picture",
+          "L2.14.2",
+          27,
+          32
         ]
       ]
     },
@@ -2431,37 +1856,13 @@
         "scattered"
       ],
       "tips": "用具体变化对照（规模、地理分散、双职工），别只说 it changed a lot。",
-      "sample": "Families are smaller and more spread out now. When I was a kid, we used to visit relatives on holidays and stuff [L3.2], and the whole family lived nearby. Now people move to different cities for work, so we don't have any relatives close by [L2.1]. I guess one of the biggest changes is that we see each other less [L2.1]. I really miss that [L2.1].",
+      "sample": "Families are smaller and more spread out now. I don't have any relatives here [L1.2.1], so I only see them on holidays. Many households are two-income, which changes how time gets spent.",
       "src": [
         [
-          "on holidays and stuff",
-          "L3.2",
-          6,
-          9
-        ],
-        [
-          "we visit relatives",
-          "L2.1",
-          52,
-          58
-        ],
-        [
-          "don't have any relatives here",
-          "L2.1",
+          "I don't have any relatives here",
+          "L1.2.1",
           40,
           46
-        ],
-        [
-          "one of the biggest … is that …",
-          "L2.1",
-          40,
-          46
-        ],
-        [
-          "I really miss …",
-          "L2.1",
-          69,
-          72
         ]
       ]
     },
@@ -2485,31 +1886,13 @@
         "trade-off"
       ],
       "tips": "各给 2 条，并指出利弊同源（机会多 = 竞争和成本高）。",
-      "sample": "The advantage is that everything is close — work, food, people. But there are too many cars and there isn't enough parking [L4.1], and it's impossible to find a quiet moment [L4.1]. I'm sick of the noise sometimes [L9.2]. I guess it's worth it while you're young [L1.2], but not forever.",
+      "sample": "Cities offer opportunity, and you're right downtown [L1.7.2] where everything is. But the cost of living is brutal and the commute wears you down. The density gives and takes at the same time.",
       "src": [
         [
-          "there are too many cars … not enough parking",
-          "L4.1",
-          17,
-          23
-        ],
-        [
-          "It's impossible to find …",
-          "L4.1",
-          23,
-          28
-        ],
-        [
-          "I'm sick of …",
-          "L9.2",
-          8,
-          15
-        ],
-        [
-          "I guess",
-          "L1.2",
-          18,
-          21
+          "right downtown",
+          "L1.7.2",
+          19,
+          22
         ]
       ]
     },
@@ -2533,31 +1916,13 @@
         "belonging"
       ],
       "tips": "区分「保存」与「冻结」——传统要活着就得变，这是高分论点。",
-      "sample": "Very important, I think. Traditions give people a sense of where they come from. The Chinese Spring Festival is a good example — it's the grandest and the most important festival for Chinese people [L23.1]. Couplets are pasted at both sides of the gates [L23.1], and dumplings and the reunion dinner are indispensable at this time [L23.1]. But I also think traditions have to change a little to stay alive. It's not the same thing as freezing them in place [L2.1].",
+      "sample": "I think it matters, because traditions carry identity. It is said that [L1.22.1] they hold a people together. But they shouldn't be frozen — a tradition that doesn't change eventually dies.",
       "src": [
         [
-          "the grandest and the most important festival",
-          "L22.1",
-          15,
-          19
-        ],
-        [
-          "Couplets are pasted at both sides of the gates",
-          "L22.1",
-          39,
-          42
-        ],
-        [
-          "dumplings and the reunion dinner are indispensable",
-          "L22.1",
-          50,
-          54
-        ],
-        [
-          "that's not the same thing",
-          "L2.1",
-          46,
-          52
+          "It is said that",
+          "L1.22.1",
+          20,
+          23
         ]
       ]
     },
@@ -2581,19 +1946,13 @@
         "legitimate"
       ],
       "tips": "这题要立场清晰：强在公共服务，弱在私人选择。给一条界线。",
-      "sample": "I think a government should do the things no single person can — roads, transport, safety. Singapore is a good example: quite a number of things have been done there to help solve traffic problems [L5.1], and that's exactly the kind of thing governments are for. But they shouldn't manage how people live day to day. I guess the line is where private life begins [L1.2].",
+      "sample": "Governments should provide the basics — safety, education, healthcare. But when they meddle in private choices, it's not worth the risk [L1.11.1] of losing freedom. Strong on public goods, light on private life.",
       "src": [
         [
-          "quite a number of things have been done",
-          "L5.1",
-          0,
-          6
-        ],
-        [
-          "I guess",
-          "L1.2",
-          18,
-          21
+          "it's not worth the risk",
+          "L1.11.1",
+          96,
+          100
         ]
       ]
     },
@@ -2617,19 +1976,13 @@
         "participate"
       ],
       "tips": "给具体机制（共享空间 / 参与决策），避免口号式答案。",
-      "sample": "I think shared spaces help more than anything, because trust grows from small, repeated contact. Parks, markets, a good bus route — these bring people together without forcing it. When people meet regularly, they make new friends [L9.3]. I guess community is built slowly, by living side by side [L1.2].",
+      "sample": "Shared spaces and events, I think. When people actually say let's get together soon [L1.21.2] and mean it, trust grows. It's not complicated, just effort.",
       "src": [
         [
-          "make new friends",
-          "L9.3",
-          8,
-          11
-        ],
-        [
-          "I guess",
-          "L1.2",
-          18,
-          21
+          "let's get together soon",
+          "L1.21.2",
+          15,
+          17
         ]
       ]
     },
@@ -2653,37 +2006,13 @@
         "pressure"
       ],
       "tips": "经济 + 心理两条线都说，并指出它们的关联，答案更有深度。",
-      "sample": "I think the biggest challenge is uncertainty. The job market keeps changing, and it's impossible to plan too far ahead [L4.1]. On top of that, everyone compares themselves online. I know what you mean if you feel tired of it [L8.1]. I really need a change sometimes [L9.2], and I think a lot of young people feel the same. I guess the first step is to make up your mind about what you want [L14.2].",
+      "sample": "Two big ones. The job market is uncertain — unemployment is going to keep getting worse [L2.23.1] in some fields. And there's constant pressure from comparison on social media. The two feed each other.",
       "src": [
         [
-          "the biggest …",
-          "L11.1",
-          5,
-          10
-        ],
-        [
-          "It's impossible to …",
-          "L4.1",
-          23,
-          28
-        ],
-        [
-          "I know what you mean",
-          "L8.1",
-          36,
-          37
-        ],
-        [
-          "I really need a change",
-          "L9.2",
+          "keep getting worse",
+          "L2.23.1",
           0,
-          2
-        ],
-        [
-          "make up your mind",
-          "L14.2",
-          3,
-          6
+          14
         ]
       ]
     }
