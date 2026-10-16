@@ -19,11 +19,26 @@
 | 上一版（回滚目标） | `e2e5ddb`（`Day 25｜余力加练：把发布前检查的用法写进 RUN.md 第八节`） |
 | 线上前端地址 | `https://echoread.app.workbuddy.host/` |
 | 线上接口地址 | `https://echoread-d0g1b2ez6a369d11e-1502538433.ap-shanghai.app.tcloudbase.com` |
+| 线上静态副本（B 通道） | `https://echoread-d0g1b2ez6a369d11e-1502538433.tcloudbaseapp.com`　⚠️ **不支持 Range**（点句跳播在此站不可用）；只能控制台手动上传 |
 | 发布目录 | 仓库根目录本身（`<仓库路径>`，即 `C:\Users\20769\Desktop\vibe-coding-30days`） |
 | 发布到哪个应用 | 由**目录**决定，不由人决定：该目录关联的应用是<br>`wbapp_QtA4nZE0AiTmjU19OyPRTV`「EchoRead 英语跟读」 |
 | 发布方式 | 走发布通道上传整个目录，**`language` 必须显式写成 `node`** |
 | 为什么必须写 `node` | 让它自己猜成 `static` 的话，静态托管**不给 Range**，音频跳播当场坏掉（`RUN.md` 第四节有实测） |
 | 发布后要记下来 | `shareLink` / `sandboxId` / `deployedAs`（正常应为 `http-service`） |
+
+> ⚠️ **这个环境有【三条】独立通道，别混为一谈（2026-10-16 补齐登记）：**
+>
+> | 通道 | 地址 | 能力 | 怎么同步 |
+> |---|---|---|---|
+> | 前端发布站 | `https://echoread.app.workbuddy.host/` | ✅ 支持 Range（`206`） | 走发布通道上传，`language: node` |
+> | 后端接口 | `…ap-shanghai.app.tcloudbase.com` | 提供服务端 API | 控制台 zip 上传云函数 |
+> | **静态副本** | `…tcloudbaseapp.com` | ❌ **不支持 Range**（`Range` 请求回整文件 `200`） | **只能控制台手动上传** |
+>
+> ⚠️ **同步静态副本的三个坑（2026-10-16 连踩四次，照这个一次过）：**
+> 1. **别传 zip** —— 控制台不会自动解压，结果只是多出一个 69MB 的压缩包。
+> 2. **别指望拖拽** —— 拖拽只对**文件**有效，**目录会被忽略**（实测：8 个 html 进去了，三个目录一个没进）。
+> 3. **正解：分多次「上传文件夹」**，每次选一个**子目录本身**（`assets` / `data` / `games`）——
+>    控制台拿所选文件夹名当一级目录，而这三个名字**恰好就是目标路径名**，能精确落位；同名文件选「**覆盖**」。
 
 ---
 
