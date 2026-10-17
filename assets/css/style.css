@@ -50,6 +50,24 @@
   --rule: #e6e8ec;                        /* 页头装饰线 */
   --focus-ring: #0f6e56;                  /* 键盘焦点环 */
 
+  /* ---- 明暗主题补充位（Day 31）----
+     下面这几个原来是直接写死在规则里的，暗色要能用就得先收成 token：
+       --surface-hover  悬停时的浅底
+       --bg-glow        页面正中那道白光
+       --blob-a..d      四个流动色块的颜色
+       --accent-fill    填充按钮的底色（⚠️ 与 --accent 分开：暗色下强调色要提亮才看得清，
+                        可填充按钮一提亮，白字就压不住了，两者不能共用一个值）*/
+  --surface-hover: #f7f8fa;
+  --bg-glow: rgba(255, 255, 255, .8);
+  --blob-a: rgba(45, 92, 196, .40);
+  --blob-b: rgba(56, 168, 196, .36);
+  --blob-c: rgba(124, 96, 224, .34);
+  --blob-d: rgba(22, 138, 108, .28);
+  --accent-fill: #0f6e56;
+  --accent-fill-strong: #0b5a46;
+  --text-ghost: #a0a8b2;      /* 占位符 / 极弱说明字 */
+  --surface-inset: #f1f2f4;   /* 内嵌块（比卡片再深一档） */
+
   /* ---- 尺寸（原有）---- */
   --radius-card: 16px;
   --radius-pill: 999px;
@@ -99,6 +117,54 @@
   --duration-slow: 280ms;      /* 光标处那个「透视窗」：浮出 / 收回 */
   --duration-dissolve: 200ms;  /* 点击后卡片溶解：圆扩大盖满 + 文字淡出（他说要"快一点"） */
   --ease-out: cubic-bezier(0, 0, .2, 1);
+}
+
+/* ============================================
+   暗色主题（Day 31）
+   ------------------------------------------------------------
+   触发方式只有一种：<html data-theme="dark">。
+   整套设计 token 换一遍，下面两千多行规则里【一行都不用改】——
+   这也是前几轮把颜色往变量里收的回报。
+
+   ⚠️ 强调色与填充色必须分开：
+      暗底上 --accent 要提亮（#5b9dff，深海蓝）才有对比；可填充按钮一提亮，
+      压在上面的白字就糊了。所以按钮底色用 --accent-fill（#2258c9），停在中等深度。
+   ⚠️ 阴影在暗色下不能再用"淡灰投影"（看不见），改成纯黑更重用低透明度。
+   ============================================ */
+html[data-theme='dark'] {
+  --bg: #101319;
+  --surface: #191d25;
+  --surface-sunken: #14171e;
+  --surface-hover: #222833;
+  --border: #2a3040;
+  --border-strong: #3b4356;
+  --rule: #262c38;
+  --text: #e9edf4;
+  --text-muted: #a7b0be;
+  --text-faint: #8b95a4;
+  --accent: #5b9dff;
+  --accent-strong: #82b6ff;
+  --accent-fill: #2258c9;
+  --accent-fill-strong: #2f6ae0;
+  --text-ghost: #6f7885;
+  --surface-inset: #1e232c;
+  --focus-ring: #5b9dff;
+  --ok-bg: rgba(91, 157, 255, .14);
+  --ok-text: #8fc0ff;
+  --todo-bg: #242a35;
+  --todo-text: #98a2b1;
+  --brand-navy: #8fa8f0;
+  --brand-navy-lift: #a9bcff;
+  --brand-navy-deep: #6d86d6;
+  --brand-amber: #edaf32;
+  --bg-glow: rgba(120, 170, 255, .10);
+  --blob-a: rgba(45, 92, 196, .30);
+  --blob-b: rgba(56, 168, 196, .22);
+  --blob-c: rgba(124, 96, 224, .26);
+  --blob-d: rgba(91, 157, 255, .20);
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, .5);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, .5), 0 2px 6px -2px rgba(0, 0, 0, .45);
+  --shadow-md: 0 4px 10px -3px rgba(0, 0, 0, .55), 0 10px 24px -10px rgba(0, 0, 0, .5);
 }
 
 /* ⚠️ Day 11：--r 必须【注册】成 <length>，那个圆形空洞才能平滑开合。
@@ -1188,7 +1254,7 @@ main {
 /* 新增：悬停轻微提亮，指明"这一句能点"（只在有鼠标的设备上） */
 @media (hover: hover) {
   .seg:not(.is-playing):hover {
-    background: #f7f8fa;
+    background: var(--surface-hover);
   }
 }
 
@@ -1955,7 +2021,7 @@ main {
 html {
   background:
     radial-gradient(circle at 50% 42%,
-      rgba(255, 255, 255, .8) 0%, rgba(255, 255, 255, 0) 36%),
+      var(--bg-glow) 0%, transparent 36%),
     var(--bg);
 }
 
@@ -2002,25 +2068,25 @@ body::after {
 html::before {
   width: 68vmax; height: 68vmax;
   left: calc(30% - 34vmax); top: calc(22% - 34vmax);      /* 左上：深蓝 */
-  --c: rgba(45, 92, 196, .40);
+  --c: var(--blob-a);
   animation: bgDriftA var(--bg-flow) linear infinite;
 }
 html::after {
   width: 60vmax; height: 60vmax;
   left: calc(74% - 30vmax); top: calc(16% - 30vmax);      /* 右上：青 */
-  --c: rgba(56, 168, 196, .36);
+  --c: var(--blob-b);
   animation: bgDriftB var(--bg-flow) linear infinite;
 }
 body::before {
   width: 62vmax; height: 62vmax;
   left: calc(22% - 31vmax); top: calc(86% - 31vmax);      /* 左下：紫 */
-  --c: rgba(124, 96, 224, .34);
+  --c: var(--blob-c);
   animation: bgDriftC var(--bg-flow) linear infinite;
 }
 body::after {
   width: 55vmax; height: 55vmax;
   left: calc(84% - 27vmax); top: calc(82% - 27vmax);      /* 右下：品牌绿 */
-  --c: rgba(22, 138, 108, .28);
+  --c: var(--blob-d);
   animation: bgDriftD var(--bg-flow) linear infinite;
 }
 

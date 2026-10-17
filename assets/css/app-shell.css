@@ -39,12 +39,37 @@ body.app {
   --nav-active-bg: #c9f0dd;
   --nav-hover-bg: rgba(15, 110, 86, .07);
 
+  /* ---- 毛玻璃与色带（Day 31 抽出）----
+     原来是直接写死 rgba(255,255,255,x) 的；暗色下"加白"是错的（越加越亮），
+     得改成"加暗"，所以必须先是变量。 */
+  --glass-soft: rgba(255, 255, 255, .38);   /* 顶栏 */
+  --glass: rgba(255, 255, 255, .52);        /* 手机端右抽屉 */
+  --band-right: rgba(255, 255, 255, .45);   /* 桌面右栏色带 */
+  --danger-text: #b42318;
+
   /* ⚠️ 覆盖 style.css 的 body { padding: 24px 16px 40px }。
      外壳自己管四周留白（顶栏固定、主区自带内边距），
      留着那 24px 会让固定顶栏和内容之间多出一条缝。
      padding-top 用来把内容从固定顶栏底下推出来。 */
   padding: 0;
   padding-top: var(--bar-h);
+}
+
+/* ============================================
+   暗色：外壳专用配色（Day 31）
+   ⚠️ 这组变量住在 body.app 上（见上，故意不进 :root：只服务外壳），
+      所以暗色覆盖也必须落在同一个选择器上，否则覆盖不到。
+      毛玻璃从"加白"翻成"加暗"，薄荷带压成深青 —— 直接沿用浅色那套 rgba 会整片发白。
+   ============================================ */
+html[data-theme='dark'] body.app {
+  --side-mint-rgb: 24, 36, 58;
+  --side-mint-line: rgba(91, 157, 255, .16);
+  --nav-active-bg: #1b2a47;
+  --nav-hover-bg: rgba(91, 157, 255, .08);
+  --glass-soft: rgba(16, 20, 27, .72);
+  --glass: rgba(16, 20, 27, .78);
+  --band-right: rgba(16, 20, 27, .55);
+  --danger-text: #ff9a90;
 }
 
 /* ============================================
@@ -68,7 +93,7 @@ body.app {
        ② 白色占比 .72 → .62：白得越少，透出来的背景色越连贯，
           顶栏不再读成"贴上去的一条白带"。
      ⚠️ 可读性兜底还在：blur(14px) 把底下磨成色块，文字压得住。 */
-  background: rgba(255, 255, 255, .38);
+  background: var(--glass-soft);
   -webkit-backdrop-filter: saturate(1.5) blur(14px);
           backdrop-filter: saturate(1.5) blur(14px);
   /* 原来这里有一条 border-bottom: 1px solid var(--rule) —— 已删，见上。 */
@@ -227,6 +252,50 @@ body.app {
   margin-top: var(--space-3);
 }
 
+/* ---- 外观开关（三态：浅色 / 深色 / 跟随系统）----
+   卡片的皮（白底 / 描边 / 圆角 / 阴影）来自 .acct-card + .item。
+   侧栏只有 ~240px 宽，「标签 + 三个按钮」横排放不下，所以竖排：标题一行、分段控件占满一整行。
+   选中态借用 --ok-bg / --ok-text —— 和 .item[aria-pressed='true'] 是同一套"选中"语言，
+   两种主题下都成立，不用为暗色再补一遍。 */
+.theme-row__label {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  margin-bottom: var(--space-2);
+}
+.theme-seg {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 2px;
+  padding: 2px;
+  background: var(--surface-hover);
+  border: 1px solid var(--border);
+  border-radius: 11px;
+}
+.theme-seg__btn {
+  min-height: 30px;
+  padding: 0 4px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: var(--text-xs);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color var(--duration-fast) var(--ease-out),
+              color var(--duration-fast) var(--ease-out);
+}
+@media (hover: hover) {
+  .theme-seg__btn:hover {
+    color: var(--text);
+  }
+}
+.theme-seg__btn[aria-pressed='true'] {
+  background: var(--ok-bg);
+  color: var(--ok-text);
+  font-weight: 500;
+}
+
 .acct-head {
   display: flex;
   align-items: center;
@@ -276,14 +345,14 @@ body.app {
   width: 100%;
   justify-content: center;
   margin-top: var(--space-3);
-  border: 1px solid var(--accent);
-  background: var(--accent);
+  border: 1px solid var(--accent-fill);
+  background: var(--accent-fill);
   color: #fff;
 }
 @media (hover: hover) {
   .acct-btn:hover {
-    background: var(--accent-strong);
-    border-color: var(--accent-strong);
+    background: var(--accent-fill-strong);
+    border-color: var(--accent-fill-strong);
   }
 }
 .acct-btn:active {
@@ -297,8 +366,8 @@ body.app {
   justify-content: center;
   margin-top: var(--space-3);
   text-decoration: none;
-  border: 1px solid var(--accent);
-  background: var(--accent);
+  border: 1px solid var(--accent-fill);
+  background: var(--accent-fill);
   color: #fff;
 }
 @media (hover: hover) {
@@ -422,7 +491,7 @@ body.right-open .scrim {
     padding: calc(var(--bar-h) + var(--space-3)) var(--space-4) var(--space-6);
     /* Day 28 晚二改：实底色 → 半透明 + 模糊，和左抽屉同一个毛玻璃语言
        （原本是实底 --bg，压在内容上像一块不透明的板子） */
-    background: rgba(255, 255, 255, .52);
+    background: var(--glass);
     -webkit-backdrop-filter: blur(14px);
             backdrop-filter: blur(14px);
     transform: translateX(101%);
@@ -463,8 +532,8 @@ body.right-open .scrim {
       ),
       linear-gradient(
         to left,
-        rgba(255, 255, 255, .45) 0,
-        rgba(255, 255, 255, .45) var(--side-right-w),
+        var(--band-right) 0,
+        var(--band-right) var(--side-right-w),
         transparent var(--side-right-w)
       );
   }
@@ -600,7 +669,7 @@ body.page-auth .site-header h1 .auth-h1-en {
   color: var(--text-faint);
 }
 .form-status--error {
-  color: #b42318;
+  color: var(--danger-text);
   font-weight: 500;
 }
 .form-status--ok {

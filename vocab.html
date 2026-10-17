@@ -5,7 +5,8 @@
   <style>@view-transition { navigation: auto; }</style>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>词汇速记 · 星禾星穗</title>
-  <link rel="stylesheet" href="assets/css/style.css">
+    <script src="assets/js/theme.js"></script>
+<link rel="stylesheet" href="assets/css/style.css">
   <link rel="stylesheet" href="assets/css/app-shell.css">
   <link rel="stylesheet" href="assets/css/page-loader.css">
   <!-- 登录门禁：未登录不能进学习页（版权要求）。⚠️ login.html 不引本脚本，否则死循环 -->
@@ -15,66 +16,66 @@
   .appmain{padding:24px 32px 32px;max-width:1080px}
   /* 搜索栏：高 40px、宽与下方对齐 */
   .vg-searchbar{display:flex;align-items:center;gap:8px;width:100%;height:40px;
-    background:#fff;border:1px solid #dfe1e6;border-radius:12px;padding:0 12px;
-    box-shadow:0 1px 2px rgba(16,24,40,.04)}
-  .vg-searchbar svg{flex:none;width:17px;height:17px;color:#606c77}
+    background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:0 12px;
+    box-shadow:var(--shadow-xs)}
+  .vg-searchbar svg{flex:none;width:17px;height:17px;color:var(--text-faint)}
   .vg-searchbar input{flex:1;min-width:0;border:0;outline:0;background:transparent;
-    font-size:14px;color:#16181d;font-family:inherit}
-  .vg-searchbar input::placeholder{color:#a0a8b2}
-  .vg-searchbar button{flex:none;border:0;background:transparent;color:#606c77;font-size:13px;
+    font-size:14px;color:var(--text);font-family:inherit}
+  .vg-searchbar input::placeholder{color:var(--text-ghost)}
+  .vg-searchbar button{flex:none;border:0;background:transparent;color:var(--text-faint);font-size:13px;
     cursor:pointer;padding:4px 6px;border-radius:6px;font-family:inherit}
-  .vg-searchbar button:hover{color:#0f6e56}
+  .vg-searchbar button:hover{color:var(--accent)}
   /* 搜索记录 */
   .vg-history{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:10px;min-height:26px}
-  .vg-history .lbl{font-size:12px;color:#a0a8b2;flex:none}
-  .vg-history .hit{font-size:12px;color:#4c545e;border:1px solid #dfe1e6;border-radius:999px;
-    padding:3px 10px;cursor:pointer;background:#fff;transition:border-color .15s,color .15s}
-  .vg-history .hit:hover{border-color:#0f6e56;color:#0f6e56}
-  .vg-history .clr{font-size:12px;color:#a0a8b2;cursor:pointer;margin-left:2px}
-  .vg-history .clr:hover{color:#c62828}
+  .vg-history .lbl{font-size:12px;color:var(--text-ghost);flex:none}
+  .vg-history .hit{font-size:12px;color:var(--text-muted);border:1px solid var(--border);border-radius:999px;
+    padding:3px 10px;cursor:pointer;background:var(--surface);transition:border-color .15s,color .15s}
+  .vg-history .hit:hover{border-color:var(--accent);color:var(--accent)}
+  .vg-history .clr{font-size:12px;color:var(--text-ghost);cursor:pointer;margin-left:2px}
+  .vg-history .clr:hover{color:var(--danger-text)}
   /* 查词结果卡片 */
   .vg-result{margin-top:16px}
-  .vg-wcard{display:flex;align-items:center;gap:14px;background:#fff;border:1px solid #dfe1e6;
-    border-radius:14px;padding:12px 16px;box-shadow:0 1px 2px rgba(16,24,40,.04);margin-bottom:10px}
+  .vg-wcard{display:flex;align-items:center;gap:14px;background:var(--surface);border:1px solid var(--border);
+    border-radius:14px;padding:12px 16px;box-shadow:var(--shadow-xs);margin-bottom:10px}
   .vg-wcard .w{font-size:18px;font-weight:600}
-  .vg-wcard .ph{font-size:13px;color:#606c77;margin-left:8px;font-weight:400}
-  .vg-wcard .zh{font-size:14px;color:#4c545e;flex:1}
+  .vg-wcard .ph{font-size:13px;color:var(--text-faint);margin-left:8px;font-weight:400}
+  .vg-wcard .zh{font-size:14px;color:var(--text-muted);flex:1}
   .vg-wcard .acts{display:flex;gap:6px;flex:none;flex-wrap:wrap}
-  .vg-pbtn{display:inline-flex;align-items:center;gap:5px;border:1px solid #dfe1e6;background:#fff;
-    color:#16181d;border-radius:999px;padding:5px 11px;font-size:12px;cursor:pointer;font-family:inherit}
+  .vg-pbtn{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--border);background:var(--surface);
+    color:var(--text);border-radius:999px;padding:5px 11px;font-size:12px;cursor:pointer;font-family:inherit}
   .vg-pbtn svg{width:14px;height:14px}
-  .vg-pbtn:hover{border-color:#0f6e56;color:#0f6e56}
-  .vg-pbtn.gv{border-color:transparent;background:#e1f5ee;color:#0f6e56;font-weight:500}
-  .vg-pbtn:disabled{opacity:.42;cursor:not-allowed;border:1px dashed #dfe1e6;color:#a0a8b2}
-  .vg-empty{font-size:13px;color:#a0a8b2}
+  .vg-pbtn:hover{border-color:var(--accent);color:var(--accent)}
+  .vg-pbtn.gv{border-color:transparent;background:var(--ok-bg);color:var(--accent);font-weight:500}
+  .vg-pbtn:disabled{opacity:.42;cursor:not-allowed;border:1px dashed var(--border);color:var(--text-ghost)}
+  .vg-empty{font-size:13px;color:var(--text-ghost)}
   /* 单词小游戏板块 */
-  .vg-sech{font-size:15px;font-weight:600;color:#16181d;margin:36px 0 12px;display:flex;align-items:center;gap:8px}
-  .vg-sech .pill{font-size:12px;font-weight:500;color:#0f6e56;background:#e1f5ee;border-radius:999px;padding:2px 10px}
+  .vg-sech{font-size:15px;font-weight:600;color:var(--text);margin:36px 0 12px;display:flex;align-items:center;gap:8px}
+  .vg-sech .pill{font-size:12px;font-weight:500;color:var(--accent);background:var(--ok-bg);border-radius:999px;padding:2px 10px}
   .vg-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(272px,1fr));gap:16px}
-  .vg-card{position:relative;display:block;text-decoration:none;color:inherit;background:#fff;
-    border:1px solid #dfe1e6;border-radius:16px;box-shadow:0 1px 2px rgba(16,24,40,.04);
+  .vg-card{position:relative;display:block;text-decoration:none;color:inherit;background:var(--surface);
+    border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow-xs);
     padding:20px;transition:border-color .15s,box-shadow .22s,transform .22s}
   .vg-card::before{content:"";position:absolute;left:0;top:16px;bottom:16px;width:3px;
-    border-radius:0 3px 3px 0;background:#0f6e56;opacity:0;transition:opacity .22s}
+    border-radius:0 3px 3px 0;background:var(--accent);opacity:0;transition:opacity .22s}
   @media (hover:hover){
-    .vg-card:hover{transform:translateY(-3px);box-shadow:0 10px 22px -8px rgba(16,24,40,.16),0 22px 44px -20px rgba(16,24,40,.18);border-color:#0f6e56}
+    .vg-card:hover{transform:translateY(-3px);box-shadow:var(--shadow-lg);border-color:var(--accent)}
     .vg-card:hover::before{top:10px;bottom:10px;opacity:1}
-    .vg-card:hover .vg-desc{color:#16181d}
+    .vg-card:hover .vg-desc{color:var(--text)}
   }
   .vg-top{display:flex;align-items:center;gap:12px;margin-bottom:12px}
   .vg-badge{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;
-    font-size:15px;font-weight:500;flex:none;background:#e1f5ee;color:#0f6e56}
+    font-size:15px;font-weight:500;flex:none;background:var(--ok-bg);color:var(--accent)}
   .vg-name{font-size:16px;font-weight:500}
-  .vg-en{font-size:12px;color:#606c77;margin-top:2px;letter-spacing:.3px}
-  .vg-desc{font-size:14px;color:#4c545e;line-height:1.7;min-height:66px;margin:0}
+  .vg-en{font-size:12px;color:var(--text-faint);margin-top:2px;letter-spacing:.3px}
+  .vg-desc{font-size:14px;color:var(--text-muted);line-height:1.7;min-height:66px;margin:0}
   .vg-tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:16px}
-  .vg-tag{font-size:12px;color:#4c545e;border:1px solid #dfe1e6;border-radius:999px;padding:3px 9px}
-  .vg-go{margin-top:16px;font-size:14px;color:#0f6e56;font-weight:500}
+  .vg-tag{font-size:12px;color:var(--text-muted);border:1px solid var(--border);border-radius:999px;padding:3px 9px}
+  .vg-go{margin-top:16px;font-size:14px;color:var(--accent);font-weight:500}
   /* 左栏词书列表 */
   .levels{display:flex;flex-direction:column;gap:6px;margin-top:16px}
   .vg-dict-row{display:flex;align-items:center;justify-content:space-between;width:100%}
-  .vg-dict-row .c{font-size:12px;color:#606c77;flex:none}
-  .side-levels .level-btn[aria-pressed='true'] .c{color:#0f6e56}
+  .vg-dict-row .c{font-size:12px;color:var(--text-faint);flex:none}
+  .side-levels .level-btn[aria-pressed='true'] .c{color:var(--accent)}
   </style>
 </head>
 <body class="app page-list">

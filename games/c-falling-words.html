@@ -4,57 +4,119 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>C · 单词坠落</title>
+<script>
+/* 抢在样式生效之前把主题贴到 <html> 上（浅色 / 深色 / 跟随系统 三态），
+   晚一步用暗色的人每次进来都会先白闪一下。
+   ⚠️ 游戏页是独立页面，不引 assets/js/theme.js，所以这段判定要自带一份；
+      存储键与主应用一致（er_theme），旧键 er_games_theme 仍读一次做迁移。 */
+(function () {
+  var mode = 'light';
+  try {
+    var v = localStorage.getItem('er_theme') || localStorage.getItem('er_games_theme');
+    if (v === 'light' || v === 'dark' || v === 'system') mode = v;
+  } catch (e) {}
+  var mq = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
+  function apply() {
+    var dark = mode === 'dark' || (mode === 'system' && mq && mq.matches);
+    if (dark) document.documentElement.setAttribute('data-theme', 'dark');
+    else document.documentElement.removeAttribute('data-theme');
+  }
+  apply();
+  /* 选了「跟随系统」的话，系统配色变了要立刻跟上 */
+  if (mq && mode === 'system') {
+    var on = function () { apply(); };
+    if (mq.addEventListener) mq.addEventListener('change', on);
+    else if (mq.addListener) mq.addListener(on);
+  }
+})();
+</script>
 <style>
 :root{
-  --bg:#131318;--card:#1C1C23;--card2:#232330;--line:rgba(255,255,255,.10);
-  --tx:#EDEDF2;--tx2:#A2A2AE;--tx3:#6C6C78;
+  /* ---- 浅色模式（默认）：色值对齐主界面 assets/css/style.css ----
+     冷白底 #f4f5f7 / 纯白卡片 / 描边 #dfe1e6 / 正文 #16181d / 深绿强调 #0f6e56 / 品牌深蓝 #1a2c73 */
+  --bg:#f4f5f7;--card:#ffffff;--card2:#f4f5f7;--line:#dfe1e6;--line-strong:#cfd3da;
+  --tx:#16181d;--tx2:#4c545e;--tx3:#606c77;
+  --accent:#0f6e56;--accent-strong:#0b5a46;
+  --navy:#1a2c73;--navy-bg:#eef1fa;--navy-line:#b9c4dd;--navy-bg-hover:#e4e9f6;
+  --back-bg:#eceef1;--back-line:#cfd3da;--back-tx:#1a2c73;
+  --ok-bg:#e1f5ee;--ok-line:#0f6e56;--ok-tx:#0b5a46;
+  --ok-soft-bg:#eaf3de;--ok-soft-line:#639922;--ok-soft-tx:#3b6d11;
+  --ok-key-bg:#639922;--ok-key-tx:#ffffff;
+  --bad-bg:#fbeae8;--bad-line:#d92d20;--bad-tx:#b42318;
+  --bad-key-bg:#b42318;--bad-key-tx:#ffffff;
+  --inset:#eceef1;--hover:#f7f8fa;--lane:rgba(22,24,29,.10);
+  --warn:#a86a00;--danger:#d92d20;
+  --toast-bg:#ffffff;--scrim:rgba(10,24,20,.42);
+  --shadow:0 10px 22px -8px rgba(16,24,40,.16),0 22px 44px -20px rgba(16,24,40,.18);
 }
+
+/* ---- 暗色模式：变量名与浅色一一对应，切主题只换这一块，下面所有规则都不用动 ----
+   暗色这一组的取值就是改造前那套原色，切回去和原来长得一样。 */
+html[data-theme="dark"]{
+  --bg:#131318;--card:#1C1C23;--card2:#232330;
+  --line:rgba(255,255,255,.10);--line-strong:rgba(255,255,255,.22);
+  --tx:#EDEDF2;--tx2:#A2A2AE;--tx3:#6C6C78;
+  --accent:#2258c9;--accent-strong:#2f6ae0;
+  --navy:#CECBF6;--navy-bg:#26215C;--navy-line:#534AB7;--navy-bg-hover:#312b7a;
+  --back-bg:#26215C;--back-line:#534AB7;--back-tx:#7F77DD;
+  --ok-bg:#04342C;--ok-line:#0F6E56;--ok-tx:#9FE1CB;
+  --ok-soft-bg:#1B3A16;--ok-soft-line:#639922;--ok-soft-tx:#C0DD97;
+  --ok-key-bg:#3B6D11;--ok-key-tx:#EAF3DE;
+  --bad-bg:#3D1414;--bad-line:#A32D2D;--bad-tx:#F7C1C1;
+  --bad-key-bg:#791F1F;--bad-key-tx:#FCEBEB;
+  --inset:#232330;--hover:#2A2A36;--lane:rgba(255,255,255,.07);
+  --warn:#EF9F27;--danger:#E24B4A;
+  --toast-bg:#232330;--scrim:rgba(10,10,14,.87);
+  --shadow:0 18px 40px -16px rgba(0,0,0,.6);
+}
+
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--tx);min-height:100vh;display:flex;justify-content:center;
   padding:22px 14px 54px;font-family:"Segoe UI","Microsoft YaHei",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
 .app{width:100%;max-width:430px}
 header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
 .back{font-size:12px;color:var(--tx3);text-decoration:none;transition:.15s}
-.back:hover{color:var(--tx2)}
+.back:hover{color:var(--accent)}
 .title{font-size:14px;font-weight:500}
 .hud{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
 .score{font-size:12px;color:var(--tx2)}
 .score b{font-size:16px;font-weight:500;color:var(--tx);margin-left:5px}
 .lives{display:flex;gap:5px;align-items:center}
-.life{width:10px;height:10px;border-radius:50%;background:#639922;transition:.2s}
-.life.gone{background:#3A3A44}
+.life{width:10px;height:10px;border-radius:50%;background:var(--accent);transition:.2s}
+.life.gone{background:var(--line)}
 .spd{font-size:12px;color:var(--tx2)}
-.target{background:#04342C;border:0.5px solid #0F6E56;border-radius:9px;padding:9px 11px;
-  text-align:center;font-size:12.5px;color:#9FE1CB;margin-bottom:10px;
+.target{background:var(--ok-bg);border:1px solid var(--ok-line);border-radius:9px;padding:9px 11px;
+  text-align:center;font-size:12.5px;color:var(--ok-tx);margin-bottom:10px;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .track{position:relative;height:420px;max-height:58vh;min-height:320px;background:var(--card);
-  border:0.5px solid var(--line);border-radius:14px;overflow:hidden}
-.lane{position:absolute;top:0;bottom:0;width:0;border-left:0.5px dashed rgba(255,255,255,.07)}
-.pill{position:absolute;top:0;left:0;padding:7px 13px;border-radius:16px;background:#26215C;
-  border:0.5px solid #534AB7;color:#CECBF6;font-size:13px;font-weight:500;white-space:nowrap;
+  border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:0 1px 2px rgba(16,24,40,.04)}
+.lane{position:absolute;top:0;bottom:0;width:0;border-left:1px dashed var(--lane)}
+.pill{position:absolute;top:0;left:0;padding:7px 13px;border-radius:16px;background:var(--navy-bg);
+  border:1px solid var(--navy-line);color:var(--navy);font-size:13px;font-weight:500;white-space:nowrap;
   cursor:pointer;user-select:none;will-change:transform;touch-action:manipulation}
-.pill:hover{background:#312b7a}
-.pill.ok{background:#1B3A16;border-color:#639922;color:#C0DD97}
-.pill.bad{background:#3D1414;border-color:#A32D2D;color:#F7C1C1}
+.pill:hover{background:var(--navy-bg-hover)}
+.pill.ok{background:var(--ok-soft-bg);border-color:var(--ok-soft-line);color:var(--ok-soft-tx)}
+.pill.bad{background:var(--bad-bg);border-color:var(--bad-line);color:var(--bad-tx)}
 .foot{margin-top:12px;display:flex;justify-content:space-between;font-size:12px;color:var(--tx3)}
 .toast{position:fixed;left:50%;top:84px;transform:translate(-50%,-8px);padding:7px 16px;border-radius:20px;
-  background:var(--card2);border:0.5px solid var(--line);font-size:13px;font-weight:500;opacity:0;
+  background:var(--toast-bg);border:1px solid var(--line);font-size:13px;font-weight:500;opacity:0;
+  box-shadow:0 10px 24px -12px rgba(16,24,40,.28);
   transition:.22s;pointer-events:none;z-index:8}
 .toast.show{opacity:1;transform:translate(-50%,0)}
-.overlay{position:fixed;inset:0;background:rgba(10,10,14,.87);display:flex;align-items:center;
+.overlay{position:fixed;inset:0;background:var(--scrim);display:flex;align-items:center;
   justify-content:center;padding:20px;z-index:9}
 .overlay.hide{display:none}
-.panel{background:var(--card);border:0.5px solid var(--line);border-radius:16px;padding:24px;
-  width:100%;max-width:322px;text-align:center}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:24px;
+  width:100%;max-width:322px;text-align:center;box-shadow:var(--shadow)}
 .panel h2{font-size:16px;font-weight:500;margin:0 0 10px}
 .panel p{font-size:12.5px;color:var(--tx2);line-height:1.75;margin:0 0 18px}
 .stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px}
 .stat{background:var(--card2);border-radius:10px;padding:11px 10px}
 .stat b{display:block;font-size:11px;font-weight:400;color:var(--tx2);margin-bottom:4px}
 .stat span{font-size:17px;font-weight:500}
-.btn{width:100%;background:#993C1D;border:none;color:#fff;border-radius:10px;padding:12px;
+.btn{width:100%;background:var(--accent);border:none;color:#fff;border-radius:10px;padding:12px;
   font-size:14px;font-family:inherit;cursor:pointer;transition:.15s}
-.btn:hover{background:#b04a26}
+.btn:hover{background:var(--accent-strong)}
 </style>
 </head>
 <body>
@@ -239,7 +301,7 @@ function hit(p){
     score += gain;
     p.el.classList.add('ok');
     updateHud();
-    showToast('+ ' + gain + '   连击 \u00d7' + combo, '#97C459');
+    showToast('+ ' + gain + '   连击 \u00d7' + combo, 'var(--ok-soft-tx)');
     roundActive = false;
     clearPills(true);
     planNext(640);
@@ -250,7 +312,7 @@ function hit(p){
     p.el.classList.add('bad');
     setTimeout(() => p.el.remove(), 300);
     updateHud();
-    showToast('点错了', '#E24B4A');
+    showToast('点错了', 'var(--bad-tx)');
     if (lives <= 0){ roundActive = false; gameOver(); }
   }
 }
@@ -261,7 +323,7 @@ function missTarget(){
   combo = 0;
   lives--;
   updateHud();
-  showToast('漏掉了', '#EF9F27');
+  showToast('漏掉了', 'var(--warn)');
   planNext(560);
 }
 

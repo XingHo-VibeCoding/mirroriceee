@@ -185,7 +185,9 @@
                '</div>' +
              '</div>' +
              '<a class="btn acct-cta" href="login.html">登录 / 注册</a>' +
-           '</section>';
+           '</section>' +
+           /* 没登录也想切游戏配色，所以这张卡照给 */
+           themeRowHTML();
   }
 
   /* 已登录：两张卡片 —— 【个人信息】与【排行榜】分开（斌哥指示）。
@@ -214,6 +216,8 @@
              '</div>' +
              '<button type="button" class="btn acct-logout" data-action="logout">退出登录</button>' +
            '</section>' +
+           /* 外观开关：按斌哥要求放在排行榜上方 */
+           themeRowHTML() +
            /* 排行榜自己一张卡。⚠️ 固定 5 个栏位（哪怕一个人都没有）：
               位次本身是信息 —— 空着的那几行在说"这位置还没人占"，
               比"榜单只有 1 行"更像一张榜。
@@ -468,6 +472,21 @@
   }
   document.addEventListener('visibilitychange', flushOnLeave);
   window.addEventListener('pagehide', function () { flushUsage(true); });
+
+  /* 外观开关（三态：浅色 / 深色 / 跟随系统）—— 放在右栏「学习时长榜」上方（斌哥指定位置）。
+     ⚠️ 这里【只负责把按钮画出来】。切换逻辑、状态记忆、跟随系统都归 assets/js/theme.js：
+        那份必须放在 <head> 里先跑（不然暗色用户每次进来先白闪一下），
+        逻辑在两边各写一份就是两套账，迟早不一致。 */
+  function themeRowHTML() {
+    return '<section class="acct-card item theme-row">' +
+             '<p class="theme-row__label">外观</p>' +
+             '<div class="theme-seg" role="group" aria-label="外观切换">' +
+               '<button type="button" class="theme-seg__btn" data-theme-mode="light" aria-pressed="false">浅色</button>' +
+               '<button type="button" class="theme-seg__btn" data-theme-mode="dark" aria-pressed="false">深色</button>' +
+               '<button type="button" class="theme-seg__btn" data-theme-mode="system" aria-pressed="false">跟随系统</button>' +
+             '</div>' +
+           '</section>';
+  }
 
   /* ============================================
      启动

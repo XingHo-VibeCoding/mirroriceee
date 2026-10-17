@@ -4,63 +4,136 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>B · 闯关答题</title>
+<script>
+/* 抢在样式生效之前把主题贴到 <html> 上（浅色 / 深色 / 跟随系统 三态），
+   晚一步用暗色的人每次进来都会先白闪一下。
+   ⚠️ 游戏页是独立页面，不引 assets/js/theme.js，所以这段判定要自带一份；
+      存储键与主应用一致（er_theme），旧键 er_games_theme 仍读一次做迁移。 */
+(function () {
+  var mode = 'light';
+  try {
+    var v = localStorage.getItem('er_theme') || localStorage.getItem('er_games_theme');
+    if (v === 'light' || v === 'dark' || v === 'system') mode = v;
+  } catch (e) {}
+  var mq = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
+  function apply() {
+    var dark = mode === 'dark' || (mode === 'system' && mq && mq.matches);
+    if (dark) document.documentElement.setAttribute('data-theme', 'dark');
+    else document.documentElement.removeAttribute('data-theme');
+  }
+  apply();
+  /* 选了「跟随系统」的话，系统配色变了要立刻跟上 */
+  if (mq && mode === 'system') {
+    var on = function () { apply(); };
+    if (mq.addEventListener) mq.addEventListener('change', on);
+    else if (mq.addListener) mq.addListener(on);
+  }
+})();
+</script>
 <style>
 :root{
-  --bg:#131318;--card:#1C1C23;--card2:#232330;--line:rgba(255,255,255,.10);
-  --tx:#EDEDF2;--tx2:#A2A2AE;--tx3:#6C6C78;
+  /* ---- 浅色模式（默认）：色值对齐主界面 assets/css/style.css ----
+     冷白底 #f4f5f7 / 纯白卡片 / 描边 #dfe1e6 / 正文 #16181d / 深绿强调 #0f6e56 / 品牌深蓝 #1a2c73 */
+  --bg:#f4f5f7;--card:#ffffff;--card2:#f4f5f7;--line:#dfe1e6;--line-strong:#cfd3da;
+  --tx:#16181d;--tx2:#4c545e;--tx3:#606c77;
+  --accent:#0f6e56;--accent-strong:#0b5a46;
+  --navy:#1a2c73;--navy-bg:#eef1fa;--navy-line:#b9c4dd;--navy-bg-hover:#e4e9f6;
+  --back-bg:#eceef1;--back-line:#cfd3da;--back-tx:#1a2c73;
+  --ok-bg:#e1f5ee;--ok-line:#0f6e56;--ok-tx:#0b5a46;
+  --ok-soft-bg:#eaf3de;--ok-soft-line:#639922;--ok-soft-tx:#3b6d11;
+  --ok-key-bg:#639922;--ok-key-tx:#ffffff;
+  --bad-bg:#fbeae8;--bad-line:#d92d20;--bad-tx:#b42318;
+  --bad-key-bg:#b42318;--bad-key-tx:#ffffff;
+  --inset:#eceef1;--hover:#f7f8fa;--lane:rgba(22,24,29,.10);
+  --warn:#a86a00;--danger:#d92d20;
+  --toast-bg:#ffffff;--scrim:rgba(10,24,20,.42);
+  --shadow:0 10px 22px -8px rgba(16,24,40,.16),0 22px 44px -20px rgba(16,24,40,.18);
 }
+
+/* ---- 暗色模式：变量名与浅色一一对应，切主题只换这一块，下面所有规则都不用动 ----
+   暗色这一组的取值就是改造前那套原色，切回去和原来长得一样。 */
+html[data-theme="dark"]{
+  --bg:#131318;--card:#1C1C23;--card2:#232330;
+  --line:rgba(255,255,255,.10);--line-strong:rgba(255,255,255,.22);
+  --tx:#EDEDF2;--tx2:#A2A2AE;--tx3:#6C6C78;
+  --accent:#2258c9;--accent-strong:#2f6ae0;
+  --navy:#CECBF6;--navy-bg:#26215C;--navy-line:#534AB7;--navy-bg-hover:#312b7a;
+  --back-bg:#26215C;--back-line:#534AB7;--back-tx:#7F77DD;
+  --ok-bg:#04342C;--ok-line:#0F6E56;--ok-tx:#9FE1CB;
+  --ok-soft-bg:#1B3A16;--ok-soft-line:#639922;--ok-soft-tx:#C0DD97;
+  --ok-key-bg:#3B6D11;--ok-key-tx:#EAF3DE;
+  --bad-bg:#3D1414;--bad-line:#A32D2D;--bad-tx:#F7C1C1;
+  --bad-key-bg:#791F1F;--bad-key-tx:#FCEBEB;
+  --inset:#232330;--hover:#2A2A36;--lane:rgba(255,255,255,.07);
+  --warn:#EF9F27;--danger:#E24B4A;
+  --toast-bg:#232330;--scrim:rgba(10,10,14,.87);
+  --shadow:0 18px 40px -16px rgba(0,0,0,.6);
+}
+
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--tx);min-height:100vh;display:flex;justify-content:center;
   padding:22px 14px 54px;font-family:"Segoe UI","Microsoft YaHei",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
 .app{width:100%;max-width:430px}
 header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
 .back{font-size:12px;color:var(--tx3);text-decoration:none;transition:.15s}
-.back:hover{color:var(--tx2)}
+.back:hover{color:var(--accent)}
 .title{font-size:14px;font-weight:500}
 .topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
 .lives{display:flex;gap:5px;align-items:center}
-.life{width:11px;height:11px;border-radius:50%;background:#E24B4A;transition:.2s}
-.life.gone{background:#3A3A44}
-.combo{font-size:12px;font-weight:500;color:#EF9F27;min-width:66px;text-align:center}
+.life{width:11px;height:11px;border-radius:50%;background:var(--danger);transition:.2s}
+.life.gone{background:var(--line)}
+.combo{font-size:12px;font-weight:500;color:var(--warn);min-width:66px;text-align:center}
 .counter{font-size:12px;color:var(--tx2)}
-.bar{height:5px;border-radius:3px;background:var(--card2);overflow:hidden;margin-bottom:20px}
-.bar>i{display:block;height:100%;width:100%;background:#534AB7;transition:background .2s}
+.bar{height:5px;border-radius:3px;background:var(--inset);overflow:hidden;margin-bottom:20px}
+.bar>i{display:block;height:100%;width:100%;background:var(--accent);transition:background .2s}
 .wordbox{text-align:center;margin-bottom:20px}
-.speak{display:inline-flex;align-items:center;gap:7px;height:34px;padding:0 14px;border-radius:18px;
-  background:var(--card);border:0.5px solid var(--line);color:var(--tx2);font-size:12px;font-family:inherit;
-  cursor:pointer;transition:.15s;margin-bottom:16px}
-.speak:hover{background:var(--card2);color:var(--tx)}
 .word{font-size:26px;font-weight:500;letter-spacing:.5px;line-height:1.2}
-.ph{font-size:12px;color:var(--tx3);margin-top:6px}
+/* 美/英各一个按钮，音标放在按钮内部。
+   原因：有些词美音和英音的音标本来就不一样（schedule 美 /ˈskɛdʒuːl/、英 /ˈʃedjuːl/），
+   在按钮外面共用一条音标，必然有一半是错的。 */
+.pron{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;margin-top:8px;min-height:28px}
+.pos{font-size:12px;color:var(--tx3);font-style:italic}
+.pos:empty{display:none}
+.pbtn{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 11px;border-radius:999px;
+  background:var(--card);border:1px solid var(--line);color:var(--tx2);font-size:12px;font-family:inherit;
+  cursor:pointer;transition:color .15s,border-color .15s,background .15s}
+.pbtn svg{width:13px;height:13px;flex:none}
+.pbtn .acc{font-weight:500}
+.pbtn .ipa{color:var(--tx3)}
+.pbtn .ipa:empty{display:none}
+.pbtn:hover{color:var(--accent);border-color:var(--accent);background:var(--hover)}
+.pbtn:hover .ipa{color:var(--accent)}
+.pbtn:active{transform:scale(.96)}
 .opts{display:grid;gap:9px}
 .opt{display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:12px 13px;border-radius:10px;
-  background:var(--card);border:0.5px solid var(--line);color:var(--tx);font-size:13.5px;font-family:inherit;
+  background:var(--card);border:1px solid var(--line);color:var(--tx);font-size:13.5px;font-family:inherit;
   cursor:pointer;transition:.15s}
-.opt:hover:not(:disabled){background:var(--card2);border-color:rgba(255,255,255,.22)}
-.opt .k{width:20px;height:20px;border-radius:6px;background:var(--card2);color:var(--tx2);font-size:11px;
+.opt:hover:not(:disabled){background:var(--hover);border-color:var(--line-strong)}
+.opt .k{width:20px;height:20px;border-radius:6px;background:var(--inset);color:var(--tx2);font-size:11px;
   display:flex;align-items:center;justify-content:center;flex:none}
-.opt.ok{background:#1B3A16;border:1px solid #639922;color:#C0DD97}
-.opt.ok .k{background:#3B6D11;color:#EAF3DE}
-.opt.bad{background:#3D1414;border:1px solid #A32D2D;color:#F7C1C1}
-.opt.bad .k{background:#791F1F;color:#FCEBEB}
+.opt.ok{background:var(--ok-soft-bg);border:1px solid var(--ok-soft-line);color:var(--ok-soft-tx)}
+.opt.ok .k{background:var(--ok-key-bg);color:var(--ok-key-tx)}
+.opt.bad{background:var(--bad-bg);border:1px solid var(--bad-line);color:var(--bad-tx)}
+.opt.bad .k{background:var(--bad-key-bg);color:var(--bad-key-tx)}
 .foot{margin-top:16px;display:flex;justify-content:space-between;font-size:12px;color:var(--tx3)}
 .toast{position:fixed;left:50%;top:88px;transform:translate(-50%,-8px);padding:7px 16px;border-radius:20px;
-  background:var(--card2);border:0.5px solid var(--line);font-size:13px;font-weight:500;opacity:0;
+  background:var(--toast-bg);border:1px solid var(--line);font-size:13px;font-weight:500;opacity:0;
+  box-shadow:0 10px 24px -12px rgba(16,24,40,.28);
   transition:.22s;pointer-events:none;z-index:8}
 .toast.show{opacity:1;transform:translate(-50%,0)}
-.overlay{position:fixed;inset:0;background:rgba(10,10,14,.87);display:none;align-items:center;
+.overlay{position:fixed;inset:0;background:var(--scrim);display:none;align-items:center;
   justify-content:center;padding:20px;z-index:9}
 .overlay.show{display:flex}
-.panel{background:var(--card);border:0.5px solid var(--line);border-radius:16px;padding:24px;
-  width:100%;max-width:322px;text-align:center}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:24px;
+  width:100%;max-width:322px;text-align:center;box-shadow:var(--shadow)}
 .panel h2{font-size:16px;font-weight:500;margin:0 0 18px}
 .stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px}
 .stat{background:var(--card2);border-radius:10px;padding:11px 10px}
 .stat b{display:block;font-size:11px;font-weight:400;color:var(--tx2);margin-bottom:4px}
 .stat span{font-size:17px;font-weight:500}
-.btn{width:100%;background:#534AB7;border:none;color:#fff;border-radius:10px;padding:12px;
+.btn{width:100%;background:var(--accent);border:none;color:#fff;border-radius:10px;padding:12px;
   font-size:14px;font-family:inherit;cursor:pointer;transition:.15s}
-.btn:hover{background:#6157c9}
+.btn:hover{background:var(--accent-strong)}
 </style>
 </head>
 <body>
@@ -79,9 +152,16 @@ header{display:flex;align-items:center;justify-content:space-between;margin-bott
   <div class="bar"><i id="bar"></i></div>
 
   <div class="wordbox">
-    <button class="speak" id="speak">听发音</button>
     <div class="word" id="word">—</div>
-    <div class="ph" id="ph"></div>
+    <div class="pron">
+      <span class="pos" id="pos"></span>
+      <button class="pbtn" id="playUS" type="button" aria-label="播放美式发音">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6.5 8.5H3.5v7h3L11 19V5Z"/><path d="M15 9.5a3.5 3.5 0 0 1 0 5"/><path d="M17.5 7a7 7 0 0 1 0 10"/></svg><span class="acc">美</span><span class="ipa" id="ipaUS"></span>
+      </button>
+      <button class="pbtn" id="playUK" type="button" aria-label="播放英式发音">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6.5 8.5H3.5v7h3L11 19V5Z"/><path d="M15.5 9v6"/><path d="M18.5 7.5v9"/></svg><span class="acc">英</span><span class="ipa" id="ipaUK"></span>
+      </button>
+    </div>
   </div>
 
   <div class="opts" id="opts"></div>
@@ -104,6 +184,7 @@ header{display:flex;align-items:center;justify-content:space-between;margin-bott
 
 <script src="dicts.js"></script>
 <script src="dict-pick.js"></script>
+<script src="phonetics.js"></script>
 <script>
 /* 兜底词表：只有在 dicts.js 和 words.js 都读不到时才用，正常情况请忽略它 */
 const FALLBACK_WORDS = [
@@ -175,16 +256,68 @@ function showToast(text, color){
   showToast.tid = setTimeout(() => t.classList.remove('show'), 900);
 }
 
-function speak(text){
+/* 发音：美音/英音都走有道词典的音源（和词汇速记页 vocab.html 同一套：type=2 美音 / type=1 英音）。
+   出题时自动读一遍美音；音标旁边两个按钮用来手动重听，美式、英式各一个。
+   浏览器策略：页面还没被用户点过时，音频自动播放会被拦下。
+   所以顺序是：先试在线美音 → 被拦就退回浏览器自带语音 → 两条都不行就等你第一次点屏幕补读。 */
+const VOICE_URL = 'https://dict.youdao.com/dictvoice?audio=';
+let audioOk = false;   // 有没有真放出声，用来决定要不要补读
+let curAudio = null;   // 当前在放的音频，换题/换音源先掐掉，免得两个声音叠在一起
+
+function playVoice(word, type){
+  if (!word) return Promise.reject(new Error('no word'));
+  if (curAudio){ try{ curAudio.pause(); }catch(e){} }
+  const a = new Audio(VOICE_URL + encodeURIComponent(word) + '&type=' + type);
+  curAudio = a;
+  return a.play().then(() => { audioOk = true; });
+}
+
+function speakTTS(word){
   try{
     if (!('speechSynthesis' in window)) return;
     window.speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(text);
+    const u = new SpeechSynthesisUtterance(word);
     u.lang = 'en-US';
     u.rate = 0.9;
+    u.onstart = () => { audioOk = true; };
     window.speechSynthesis.speak(u);
   }catch(e){}
 }
+
+/* 把音标填进各自的按钮：美音进「美」，英音进「英」。
+   表里没有这个词时，退回词库自带的单套音标 —— 那套是美式体系（大量 ɚ/ɝ、oʊ），
+   所以只填「美」位，英音留空；宁可少显示，也不拿美音冒充英音。 */
+function fillPron(q){
+  const key = (q.w.en || '').toLowerCase();
+  const row = (window.PHONETICS || {})[key];
+  let us = '', uk = '';
+  if (row){
+    const parts = row.split('|');
+    us = parts[0] || '';
+    uk = parts[1] || '';
+  }
+  if (!us && q.w.ph) us = q.w.ph.replace(/'/g, 'ˈ');   // 词库音标用 ' 表示重音，统一成 ˈ
+
+  $('ipaUS').textContent = us;
+  $('ipaUK').textContent = uk;
+  $('ipaUS').style.display = us ? '' : 'none';
+  $('ipaUK').style.display = uk ? '' : 'none';
+  $('pos').textContent = q.w.pos || '';
+}
+
+/* 出题自动朗读：读美音，和第一个按钮同音源，听感一致 */
+function autoSpeak(word){
+  playVoice(word, 2).catch(() => speakTTS(word));
+}
+
+// 兜底：真的一次都没出过声（被浏览器拦了），等用户第一次点屏幕补读本题
+document.addEventListener('pointerdown', (e) => {
+  if (audioOk) return;
+  // 点的就是发音按钮，让它自己播，别再叠一遍
+  if (e.target && e.target.closest && e.target.closest('.pbtn')) return;
+  const q = qs[qi];
+  if (q) autoSpeak(q.w.en);
+}, { once: true });
 
 function startGame(){
   qs = shuffle(WORDS).slice(0, TOTAL).map(w => {
@@ -209,8 +342,9 @@ function renderQuestion(){
   locked = false;
   const q = qs[qi];
   $('word').textContent = q.w.en;
-  // 词性为空时（开源词库大多没有）自动隐藏，不留双空格
-  $('ph').textContent = [q.w.ph, q.w.pos].filter(Boolean).join('  ');
+  autoSpeak(q.w.en);          // 出题即自动读一遍美音
+  // 音标分美/英两条，各自填进对应的按钮（见 fillPron）
+  fillPron(q);
   updateHud();
 
   optsEl.innerHTML = '';
@@ -239,7 +373,7 @@ function tick(){
   const pct = left / (LIMIT * 1000) * 100;
   const bar = $('bar');
   bar.style.width = pct + '%';
-  bar.style.background = left < 3000 ? '#E24B4A' : (left < 6000 ? '#EF9F27' : '#534AB7');
+  bar.style.background = left < 3000 ? 'var(--danger)' : (left < 6000 ? 'var(--warn)' : 'var(--accent)');
   if (left <= 0){ timeout(); return; }
   rafId = requestAnimationFrame(tick);
 }
@@ -267,13 +401,13 @@ function answer(i){
     const gain = 10 + combo * 2;
     score += gain;
     if (btns[i]) btns[i].classList.add('ok');
-    showToast('+ ' + gain + '   连击 ×' + combo, '#97C459');
+    showToast('+ ' + gain + '   连击 ×' + combo, 'var(--ok-soft-tx)');
   } else {
     if (btns[i]) btns[i].classList.add('bad');
     combo = 0;
     lives--;
     renderLives();
-    showToast('答错了', '#E24B4A');
+    showToast('答错了', 'var(--bad-tx)');
   }
   updateHud();
 
@@ -290,7 +424,7 @@ function timeout(){
   lives--;
   renderLives();
   updateHud();
-  showToast('超时了', '#EF9F27');
+  showToast('超时了', 'var(--warn)');
   if (lives <= 0){ setTimeout(() => finish(false), 950); return; }
   setTimeout(() => { qi++; renderQuestion(); }, 900);
 }
@@ -307,7 +441,9 @@ function finish(won){
   $('overlay').classList.add('show');
 }
 
-$('speak').addEventListener('click', () => speak(qs[qi] ? qs[qi].w.en : ''));
+/* 手动重听：两个按钮各管一个口音，点下去立刻切掉上一段（playVoice 里会先 pause） */
+$('playUS').addEventListener('click', () => { const q = qs[qi]; if (q) playVoice(q.w.en, 2).catch(() => {}); });
+$('playUK').addEventListener('click', () => { const q = qs[qi]; if (q) playVoice(q.w.en, 1).catch(() => {}); });
 $('ovBtn').addEventListener('click', startGame);
 startGame();
 </script>
