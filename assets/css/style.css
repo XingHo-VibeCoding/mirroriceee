@@ -1,15 +1,29 @@
 /* ============================================
    style.css —— 英语学习工具 全站样式
    改进原则：只动「视觉层」，不动 HTML 结构、不动 JS 逻辑。
-   基调不变：仍是「B · 冷白工具感」，深绿强调色 #0f6e56 保留。
+   基调不变：仍是「工具感」，深绿强调色 #0f6e56 保留；Day 31 晚：中性色系整体转暖
+   （冷白 → 象牙暖白），背景光斑同步换成高饱和暖色系，动效本身一行未动。
+   ⚠️ Day 32（斌哥指示）：默认色调改回【冷白】—— 冷调更贴品牌深蓝 #1a2c73。
+      暖白不作废，降级成右栏「配色」里的可选档（原值一个没动，只在块之间搬位置）。
    字重仍守 400 / 500 两档（作者约定），层级靠字号·颜色·间距·装饰建立。
    ============================================ */
 
 :root {
+  /* ---- 原生控件配色（Day 32：手机深色模式的护栏）----
+     ⚠️ 这一行是「站内选浅色，手机深色也不许变」的【唯一技术手段】：
+        页面没声明 color-scheme 时，安卓 Chrome 的「深色模式强制反色」
+        （Auto Dark Theme）会把整页算法压暗 —— 用户站内明明选的是浅色，
+        手机上看到的却是被篡改过的深色，正是要杜绝的那种「变化」。
+        声明 light 等于告诉浏览器：这页只支持浅色，别自作主张。
+     ⚠️ 别改成 <meta name="color-scheme" content="light dark">：
+        那是让浏览器【按系统】选，恰好和「站内选浅色就锁浅色」相反。
+     ⚠️ 深色主题那边会覆盖成 dark，见 html[data-theme='dark'] 块。 */
+  color-scheme: light;
+
   /* ---- 颜色（原有，名字不动，保证旧规则不失联）---- */
-  --bg: #f4f5f7;            /* 页面底色：冷白 */
-  --surface: #ffffff;       /* 卡片底色：纯白 */
-  --border: #dfe1e6;        /* 分隔线与卡片描边 */
+  --bg: #f6f2ea;            /* 页面底色：象牙暖白（⚠️ Day 32 起这套是【暖】档的兜底值；默认档走下方 data-tint='cool' 块） */
+  --surface: #fffdf8;       /* 卡片底色：暖白（原纯白） */
+  --border: #e7e0d3;        /* 分隔线与卡片描边（暖灰米） */
   --text: #16181d;          /* 正文：接近纯黑 */
   /* Day 9：这三档是「信息层级」的骨架。
      原来 muted(#56606b) 与 faint(#64707c) 在白底上只差 1.26×（6.40 vs 5.06），
@@ -26,7 +40,7 @@
   --accent: #0f6e56;        /* 强调色：深绿 */
   --ok-bg: #e1f5ee;         /* 「可用」标签底色 */
   --ok-text: #0f6e56;       /* 「可用」标签文字 */
-  --todo-bg: #eceef1;       /* 「开发中」标签底色 */
+  --todo-bg: #f1ecdf;       /* 「开发中」标签底色（暖米） */
   --todo-text: #5f6b76;     /* 「开发中」标签文字 */
 
   /* ---- 品牌色（Day 8 换新 logo 后，按新图重新实测）----
@@ -45,9 +59,9 @@
 
   /* ---- 颜色（新增：层次与质感，全部由上面那套推导而来）---- */
   --accent-strong: #0b5a46;               /* 悬停/按下时更深的绿 */
-  --border-strong: #cfd3da;               /* 悬停时的描边 */
-  --surface-sunken: #fafbfc;              /* 「开发中」卡片的降权底色 */
-  --rule: #e6e8ec;                        /* 页头装饰线 */
+  --border-strong: #d8cfbe;               /* 悬停时的描边（暖） */
+  --surface-sunken: #faf6ee;              /* 「开发中」卡片的降权底色（暖） */
+  --rule: #eee8dc;                        /* 页头装饰线（暖） */
   --focus-ring: #0f6e56;                  /* 键盘焦点环 */
 
   /* ---- 明暗主题补充位（Day 31）----
@@ -57,16 +71,26 @@
        --blob-a..d      四个流动色块的颜色
        --accent-fill    填充按钮的底色（⚠️ 与 --accent 分开：暗色下强调色要提亮才看得清，
                         可填充按钮一提亮，白字就压不住了，两者不能共用一个值）*/
-  --surface-hover: #f7f8fa;
-  --bg-glow: rgba(255, 255, 255, .8);
-  --blob-a: rgba(45, 92, 196, .40);
-  --blob-b: rgba(56, 168, 196, .36);
-  --blob-c: rgba(124, 96, 224, .34);
-  --blob-d: rgba(22, 138, 108, .28);
+  --surface-hover: #f6f1e7;
+  /* Day 31 晚：光斑转暖色系并提亮度饱和度（琥珀/陶土/金/橄榄绿），
+     位置动效一行未动 —— 「保留背景动态效果」只换颜色不换动画 */
+  --bg-glow: rgba(255, 244, 214, .9);
+  --blob-a: rgba(232, 168, 68, .42);
+  --blob-b: rgba(224, 122, 80, .38);
+  --blob-c: rgba(238, 172, 74, .34);
+  --blob-d: rgba(146, 168, 66, .30);
   --accent-fill: #0f6e56;
   --accent-fill-strong: #0b5a46;
-  --text-ghost: #a0a8b2;      /* 占位符 / 极弱说明字 */
-  --surface-inset: #f1f2f4;   /* 内嵌块（比卡片再深一档） */
+  --text-ghost: #a39c8f;      /* 占位符 / 极弱说明字（暖灰） */
+  --surface-inset: #f1ecdf;   /* 内嵌块（比卡片再深一档，暖米） */
+
+  /* ---- 悬停配色（Day 31 晚）----
+     .item:hover / .icon-btn:hover 原来把底色写死成浅薄荷 #f2faf6，
+     暗色下没有覆盖 → 悬停变白（斌哥指出）。收进变量后四种配方各给协调值：
+       浅暖（这里）/ 浅冷（cool 块沿用同一值，不重定义）
+       暗冷（暗色块 #26303d）/ 暗暖（暗暖块 #332d24）*/
+  --item-hover-bg: #f2faf6;             /* 悬停底色：淡薄荷（原写死值） */
+  --hover-ring: rgba(15, 110, 86, .12); /* 悬停外环：强调绿 */
 
   /* ---- 尺寸（原有）---- */
   --radius-card: 16px;
@@ -120,6 +144,39 @@
 }
 
 /* ============================================
+   冷白配色（默认档）：html[data-tint="cool"]
+   ------------------------------------------------------------
+   Day 32 起这一块就是【默认】长相：冷白底 + 纯白卡片 + 冷色光斑。
+   为什么改回来：冷调才配得上品牌深蓝 #1a2c73（logo 的主色之一），
+   暖白那版和品牌两色放在一起，冷暖打架。
+   :root 里那套暖白（象牙底 + 橙色光斑）保留成【暖】档兜底值，
+   用户点右栏「配色 · 暖」时贴 data-tint="warm"，没有 cool 块压着就露出来。
+   取值全部来自 Day 31 转暖之前的 :root 原值，一个没改。
+
+   ⚠️ 本块必须放在 html[data-theme='dark'] 块【之前】：
+      两者特异性相同（0,1,1），靠文件顺序让暗色在「暗色 + 冷白」时赢 ——
+      否则暗色用户会漏出一堆冷白变量把暗底冲花。
+      （已核对：dark 块重定义了本块全部变量，覆盖是完整的。）
+   ============================================ */
+html[data-tint='cool'] {
+  --bg: #f4f5f7;              /* 页面底色：冷白 */
+  --surface: #ffffff;         /* 卡片底色：纯白 */
+  --border: #dfe1e6;
+  --todo-bg: #eceef1;
+  --border-strong: #cfd3da;
+  --surface-sunken: #fafbfc;
+  --rule: #e6e8ec;
+  --surface-hover: #f7f8fa;
+  --bg-glow: rgba(255, 255, 255, .8);
+  --blob-a: rgba(45, 92, 196, .40);   /* 冷色光斑：蓝 */
+  --blob-b: rgba(56, 168, 196, .36);  /* 青 */
+  --blob-c: rgba(124, 96, 224, .34);  /* 紫 */
+  --blob-d: rgba(22, 138, 108, .28);  /* 绿 */
+  --text-ghost: #a0a8b2;
+  --surface-inset: #f1f2f4;
+}
+
+/* ============================================
    暗色主题（Day 31）
    ------------------------------------------------------------
    触发方式只有一种：<html data-theme="dark">。
@@ -132,13 +189,20 @@
    ⚠️ 阴影在暗色下不能再用"淡灰投影"（看不见），改成纯黑更重用低透明度。
    ============================================ */
 html[data-theme='dark'] {
-  --bg: #101319;
-  --surface: #191d25;
-  --surface-sunken: #14171e;
-  --surface-hover: #222833;
-  --border: #2a3040;
-  --border-strong: #3b4356;
-  --rule: #262c38;
+  /* 深色主题下才允许浏览器把原生控件（滚动条/输入框/下拉菜单）也画成暗的。
+     浅色时不声明 dark —— 那正是「站内浅色、手机深色」不该变色的一半原因。 */
+  color-scheme: dark;
+
+  /* Day 31 晚二改（斌哥指示）：暗底从深海蓝 #101319 提亮成石墨蓝灰 ——
+     「灰色调、不需要太暗、柔和舒适」。色相不变，只抬亮度、降饱和。
+     强调色仍是深海蓝系（冷调暗色的魂）。 */
+  --bg: #1b202a;
+  --surface: #242a35;
+  --surface-sunken: #1e232d;
+  --surface-hover: #2d3442;
+  --border: #343c4d;
+  --border-strong: #465064;
+  --rule: #303746;
   --text: #e9edf4;
   --text-muted: #a7b0be;
   --text-faint: #8b95a4;
@@ -147,24 +211,65 @@ html[data-theme='dark'] {
   --accent-fill: #2258c9;
   --accent-fill-strong: #2f6ae0;
   --text-ghost: #6f7885;
-  --surface-inset: #1e232c;
+  --surface-inset: #29303d;
   --focus-ring: #5b9dff;
   --ok-bg: rgba(91, 157, 255, .14);
   --ok-text: #8fc0ff;
-  --todo-bg: #242a35;
+  --todo-bg: #2f3745;
   --todo-text: #98a2b1;
   --brand-navy: #8fa8f0;
   --brand-navy-lift: #a9bcff;
   --brand-navy-deep: #6d86d6;
   --brand-amber: #edaf32;
-  --bg-glow: rgba(120, 170, 255, .10);
-  --blob-a: rgba(45, 92, 196, .30);
-  --blob-b: rgba(56, 168, 196, .22);
-  --blob-c: rgba(124, 96, 224, .26);
-  --blob-d: rgba(91, 157, 255, .20);
-  --shadow-xs: 0 1px 2px rgba(0, 0, 0, .5);
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, .5), 0 2px 6px -2px rgba(0, 0, 0, .45);
-  --shadow-md: 0 4px 10px -3px rgba(0, 0, 0, .55), 0 10px 24px -10px rgba(0, 0, 0, .5);
+  --bg-glow: rgba(120, 170, 255, .14);
+  --blob-a: rgba(45, 92, 196, .36);
+  --blob-b: rgba(56, 168, 196, .28);
+  --blob-c: rgba(124, 96, 224, .30);
+  --blob-d: rgba(91, 157, 255, .24);
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, .42);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, .42), 0 2px 6px -2px rgba(0, 0, 0, .38);
+  --shadow-md: 0 4px 10px -3px rgba(0, 0, 0, .46), 0 10px 24px -10px rgba(0, 0, 0, .42);
+
+  /* 悬停配色（Day 31 晚）：底色/外环收进变量 ——
+     原来这两处写死浅薄荷 #f2faf6，暗色下悬停直接变白（斌哥指出）。
+     暗冷 = 蓝灰悬停底 + 深海蓝外环。 */
+  --item-hover-bg: #26303d;
+  --hover-ring: rgba(91, 157, 255, .16);
+}
+
+/* Day 31 晚：暗色·暖 —— 暖炭灰底 + 琥珀强调色。
+   跟浅色的暖白同一根思路（tint='warm'），冷暖语义全模式一致：
+   cool = 冷白/石墨蓝灰，warm = 象牙暖白/暖炭灰。
+   特异性 (0,2,1) 高于单属性的暗色块，稳赢。 */
+html[data-theme='dark'][data-tint='warm'] {
+  --bg: #201d18;
+  --surface: #292520;
+  --surface-sunken: #232019;
+  --surface-hover: #332e26;
+  --border: #3a342b;
+  --border-strong: #4c4437;
+  --rule: #2e2a22;
+  --text: #f0ece4;
+  --text-muted: #b0a99a;
+  --text-faint: #8f8878;
+  --accent: #e0a44e;
+  --accent-strong: #edb96a;
+  --accent-fill: #a6722a;
+  --accent-fill-strong: #b8812f;
+  --text-ghost: #756e60;
+  --surface-inset: #2e2a23;
+  --focus-ring: #e0a44e;
+  --ok-bg: rgba(224, 164, 78, .16);
+  --ok-text: #ecc27c;
+  --todo-bg: #302b23;
+  --todo-text: #a89f8e;
+  --bg-glow: rgba(255, 214, 140, .12);
+  --blob-a: rgba(232, 168, 68, .30);
+  --blob-b: rgba(224, 122, 80, .26);
+  --blob-c: rgba(238, 172, 74, .24);
+  --blob-d: rgba(146, 168, 66, .20);
+  --item-hover-bg: #332d24;
+  --hover-ring: rgba(224, 164, 78, .16);
 }
 
 /* ⚠️ Day 11：--r 必须【注册】成 <length>，那个圆形空洞才能平滑开合。
@@ -1197,6 +1302,55 @@ main {
   font-variant-numeric: tabular-nums;
 }
 
+/* Day 31：「上次学到」卡 —— 和普通 Lesson 卡一眼区分：
+   薄荷底 + 强调描边 + 左侧时钟徽标（深色模式下随 token 自动变蓝系）。
+   尺寸/圆角/内边距仍走 .file-btn 那套皮，只是从竖排改横排（图标占左） */
+.lesson-btn.resume {
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+  background: var(--ok-bg);
+  border-color: var(--accent);
+}
+.lesson-btn.resume .file-name {
+  color: var(--accent);
+}
+.lesson-btn.resume .file-meta {
+  color: var(--text-muted);
+}
+.lesson-btn.resume .resume-ico {
+  flex: none;
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent-fill);
+  color: #fff;
+}
+.lesson-btn.resume .resume-ico svg {
+  width: 20px;
+  height: 20px;
+}
+.lesson-btn.resume .resume-txt {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;                            /* 标题过长时省略号收进去，别把卡片撑破 */
+}
+.lesson-btn.resume .resume-txt .file-meta {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* 悬停描边别被 .file-btn 的通用 hover 染回灰色——书签卡描边恒为强调色 */
+@media (hover: hover) {
+  .lesson-btn.resume:hover {
+    border-color: var(--accent);
+  }
+}
+
 /* 音频区在【没打开任何文件】时是空的（见 app.js 的 renderMaterialView）——
    整块白面板连同阴影一起收掉，只留下文件列表，别在页面上挂一块空卡片 */
 #reader:empty {
@@ -1209,6 +1363,38 @@ main {
   font-size: var(--text-xl);
   margin-bottom: 4px;
   overflow-wrap: break-word;
+}
+
+/* Day 31：标题行 = 标题（左）+ 倍速下拉（钉最右，斌哥要求）。
+   .mat-title 的 margin-bottom 挪到行容器上，免得下拉和标题基线对不齐 */
+.mat-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 4px;
+}
+.mat-head .mat-title {
+  flex: 1;
+  margin-bottom: 0;
+}
+.speed-select {
+  flex: none;
+  appearance: none;
+  -webkit-appearance: none;
+  border: 1px solid var(--border-strong);
+  background: var(--surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23606c77' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") no-repeat right 10px center / 12px;
+  color: var(--text);
+  border-radius: 999px;
+  padding: 6px 30px 6px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  font-variant-numeric: tabular-nums;
+}
+.speed-select:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
 }
 
 .mat-meta {
@@ -1918,7 +2104,7 @@ main {
       不等封顶的话最后一句要等到 .64s 之后，长素材更是等不完）。 */
 .page-reader #reader > .material { animation: none; }
 
-.page-reader #reader > .material > .mat-title,
+.page-reader #reader > .material > .mat-head,
 .page-reader #reader > .material > .mat-meta,
 .page-reader #reader > .material > .player,
 .page-reader #reader > .material > .player-status {
@@ -2382,9 +2568,9 @@ body:has(.boards) .empty {
         ⚠️ 自定义色值就地写十六进制，没有塞进 :root —— 它是这一处悬停的专用色，
            挂全局会让人以为别处也能用。 */
   .item:hover:not([aria-current='true']):not([aria-pressed='true']) {
-    background-color: #f2faf6;
+    background-color: var(--item-hover-bg);
     border-color: var(--accent);
-    box-shadow: var(--shadow-md), 0 0 0 3px rgba(15, 110, 86, .12);
+    box-shadow: var(--shadow-md), 0 0 0 3px var(--hover-ring);
     transform: translateY(-2px);
   }
 
@@ -2396,25 +2582,25 @@ body:has(.boards) .empty {
   .icon-btn:not([disabled]):hover,
   .captcha-box:hover,
   .auth-tab:hover:not([aria-selected='true']) {
-    background-color: #f2faf6;
+    background-color: var(--item-hover-bg);
     border-color: var(--accent);
-    box-shadow: var(--shadow-md), 0 0 0 3px rgba(15, 110, 86, .12);
+    box-shadow: var(--shadow-md), 0 0 0 3px var(--hover-ring);
     transform: translateY(-2px);
   }
 
   /* ③ 顶栏头像键：它本来就是绿的，只加深一点 + 描边加亮 */
   .avatarbtn:hover {
     border-color: var(--accent);
-    box-shadow: var(--shadow-md), 0 0 0 3px rgba(15, 110, 86, .14);
+    box-shadow: var(--shadow-md), 0 0 0 3px var(--hover-ring);
     transform: translateY(-2px);
   }
 
   /* ④ 左栏的三板块条目 + L1/L2/L3 —— 它们本身"透明底"、悬停时已经是薄荷底
-        （那一步就是"颜色加深"），这里把描边补上：绿环 + 下阴影。 */
+        （那一步就是"颜色加深"），这里把描边补上：强调环 + 下阴影。 */
   .sidenav__item:hover:not([aria-current='page']),
   .side-levels .level-btn:hover {
     box-shadow: 0 0 0 1px var(--accent),
-                0 0 0 4px rgba(15, 110, 86, .12),
+                0 0 0 4px var(--hover-ring),
                 0 4px 10px -4px rgba(16, 24, 40, .22);
     transform: translateY(-1px);
   }

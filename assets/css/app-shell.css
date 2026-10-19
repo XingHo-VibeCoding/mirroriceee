@@ -42,9 +42,9 @@ body.app {
   /* ---- 毛玻璃与色带（Day 31 抽出）----
      原来是直接写死 rgba(255,255,255,x) 的；暗色下"加白"是错的（越加越亮），
      得改成"加暗"，所以必须先是变量。 */
-  --glass-soft: rgba(255, 255, 255, .38);   /* 顶栏 */
-  --glass: rgba(255, 255, 255, .52);        /* 手机端右抽屉 */
-  --band-right: rgba(255, 255, 255, .45);   /* 桌面右栏色带 */
+  --glass-soft: rgba(255, 250, 238, .45);   /* 顶栏（Day 31 晚转暖） */
+  --glass: rgba(255, 250, 238, .62);        /* 手机端右抽屉（暖） */
+  --band-right: rgba(255, 248, 232, .55);   /* 桌面右栏色带（暖） */
   --danger-text: #b42318;
 
   /* ⚠️ 覆盖 style.css 的 body { padding: 24px 16px 40px }。
@@ -53,6 +53,17 @@ body.app {
      padding-top 用来把内容从固定顶栏底下推出来。 */
   padding: 0;
   padding-top: var(--bar-h);
+}
+
+/* Day 32：冷白档（默认档）—— 把毛玻璃与右栏色带换回转暖之前的「纯白加白」。
+   为什么必须有这一块：上面 body.app 里的三个玻璃值在 Day 31 晚被换成了象牙奶油色，
+   冷白页面上压一条奶油色顶栏，冷暖当场打架。三行值就是转暖前的原值，一个没改。
+   ⚠️ 必须排在 html[data-theme='dark'] body.app 之前：
+      两者特异性相同（0,2,2），靠顺序让暗色在「暗色 + 冷白」时赢。 */
+html[data-tint='cool'] body.app {
+  --glass-soft: rgba(255, 255, 255, .38);   /* 顶栏 */
+  --glass: rgba(255, 255, 255, .52);        /* 手机端右抽屉 */
+  --band-right: rgba(255, 255, 255, .45);   /* 桌面右栏色带 */
 }
 
 /* ============================================
@@ -64,12 +75,24 @@ body.app {
 html[data-theme='dark'] body.app {
   --side-mint-rgb: 24, 36, 58;
   --side-mint-line: rgba(91, 157, 255, .16);
-  --nav-active-bg: #1b2a47;
+  --nav-active-bg: #232c3d;
   --nav-hover-bg: rgba(91, 157, 255, .08);
   --glass-soft: rgba(16, 20, 27, .72);
   --glass: rgba(16, 20, 27, .78);
   --band-right: rgba(16, 20, 27, .55);
   --danger-text: #ff9a90;
+}
+
+/* Day 31 晚：暗色·暖 —— 左栏薄荷带/导航的悬停底跟着转琥珀，
+   蓝色那套压在暖炭底上会"冷暖打架"。 */
+html[data-theme='dark'][data-tint='warm'] body.app {
+  --side-mint-rgb: 46, 38, 26;
+  --side-mint-line: rgba(224, 164, 78, .16);
+  --nav-active-bg: #3a3223;
+  --nav-hover-bg: rgba(224, 164, 78, .10);
+  --glass-soft: rgba(24, 21, 16, .72);
+  --glass: rgba(24, 21, 16, .78);
+  --band-right: rgba(24, 21, 16, .55);
 }
 
 /* ============================================
@@ -294,6 +317,70 @@ html[data-theme='dark'] body.app {
   background: var(--ok-bg);
   color: var(--ok-text);
   font-weight: 500;
+}
+
+/* ---- 浅色配色色卡（Day 31 晚）----
+   冷白 / 暖白两颗小色卡，只在浅色下有意义 —— 深色下整行隐藏。
+   选中态同样借用 --ok-bg / --ok-text 那套"选中"语言。 */
+.tint-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+  padding-top: var(--space-2);
+  border-top: 1px dashed var(--border);
+}
+/* Day 31 晚：暗色也开放冷暖选择 —— 不再隐藏，色卡在暗色下照常可用。 */
+.tint-row__label {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+.tint-card {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 26px;
+  padding: 0 9px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill, 999px);
+  background: var(--surface);
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: var(--text-xs);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: border-color var(--duration-fast) var(--ease-out),
+              background-color var(--duration-fast) var(--ease-out),
+              color var(--duration-fast) var(--ease-out);
+}
+@media (hover: hover) {
+  .tint-card:hover {
+    border-color: var(--border-strong);
+    color: var(--text);
+  }
+}
+.tint-card[aria-pressed='true'] {
+  border-color: var(--accent);
+  background: var(--ok-bg);
+  color: var(--ok-text);
+  font-weight: 500;
+}
+.tint-card__swatch {
+  flex: none;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  border: 1px solid var(--border-strong);
+}
+/* 色卡小圆点要「预告」冷暖语义：
+   底色跟随当前模式的 --bg（浅色下是浅底、暗色下是暗底，圆点所见即所得），
+   光斑用固定的语义色 —— 蓝永远代表冷、琥珀永远代表暖，两种模式下都读得出区别。 */
+.tint-card__swatch--cool {
+  background: linear-gradient(135deg, var(--bg) 52%, rgba(91, 157, 255, .55) 100%);
+}
+.tint-card__swatch--warm {
+  background: linear-gradient(135deg, var(--bg) 52%, rgba(232, 168, 68, .6) 100%);
 }
 
 .acct-head {

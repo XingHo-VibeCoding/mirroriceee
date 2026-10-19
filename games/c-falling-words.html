@@ -22,6 +22,15 @@
     else document.documentElement.removeAttribute('data-theme');
   }
   apply();
+  /* 配色（Day 32）：与主界面共用 er_tint，缺省冷白。
+     必须在样式生效前贴好，否则暖白用户会先看到一眼冷白再跳。
+     ⚠️ 只认 'warm' 这一个显式值，其余一律冷白 —— 和 assets/js/theme.js 的 readTint() 同一套规矩。 */
+  try {
+    var tint = localStorage.getItem('er_tint');
+    document.documentElement.setAttribute('data-tint', tint === 'warm' ? 'warm' : 'cool');
+  } catch (e) {
+    document.documentElement.setAttribute('data-tint', 'cool');
+  }
   /* 选了「跟随系统」的话，系统配色变了要立刻跟上 */
   if (mq && mode === 'system') {
     var on = function () { apply(); };
@@ -33,7 +42,8 @@
 <style>
 :root{
   /* ---- 浅色模式（默认）：色值对齐主界面 assets/css/style.css ----
-     冷白底 #f4f5f7 / 纯白卡片 / 描边 #dfe1e6 / 正文 #16181d / 深绿强调 #0f6e56 / 品牌深蓝 #1a2c73 */
+     （Day 32）冷白底 #f4f5f7 / 纯白卡片 / 描边 #dfe1e6 / 正文 #16181d / 深绿强调 #0f6e56 / 品牌深蓝 #1a2c73。
+     为什么冷白是默认：冷调才配得上品牌深蓝 #1a2c73；暖白那份见下方 html[data-tint="warm"] */
   --bg:#f4f5f7;--card:#ffffff;--card2:#f4f5f7;--line:#dfe1e6;--line-strong:#cfd3da;
   --tx:#16181d;--tx2:#4c545e;--tx3:#606c77;
   --accent:#0f6e56;--accent-strong:#0b5a46;
@@ -48,6 +58,20 @@
   --warn:#a86a00;--danger:#d92d20;
   --toast-bg:#ffffff;--scrim:rgba(10,24,20,.42);
   --shadow:0 10px 22px -8px rgba(16,24,40,.16),0 22px 44px -20px rgba(16,24,40,.18);
+  /* 站内选浅色就锁浅色：声明 light 后，安卓 Chrome 的「深色强制反色」不会再篡改这页。
+     深色主题那一块另行声明 dark。 */
+  color-scheme:light;
+}
+
+/* ---- 暖色档（Day 32）：与主界面共用 localStorage 的 er_tint ----
+   默认冷白；用户在主界面右栏点「配色 · 暖」时，<html> 上才会出现 data-tint="warm"。
+   只覆盖中性色，语义色（绿/红/蓝标签）冷暖通用，不动。
+   ⚠️ 本块必须排在 html[data-theme="dark"] 之前：两者特异性相同，靠顺序让暗色赢。 */
+html[data-tint="warm"]{
+  --bg:#f6f2ea;--card:#fffdf8;--card2:#f6f2ea;--line:#e7e0d3;--line-strong:#d8cfbe;
+  --back-bg:#f1ecdf;--back-line:#d8cfbe;
+  --inset:#f1ecdf;--hover:#f6f1e7;
+  --toast-bg:#fffdf8;
 }
 
 /* ---- 暗色模式：变量名与浅色一一对应，切主题只换这一块，下面所有规则都不用动 ----
@@ -68,6 +92,7 @@ html[data-theme="dark"]{
   --warn:#EF9F27;--danger:#E24B4A;
   --toast-bg:#232330;--scrim:rgba(10,10,14,.87);
   --shadow:0 18px 40px -16px rgba(0,0,0,.6);
+  color-scheme:dark;
 }
 
 *{box-sizing:border-box}
@@ -269,6 +294,9 @@ function spawnRound(){
 
   const W = track.clientWidth;
   const laneW = W / 3;
+  /* 同一道里第几颗（0 起）。4 颗词挤 3 道，必有一道叠两颗——
+     不拉开纵距的话两颗同起点同速，全程贴死重合（斌哥截图指认的 bug） */
+  const laneStack = {};
 
   items.forEach((it, i) => {
     const el = document.createElement('div');
@@ -279,10 +307,14 @@ function spawnRound(){
 
     const pw = el.offsetWidth, phh = el.offsetHeight;
     const lane = i % 3;
+    const stack = laneStack[lane] || 0;
+    laneStack[lane] = stack + 1;
     const x = lane * laneW + Math.max(6, Math.round((laneW - pw) / 2));
+    /* 同道第 2 颗再往上挪一整个身位 + 64px 间隙；两边同速下落，间距全程不变 */
+    const y = -phh - 12 - stack * (phh + 64);
     const p = {
-      el: el, x: x, y: -phh - 12,
-      delay: Math.random() * 1.0 + i * 0.1,
+      el: el, x: x, y: y,
+      delay: stack === 0 ? Math.random() * 1.0 : Math.random() * 0.4 + 0.6,
       correct: it.correct, alive: true, word: it.w
     };
     el.style.transform = 'translate(' + x + 'px,' + p.y + 'px)';
