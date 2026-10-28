@@ -85,6 +85,20 @@ const BLOCKED_EXT = ['.md', '.env', '.env.example', '.env.local', '.env.producti
      但那是"别人替我挡"；写进自家名单是零成本的纵深防御。 */
 const BLOCKED_PATH_PREFIX = ['.env', '.workbuddy/', '.git/', 'cloudfunctions/', 'db/'];
 
+/* 【Day 32 补】根目录下这几个"自己的源码"也不该对外。
+   起因（线上实测 2026-10-28）：/dev-server.js 返回 200、22675 字节，
+     整个服务器的实现（Range 解析、黑名单、代理转发、cookie 补头）可被任何人下载。
+     顺带发现 /server.js 与 /package.json 也是 200。
+   为什么之前漏了：Day 23 想到 .env / .workbuddy / .git，Day 24 想到后端目录
+     cloudfunctions/ 与 db/ —— 两次都是"想目录"，
+     唯独没想到【根目录下这几个直接躺着的文件】。发布是整目录上传，它们一直在。
+   为什么单独一份精确名单、不并进 BLOCKED_PATH_PREFIX：
+     prefix 是按"路径开头"比的，拿它挡文件名会连带挡掉同名前缀的其它路径，
+     语义不对；这三个要的就是"精确等于"。
+   ⚠️ package.json 一并挡：它不含密钥，但属于工程内部信息（脚本、版本），
+      公网没有用途，少一个可探测的入口。挡它不影响任何页面与接口。 */
+const BLOCKED_FILES = ['dev-server.js', 'server.js', 'package.json'];
+
 /* 网址 → 本机文件路径。顺便挡住 ../../ 越界访问。
    Windows 上路径分隔符有正反两种，必须先 normalize 再比较，否则会误判 */
 function resolveFile(urlPath) {
@@ -233,7 +247,22 @@ const server = http.createServer((req, res) => {
      ⚠️ 比对用 URL 路径（req.url 的路径部分，统一转 / 和去前导斜杠），
         不用本地绝对路径 —— 后者带盘符，比不出前缀。 */
   var reqPath = decodeURIComponent((req.url || '/').split('?')[0]).replace(/^\/+/, '').replace(/\\/g, '/');
-  if (BLOCKED_PATH_PREFIX.some(function (p) { return reqPath === p.replace(/\/$/, '') || reqPath.startsWith(p); })) {
+  /* 【Day 32 补】黑名单比对前把路径统一转小写。
+     ⚠️ 为什么非转不可（实测）：Windows 的文件系统不区分大小写，
+        /DEV-SERVER.JS 与 /dev-server.js 指向同一个文件。
+        用原样路径去比，下面这两条黑名单就被一个大写字母绕过去了 ——
+        实测 /DEV-SERVER.JS、/Dev-Server.js、/PACKAGE.JSON 全部返回 200。
+        （顺带说明：这条在 Linux 沙箱里不会暴露，只在本地 Windows 提交时踩到；
+          但黑名单的正确性不该依赖"跑在哪个文件系统上"。） */
+  var reqPathLower = reqPath.toLowerCase();
+  if (BLOCKED_PATH_PREFIX.some(function (p) { return reqPathLower === p.replace(/\/$/, '') || reqPathLower.startsWith(p); })) {
+    return fail(res, 404, '404 找不到：' + req.url);
+  }
+
+  /* 【Day 32 补】根目录的服务器源码 / 工程配置：精确文件名比对（见 BLOCKED_FILES 说明）。
+     放在前缀检查之后：两边都是"当找不到回"，不暴露文件是否存在。
+     ⚠️ 用 reqPath（URL 路径）比，不是本地路径 —— 本地路径带盘符，比不出文件名。 */
+  if (BLOCKED_FILES.indexOf(reqPathLower) >= 0) {
     return fail(res, 404, '404 找不到：' + req.url);
   }
 
