@@ -1,0 +1,700 @@
+/* ============================================
+   talk.css —— 「AI 对话」板块（Day 32 新增）
+   ------------------------------------------------------------
+   参考图给的是【聊天式】界面：左边 AI 大气泡 + 右边自己的短气泡 + 底部三键工具栏。
+   本站的设计语言是「暖米底 + 深绿强调 + 细描边」，所以配色不照搬参考图：
+
+     · AI 气泡 = --surface-inset（暖灰，无描边）—— 对应参考图那块浅灰
+     · 我的气泡 = --ok-bg（淡薄荷）—— 站内「选中 / 可用」就是这个绿，
+       参考图用的是淡蓝，搬过来会跟全站撞调，所以换成自家的绿
+     · 麦克风 = --accent-fill 实心圆 —— 全站唯一的实心按钮语言就是它
+     · 气泡圆角 20px，比站内卡片(16px)大一号：气泡没有描边，
+       只能靠形状分块，圆角小一点就会被读成"又一张卡片"
+
+   ⚠️ 颜色一律走变量，四套主题（浅暖 / 浅冷 / 暗冷 / 暗暖）自动跟着变 ——
+      写死一个 #f2f2f3，暗色主题上就是一块刺眼的白板。
+   ⚠️ 高度用 100dvh 不用 100vh：手机浏览器地址栏收起/展开时 vh 不会重算，
+      卡片底部会被裁掉一条（工具栏正好在那儿）。
+   ============================================ */
+
+/* ---------- 页面级：算清"顶栏之外还剩多少高度" ---------- */
+/* 主区上下 padding 共 52px（20 + 32，来自 app-shell.css 的 .appmain）。
+   窄屏时 body 还要多占 12px（顶栏是 fixed 的，body 用 padding-top 让位）。 */
+.page-talk { --tk-chrome: 52px; }
+@media (max-width: 1079px) { .page-talk { --tk-chrome: 64px; } }
+
+/* ⚠️⚠️ 这一条不是装饰，是修 bug 的：
+   浏览器对 [hidden] 的默认样式是 display:none，但它的优先级【低于】任何 class 规则。
+   本页 .tk-status / .tk-vu / .tk-compose / .tk-sheet / .tk-jump 都写了 display:flex|grid，
+   于是 hidden 属性形同虚设 —— 实测第一版：状态条、输入框、回到底部按钮在空对话里
+   全部明晃晃地显示着。用一个 !important 把 hidden 的话语权拿回来。 */
+.tk-card [hidden] { display: none !important; }
+
+.tk-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - var(--bar-h) - var(--tk-chrome));
+  height: calc(100dvh - var(--bar-h) - var(--tk-chrome));
+  min-height: 420px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;          /* 让气泡滚进圆角里，不溢出卡片 */
+}
+
+/* ---------- 卡片头：老师身份 + 今日额度 + 清空 ---------- */
+.tk-head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 18px;
+  border-bottom: 1px solid var(--rule);
+}
+
+/* 老师头像：首字母圆片。
+   ⚠️ 这里【不】放 logo.png —— 品牌 logo 代表的是"星禾星穗"这个产品，
+      垫在 AI 老师头上会让人以为产品本身在讲话。首字母是诚实的占位。 */
+.tk-ava {
+  width: 38px;
+  height: 38px;
+  flex: none;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--surface-inset);
+  color: var(--accent);
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.tk-who { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.tk-who b { font-size: 15px; font-weight: 500; color: var(--text); }
+.tk-who span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-faint);
+}
+/* 在线点：实心圆 + 一圈淡绿外环，跟 .tk-ok 是同一套"活着"的表达 */
+.tk-live {
+  width: 6px;
+  height: 6px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 3px var(--ok-bg);
+}
+
+.tk-head__acts { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+.tk-quota {
+  font-size: 12px;
+  color: var(--text-ghost);
+  font-variant-numeric: tabular-nums;   /* 数字等宽：额度从 9 跳到 10 时不左右抖 */
+}
+
+/* 小幽灵按钮（清空 / 收起建议等次要操作） */
+.tk-ghost {
+  font-family: inherit;
+  font-size: 12px;
+  color: var(--text-muted);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  padding: 5px 12px;
+  cursor: pointer;
+  transition: color var(--duration-fast) var(--ease-out),
+              border-color var(--duration-fast) var(--ease-out);
+}
+.tk-ghost:hover { color: var(--accent); border-color: var(--accent); }
+.tk-ghost:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+.tk-ghost:active { transform: scale(.97); }
+
+/* ---------- 未配密钥 / 接口未上线的说明条 ---------- */
+.tk-notice {
+  flex: none;
+  padding: 9px 18px;
+  background: var(--surface-sunken);
+  border-bottom: 1px solid var(--rule);
+  font-size: 12px;
+  line-height: 1.75;
+  color: var(--text-muted);
+}
+.tk-notice code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1px 5px;
+}
+
+/* ---------- 对话区 ---------- */
+.tk-body { position: relative; flex: 1; min-height: 0; display: flex; }
+
+.tk-thread {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;   /* 滚到底不再带动整页 */
+  padding: 20px 18px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.tk-thread::-webkit-scrollbar { width: 8px; }
+.tk-thread::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 4px;
+}
+.tk-thread::-webkit-scrollbar-track { background: transparent; }
+
+/* 一行 = 一个气泡 + 它旁边的东西。
+   ⚠️ 必须给 width:100%：行本身是 flex 容器，气泡的 max-width 用的是【百分比】，
+      百分比要相对一个确定的宽度才算得出来。不给 100%，行会缩到内容宽，
+      气泡的 80% 就变成"内容宽的 80%" —— 实测第一版气泡只有 300px 宽，
+      一句话被切成两行，看着像被挤住了。 */
+.tk-row { display: flex; gap: 8px; width: 100%; animation: tk-in 220ms var(--ease-out) both; }
+.tk-row--ai { align-self: flex-start; }
+.tk-row--me { align-self: flex-end; justify-content: flex-end; }
+
+/* 气泡本体 */
+.tk-bub {
+  max-width: min(80%, 560px);
+  padding: 14px 18px;
+  border-radius: 20px;
+  font-size: 16px;
+  line-height: 1.72;
+  color: var(--text);
+  word-break: break-word;
+  text-wrap: pretty;
+}
+.tk-bub--ai { background: var(--surface-inset); }
+.tk-bub--me { background: var(--ok-bg); }
+/* 失败的那一条：文字降到次要色 —— 它只是"通知"，不该跟老师的正课一个腔调 */
+.tk-bub--ai.is-failed { color: var(--text-muted); }
+
+/* 英文原文。pre-wrap 保住学生自己打的换行 —— 多行回答不该被压成一坨 */
+.tk-text { margin: 0; white-space: pre-wrap; }
+/* 中文提示（话题的中文意思 / 小提示）：比正文弱一档，不抢英文 */
+.tk-zh {
+  margin: 8px 0 0;
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--text-faint);
+  white-space: pre-wrap;
+}
+
+/* ---------- 气泡右侧的圆形小按钮（朗读 / 复制） ---------- */
+.tk-side {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 2px;
+  flex: none;
+}
+.tk-round {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-muted);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  padding: 0;
+  transition: color var(--duration-fast) var(--ease-out),
+              border-color var(--duration-fast) var(--ease-out),
+              background-color var(--duration-fast) var(--ease-out);
+}
+.tk-round svg { width: 16px; height: 16px; }
+.tk-round:hover { color: var(--accent); border-color: var(--accent); background: var(--ok-bg); }
+.tk-round:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+/* 正在念 / 刚复制完 */
+.tk-round.is-on { color: var(--accent); border-color: var(--accent); background: var(--ok-bg); }
+
+/* ---------- 我的气泡左边那颗对勾 ---------- */
+/* 语义：这句是"已听清"的 —— 学生能一眼确认识别没出错。
+   ⚠️ 颜色不是唯一信号：形状(圆) + 对勾本身已经说明了，色盲也能读。 */
+.tk-ok {
+  width: 26px;
+  height: 26px;
+  flex: none;
+  align-self: flex-end;
+  margin-bottom: 8px;
+  border-radius: 50%;
+  background: var(--ok-bg);
+  color: var(--accent);
+  display: grid;
+  place-items: center;
+}
+.tk-ok svg { width: 14px; height: 14px; }
+
+/* ---------- 气泡里的批改区 ---------- */
+/* 一条细线隔开"老师说的话"和"老师的批注"——
+   这样主气泡读起来仍是聊天，不像一张表单 */
+.tk-note {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.tk-note__h {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  letter-spacing: .04em;
+  color: var(--text-ghost);
+}
+.tk-note__h svg { width: 12px; height: 12px; flex: none; }
+
+.tk-fix { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 7px; }
+.tk-fix li { font-size: 13px; line-height: 1.65; color: var(--text-muted); }
+/* 原句里错的片段：划线 = 这句该去掉 */
+.tk-fix .was {
+  text-decoration: line-through;
+  text-decoration-color: var(--text-ghost);
+  color: var(--text-faint);
+}
+/* 改后的说法：强调绿 + 500 字重（本站只有 400/500 两档） */
+.tk-fix .now { color: var(--accent); font-weight: 500; }
+.tk-fix .arrow { margin: 0 5px; color: var(--text-ghost); }
+.tk-fix .why { display: block; font-size: 12px; color: var(--text-ghost); margin-top: 1px; }
+
+.tk-polish { font-size: 14px; line-height: 1.85; color: var(--text); white-space: pre-wrap; }
+
+/* 空态 / 正在分析 */
+.tk-typing { display: inline-flex; align-items: center; gap: 4px; height: 20px; }
+.tk-typing i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--text-ghost);
+  animation: tk-bounce 1.1s infinite;
+}
+.tk-typing i:nth-child(2) { animation-delay: .15s; }
+.tk-typing i:nth-child(3) { animation-delay: .3s; }
+
+/* 「接着聊」：把 AI 给的下一个问题直接塞进输入框，省得学生自己想。
+   ⚠️ 用虚线圈、不用实心卡片 —— 实底线框 + 整行宽会长得跟输入框一样，
+      第一次用的人会以为"上面那个框里可以直接打字"（第一版就是这样）。 */
+.tk-next {
+  margin-top: 10px;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  width: 100%;
+  text-align: left;
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-muted);
+  background: transparent;
+  border: 1px dashed var(--border-strong);
+  border-radius: 12px;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: color var(--duration-fast), border-color var(--duration-fast);
+}
+.tk-next:hover { color: var(--accent); border-color: var(--accent); }
+.tk-next b {
+  flex: none;
+  font-weight: 500;
+  color: var(--accent);
+  margin-right: 2px;
+}
+
+/* 流式光标：跟在正在写的那一段末尾 */
+.tk-text.is-streaming::after {
+  content: '';
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  margin-left: 2px;
+  vertical-align: text-bottom;
+  background: var(--accent);
+  animation: tk-blink 1s steps(1) infinite;
+}
+
+/* ---------- 话题切换的分隔线 ---------- */
+.tk-div {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  align-self: stretch;
+  margin: 2px 0;
+  font-size: 11px;
+  color: var(--text-ghost);
+}
+.tk-div::before,
+.tk-div::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--rule);
+}
+
+/* ---------- 空态 ---------- */
+.tk-empty {
+  margin: auto;
+  padding: 24px;
+  max-width: 340px;
+  text-align: center;
+  font-size: 13px;
+  line-height: 1.9;
+  color: var(--text-faint);
+}
+.tk-empty svg { width: 40px; height: 40px; color: var(--border-strong); margin-bottom: 10px; }
+
+/* ---------- 回到底部 ---------- */
+.tk-jump {
+  position: absolute;
+  left: 50%;
+  bottom: 12px;
+  transform: translateX(-50%);
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-muted);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  box-shadow: var(--shadow-md);
+  z-index: 2;
+  transition: color var(--duration-fast), border-color var(--duration-fast);
+}
+.tk-jump:hover { color: var(--accent); border-color: var(--accent); }
+.tk-jump svg { width: 18px; height: 18px; }
+
+/* ---------- 状态条（录音 / 听写 / 分析 / 报错） ---------- */
+/* ⚠️ 这块【只在有状态时出现】，平时 display:none ——
+      常驻一条空状态栏会在工具栏上方多出一道没有信息的横线。 */
+.tk-status {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 18px;
+  border-top: 1px solid var(--rule);
+  background: var(--surface-sunken);
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.tk-status__dot {
+  width: 7px;
+  height: 7px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: tk-pulse 1.2s var(--ease-out) infinite;
+}
+.tk-status__time {
+  font-variant-numeric: tabular-nums;
+  color: var(--text-faint);
+  margin-left: auto;
+}
+.tk-status__text { min-width: 0; }
+/* 报错：点变成品牌琥珀（浅色/暗色都亮），文字提到正文色 ——
+   ⚠️ 不把整行染成红色：本站没有错误色变量，硬塞一个红会跟四套主题打架 */
+.tk-status.is-error .tk-status__dot { background: var(--brand-amber); animation: none; }
+.tk-status.is-error .tk-status__text { color: var(--text); }
+
+/* 电平条：录音时才动，其余时候整块不渲染 */
+.tk-vu { display: flex; align-items: center; gap: 3px; height: 22px; }
+.tk-vu i {
+  display: block;
+  width: 4px;
+  height: 5px;
+  border-radius: 2px;
+  background: var(--accent);
+  opacity: .3;
+  transition: height .08s linear, opacity .08s linear;
+}
+
+/* ---------- 底部：输入框 + 三键工具栏 ---------- */
+.tk-dock {
+  position: relative;   /* 建议面板靠它定位 */
+  flex: none;
+  padding: 10px 18px 12px;
+  border-top: 1px solid var(--rule);
+  background: var(--surface);
+}
+
+.tk-compose { display: flex; align-items: flex-end; gap: 8px; margin-bottom: 10px; }
+.tk-input {
+  flex: 1;
+  min-height: 44px;
+  max-height: 120px;
+  padding: 11px 14px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface-sunken);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 15px;
+  line-height: 1.6;
+  resize: none;
+  outline: 0;
+  transition: border-color var(--duration-fast), background-color var(--duration-fast);
+}
+.tk-input:focus { border-color: var(--accent); background: var(--surface); }
+.tk-input::placeholder { color: var(--text-ghost); }
+
+/* 发送：实心主按钮，和麦克风同一套填充语言，但矮一点，不抢麦克风的中心位 */
+.tk-send {
+  flex: none;
+  height: 44px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 14px;
+  background: var(--accent-fill);
+  color: #fff;
+  font-family: inherit;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color var(--duration-fast) var(--ease-out),
+              transform var(--duration-fast) var(--ease-out);
+}
+.tk-send:hover { background: var(--accent-fill-strong); }
+.tk-send:active { transform: scale(.97); }
+.tk-send:disabled { opacity: .45; cursor: not-allowed; }
+
+/* 三键一排：键盘 / 麦克风 / 建议。
+   ⚠️ 用 justify-content:center + 固定 gap，不用 space-between ——
+      后者在宽屏上会把三个键甩到两边，麦克风就不在正中间了。 */
+.tk-dockrow {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: clamp(22px, 7vw, 52px);
+}
+
+.tk-dockbtn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.tk-dockbtn .ico {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: var(--surface-inset);
+  color: var(--text-muted);
+  display: grid;
+  place-items: center;
+  transition: background-color var(--duration-fast) var(--ease-out),
+              color var(--duration-fast) var(--ease-out),
+              transform var(--duration-fast) var(--ease-out);
+}
+.tk-dockbtn .ico svg { width: 22px; height: 22px; }
+.tk-dockbtn:hover .ico { background: var(--ok-bg); color: var(--accent); }
+.tk-dockbtn:active .ico { transform: scale(.95); }
+.tk-dockbtn:focus-visible .ico { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+/* 键盘面板开着 / 建议面板开着：键本身亮起来，表示"你按的这个" */
+.tk-dockbtn[aria-expanded='true'] .ico { background: var(--ok-bg); color: var(--accent); }
+
+/* 麦克风：整页唯一的实心圆，72px —— 它是这条主链路的入口 */
+.tk-mic {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.tk-mic .ico {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: var(--accent-fill);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  /* ⚠️ 光晕用 accent-fill 自己当阴影色，四套主题自动跟着变；
+         写死 rgba(15,110,86,.5) 在暗蓝 / 暗暖主题上就是一块脏绿 */
+  box-shadow: 0 10px 22px -10px var(--accent-fill);
+  transition: background-color var(--duration-fast) var(--ease-out),
+              box-shadow var(--duration-normal) var(--ease-out),
+              transform var(--duration-fast) var(--ease-out);
+}
+.tk-mic .ico svg { width: 28px; height: 28px; }
+.tk-mic:hover .ico { background: var(--accent-fill-strong); }
+.tk-mic:active .ico { transform: scale(.96); }
+.tk-mic:focus-visible .ico { outline: 2px solid var(--focus-ring); outline-offset: 3px; }
+
+/* 录音中：外扩一圈淡绿光环 + 呼吸。⚠️ 用 box-shadow spread 做，
+   不用 filter: blur —— 后者在低端安卓上掉帧 */
+.tk-mic.is-rec .ico {
+  background: var(--accent-fill-strong);
+  box-shadow: 0 0 0 8px var(--ok-bg), 0 10px 22px -10px var(--accent-fill);
+  animation: tk-breathe 1.6s var(--ease-out) infinite;
+}
+
+/* 忙（听写 / 分析）：不许再点，但别做得像坏了 —— 暗一点 + 转圈 */
+.tk-mic:disabled { cursor: not-allowed; }
+.tk-mic.is-busy .ico { opacity: .8; }
+.tk-mic.is-busy .ico svg { display: none; }
+.tk-mic.is-busy .ico::after {
+  content: '';
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  animation: tk-spin .8s linear infinite;
+}
+
+.tk-foot {
+  margin: 10px 0 0;
+  text-align: center;
+  font-size: 11px;
+  color: var(--text-ghost);
+}
+
+/* ---------- 建议面板 ---------- */
+.tk-sheet {
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  bottom: calc(100% + 8px);
+  z-index: 4;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: var(--shadow-lg);
+  padding: 12px 12px 8px;
+  animation: tk-up 180ms var(--ease-out) both;
+}
+.tk-sheet__h {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  letter-spacing: .04em;
+  color: var(--text-faint);   /* 不用 ghost：这行是分区标题，得读得出来 */
+  padding: 4px 6px 8px;
+}
+.tk-sheet__list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 36vh;
+  overflow-y: auto;
+}
+.tk-sug {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  width: 100%;
+  text-align: left;
+  border: 0;
+  background: transparent;
+  padding: 9px 8px;
+  border-radius: 10px;
+  font-family: inherit;
+  color: var(--text);
+  cursor: pointer;
+}
+.tk-sug:hover { background: var(--surface-inset); }
+.tk-sug b { display: block; font-weight: 400; font-size: 13px; line-height: 1.6; }
+.tk-sug span { display: block; font-size: 11px; color: var(--text-ghost); margin-top: 2px; }
+/* 序号：让人知道"这是第几个话题"，也顺手给了个视觉节奏 */
+.tk-sug em {
+  flex: none;
+  font-style: normal;
+  font-size: 11px;
+  color: var(--text-ghost);
+  font-variant-numeric: tabular-nums;
+  padding-top: 2px;
+  width: 18px;
+}
+
+.tk-chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 2px 6px 8px; }
+.tk-chip {
+  font-family: inherit;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-muted);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  padding: 6px 12px;
+  cursor: pointer;
+  transition: color var(--duration-fast), border-color var(--duration-fast);
+}
+.tk-chip:hover { color: var(--accent); border-color: var(--accent); }
+
+/* ---------- 动效 ---------- */
+@keyframes tk-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes tk-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes tk-spin { to { transform: rotate(360deg); } }
+@keyframes tk-blink { 50% { opacity: 0; } }
+@keyframes tk-bounce {
+  0%, 60%, 100% { transform: translateY(0); opacity: .45; }
+  30%           { transform: translateY(-4px); opacity: 1; }
+}
+@keyframes tk-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: .45; transform: scale(.8); }
+}
+@keyframes tk-breathe {
+  0%, 100% { box-shadow: 0 0 0 8px var(--ok-bg), 0 10px 22px -10px var(--accent-fill); }
+  50%      { box-shadow: 0 0 0 14px var(--ok-bg), 0 10px 22px -10px var(--accent-fill); }
+}
+
+/* ---------- 窄屏 ---------- */
+@media (max-width: 599px) {
+  .tk-card { min-height: 360px; border-radius: 16px; }
+  .tk-head { padding: 11px 14px; gap: 10px; }
+  .tk-ava { width: 34px; height: 34px; }
+  .tk-thread { padding: 14px 12px 10px; gap: 12px; }
+  .tk-bub { max-width: 86%; padding: 12px 14px; font-size: 15px; border-radius: 18px; }
+  .tk-side { gap: 5px; }
+  .tk-round { width: 30px; height: 30px; }
+  .tk-round svg { width: 14px; height: 14px; }
+  .tk-dock { padding: 8px 12px 10px; }
+  .tk-dockrow { gap: 18px; }
+  .tk-dockbtn .ico { width: 48px; height: 48px; }
+  .tk-mic .ico { width: 64px; height: 64px; }
+  .tk-mic .ico svg { width: 24px; height: 24px; }
+  .tk-quota { display: none; }   /* 窄屏先让位给「清空」，额度在左栏不显示 */
+}
+
+/* ---------- 减少动效偏好 ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .tk-row, .tk-sheet { animation: none; }
+  .tk-mic.is-rec .ico { animation: none; }
+  .tk-typing i { animation: none; }
+  .tk-text.is-streaming::after { animation: none; }
+  .tk-status__dot { animation: none; }
+  .tk-vu i { transition: none; }
+  .tk-thread { scroll-behavior: auto; }
+}
