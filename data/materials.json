@@ -83,37 +83,37 @@
     {
       "level": "L1",
       "id": "L1.16",
-      "title": "Lesson15"
-    },
-    {
-      "level": "L1",
-      "id": "L1.17",
       "title": "Lesson16"
     },
     {
       "level": "L1",
-      "id": "L1.18",
+      "id": "L1.17",
       "title": "Lesson17"
     },
     {
       "level": "L1",
-      "id": "L1.19",
+      "id": "L1.18",
       "title": "Lesson18"
     },
     {
       "level": "L1",
-      "id": "L1.20",
+      "id": "L1.19",
       "title": "Lesson19"
     },
     {
       "level": "L1",
-      "id": "L1.21",
+      "id": "L1.20",
       "title": "Lesson20"
     },
     {
       "level": "L1",
-      "id": "L1.22",
+      "id": "L1.21",
       "title": "Lesson21"
+    },
+    {
+      "level": "L1",
+      "id": "L1.22",
+      "title": "Lesson22"
     },
     {
       "level": "L2",
@@ -962,6 +962,20 @@
       "lesson": "L2.U7",
       "title": "It sounds pretty obvious",
       "audio": "assets/audio/L2/U7/L2.U7.3.mp3"
+    },
+    {
+      "id": "L3.1",
+      "level": "L3",
+      "lesson": "",
+      "title": "Susan & Mike 相遇",
+      "audio": "assets/audio/L3/L3.1.mp3"
+    },
+    {
+      "id": "L3.2",
+      "level": "L3",
+      "lesson": "",
+      "title": "Lynette 交警冲突",
+      "audio": "assets/audio/L3/L3.2.mp3"
     }
   ]
 }
