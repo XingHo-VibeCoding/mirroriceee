@@ -121,8 +121,26 @@ function probeAudio(bar, audioPath) {
      ① <section data-audio="..."> —— 播放器靠它知道这条素材的音频文件在哪
      ② 每句挂 data-start / data-end —— 播放器拨播放头时直接读，改数据不用改代码 */
 function buildMaterialHTML(material, segments) {
-  var head = '<h2 class="mat-title">' + escapeHTML(material.title) + '</h2>';
-  var attrs = '<section class="material" data-audio="' + escapeHTML(material.audio) + '">';
+  /* 标题行：左边标题、最右端倍速（Day 31 斌哥要求）。
+     选中态从 localStorage 恢复（player.js 存的 er_play_rate），
+     不靠 player.js 回填——素材卡是后来渲染的，渲染时带上 selected 最省事 */
+  var savedRate = '1';
+  try { savedRate = localStorage.getItem('er_play_rate') || '1'; } catch (e) {}
+  var head = '<div class="mat-head">' +
+               '<h2 class="mat-title">' + escapeHTML(material.title) + '</h2>' +
+               '<select class="speed-select" data-role="speed" aria-label="播放倍速">' +
+                 [['0.5','0.5X'],['0.75','0.75X'],['1','1X'],['1.25','1.25X'],['1.5','1.5X']]
+                   .map(function (o) {
+                     return '<option value="' + o[0] + '"' +
+                            (o[0] === savedRate ? ' selected' : '') + '>' + o[1] + '</option>';
+                   }).join('') +
+               '</select>' +
+             '</div>';
+  /* data-mat / data-title：「上次学到」用 —— player.js 播放中只认得 DOM，
+     靠这两个属性反查是哪条素材，进度才记得到正确的文件上 */
+  var attrs = '<section class="material" data-audio="' + escapeHTML(material.audio) + '"' +
+              ' data-mat="' + escapeHTML(material.id) + '"' +
+              ' data-title="' + escapeHTML(material.title) + '">';
 
   /* 没有对齐数据就只显示标题，不给一个点了没反应的播放器 */
   if (!segments.length) {
@@ -329,7 +347,30 @@ function renderLessons() {
   var listMode = lessons.length > 0 && !activeLesson;
 
   if (listMode) {
-    box.innerHTML = lessons.map(function (lesson) {
+    /* Day 31：「上次学到」卡 —— 一键回到上次文本复读的位置。
+       没有记录（第一次用）就不铺，列表页保持原样 */
+    var last = readLastStudy();
+    var resume = '';
+    if (last && last.file && last.title) {
+      /* 外观与 Lesson 卡区分（斌哥指示）：薄荷底 + 强调描边 + 左侧时钟徽标；
+         尺寸/圆角/内边距仍走 .file-btn 同一套皮，不另起炉灶 */
+      resume = '<button type="button" class="lesson-btn file-btn item resume" ' +
+                 'data-action="resume-last">' +
+                 '<span class="resume-ico" aria-hidden="true">' +
+                   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" ' +
+                     'stroke-linecap="round" stroke-linejoin="round">' +
+                     '<circle cx="12" cy="12" r="9"></circle>' +
+                     '<path d="M12 7v5l3.2 1.8"></path>' +
+                   '</svg>' +
+                 '</span>' +
+                 '<span class="resume-txt">' +
+                   '<span class="file-name">上次学到</span>' +
+                   '<span class="file-meta">' + escapeHTML(last.title) + ' · ' +
+                     formatClock(last.t || 0) + '</span>' +
+                 '</span>' +
+               '</button>';
+    }
+    box.innerHTML = resume + lessons.map(function (lesson) {
       var n = materialsOfActiveLevel().filter(function (m) {
         return m.lesson === lesson.id;
       }).length;
@@ -341,6 +382,19 @@ function renderLessons() {
     }).join('');
   } else {
     box.innerHTML = '';                    /* 不在列表页 → 整页收起（CSS .lessons:empty 不占位） */
+  }
+
+  /* Day 31：Lesson 列表套弹簧动效（reactbits AnimatedList 的"收养"模式）。
+     ⚠️ 只加"动"（滚动入场 / 边缘渐隐），不改 .file-btn 的皮 ——
+        行的样式、内容、点击委托全部原样，app.js 这里的渲染逻辑一行没变。
+     ⚠️ 斌哥 19:36 指示：悬停跟随的描边滑块去掉（灰框跟着鼠标跑太扎眼）——
+        所以传 selectOnHover:false + enableArrowNavigation:false，
+        滑块 selected 恒为 -1，ring 永远隐藏，只留入场和渐隐。
+     ⚠️ 组件未加载或列表为空时它什么都不做，业务零感知；
+        每次重渲染都会重新 enhance（组件内部自己处理旧实例的清理）。
+     ⚠️ 只包 Lesson 列表 —— 音频列表(#files)动不动，是另一个决定。 */
+  if (window.AnimatedList && typeof AnimatedList.enhance === 'function') {
+    AnimatedList.enhance(box, { selectOnHover: false, enableArrowNavigation: false });
   }
 
   /* 回路：「← Lesson 列表」只在"课程目录存在、且已经点进某一课"时露出来。
@@ -434,8 +488,20 @@ function renderMaterialView() {
   }
 
   box.innerHTML = buildMaterialHTML(material, segmentsOf(material.id));
+  /* Day 32（斌哥要求）：把倍速 <select> 换成 Glide Select 外观。
+     只换皮不动逻辑 —— glide-select.js 内部仍然写回这个 select 的 value
+     并派发原生 change，player.js 的监听器照常工作。
+     ⚠️ 这一步失败（脚本没加载）也不影响功能：原生下拉原样可见可用。 */
+  if (window.GlideSelect) window.GlideSelect.enhanceAll(box);
   probeAllAudio(box);
   syncAudioNav();
+
+  /* Day 31：记「上次学到」。开新文件 → t 归零起账；
+     重开同一文件 → 保留原进度（这正是「上次学到」要接上来的那笔账） */
+  var lastRec = readLastStudy();
+  if (!lastRec || lastRec.file !== material.id) {
+    saveLastStudy({ file: material.id, title: material.title, t: 0, ts: Date.now() });
+  }
 }
 
 /* ---- Day 28：上一个 / 下一个音频 ----
@@ -499,6 +565,30 @@ function probeAllAudio(box) {
    ⚠️ 那行 stop() 不能省 —— player.js 把 Audio 对象按路径缓存着，
    只换 innerHTML 只会把播放控件从画面上抹掉，声音还在响，
    变成「看不见的播放器」：页面上一片安静，后台一直有人在读课文。 */
+/* Day 31：点「上次学到」→ 直接回到那次复读的素材与进度。
+   跳转 = 复用深链那套：摆好 active 三件套 → 整页重铺 → seekByProgress 拨播放头。
+   素材已不存在（清单换了）→ 静默收起，卡片下次渲染自然消失 */
+function resumeLast() {
+  var last = readLastStudy();
+  if (!last || !last.file) return;
+  var mat = allMaterials.filter(function (m) { return m.id === last.file; })[0];
+  if (!mat) { saveLastStudy(null); return; }
+
+  if (window.Player && window.Player.stop) window.Player.stop();
+  activeLevel = mat.level;
+  activeLesson = mat.lesson || '';
+  activeFileId = mat.id;
+  renderLevels();
+  renderLessons();
+  renderFiles();
+  renderMaterialView();
+
+  if ((last.t || 0) > 0 && window.Player && window.Player.seekByProgress) {
+    var bar = document.querySelector('#reader .material');
+    if (bar) window.Player.seekByProgress(bar, last.t, false);
+  }
+}
+
 function pickLevel(level) {
   if (!level || level === activeLevel) return;
   if (window.Player && window.Player.stop) window.Player.stop();
@@ -574,6 +664,12 @@ document.addEventListener('click', function (e) {
 
   if (el.closest('[data-action="retry-load"]')) {
     render();
+    return;
+  }
+
+  /* Day 31：「上次学到」卡 → 一键跳回上次的素材与进度 */
+  if (el.closest('[data-action="resume-last"]')) {
+    resumeLast();
     return;
   }
 

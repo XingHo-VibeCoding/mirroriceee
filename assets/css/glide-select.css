@@ -1,0 +1,358 @@
+/* ============================================================================
+   glide-select.css —— 「倍速」下拉的 Glide Select 外观与动效
+   Day 32（斌哥要求）：拿 reactbits.dev/c/micro/glide-select 的 Glide Select
+   替换文本跟读页原来的 <select class="speed-select">。
+
+   ⚠️ 只被 index.html 引用；其余三个页面（词汇速记 / AI 对话 / free talk）
+      不加载本文件，一行样式都不会受影响。
+
+   动效参数是原组件原值，一个没改（便于对照）：
+     · popDuration      180ms   菜单从角落长出
+     · pop-out          120ms   收起（= 180 × 2/3，比打开利落）
+     · glideDuration    220ms   高亮药丸在行间滑动
+     · ease-out         cubic-bezier(0.23, 1, 0.32, 1)   快进慢出
+     · 起始态           opacity 0 + scale(0.95)，transform-origin 吃按钮那个角
+
+   颜色没有照搬它的深色皮肤（#27272a / #f5f5f5），而是映射到本站主题变量，
+   否则一块深灰药丸贴在象牙白页面上会很突兀。浅色/暗色主题都自动跟随。
+
+   结构（由 glide-select.js 生成，原生 select 被移进 root 内部隐藏）：
+     div.glide-select
+       ├─ button.glide-select__trigger   ← 药丸按钮（显示当前倍速 + 箭头）
+       │    ├─ span.glide-select__label
+       │    └─ span.glide-select__chevron
+       ├─ div.glide-select__menu          ← 浮层，从按钮那个角弹出
+       │    └─ div.glide-select__list
+       │         ├─ span.glide-select__pill   ← 唯一的高亮药丸，靠 translateY 滑动
+       │         └─ div.glide-select__option × N
+       └─ select.speed-select[data-role=speed]  ← 隐藏，只当状态与事件载体
+   ========================================================================== */
+
+.glide-select {
+  /* 动画曲线与时长（原组件默认值） */
+  --gs-ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --gs-pop: 180ms;
+  --gs-pop-out: 120ms;
+  --gs-glide: 220ms;
+
+  /* 尺寸 */
+  --gs-chip: 30px;
+  --gs-row: 28px;
+  --gs-font: 13px;
+  --gs-radius: 12px;         /* 菜单圆角 */
+  --gs-inner-radius: 8px;    /* 行与药丸 = 菜单圆角 − 4，保持同心 */
+  --gs-menu-w: 96px;
+
+  /* 颜色：全部走站点变量，跟着浅色/暗色主题走 */
+  --gs-surface: var(--surface);
+  --gs-text: var(--text);
+  --gs-border: var(--border-strong);
+  --gs-accent: var(--accent);
+
+  /* 高亮药丸：品牌蓝淡染。第一条是不支持 color-mix 时的兜底 */
+  --gs-pill: rgba(26, 44, 115, 0.10);
+  --gs-pill: color-mix(in srgb, var(--accent) 12%, transparent);
+  --gs-pill-soft: rgba(26, 44, 115, 0.06);
+  --gs-pill-soft: color-mix(in srgb, var(--accent) 7%, transparent);
+
+  /* 由 JS 按展开方向改成 top right / bottom right */
+  --gs-origin: top right;
+
+  position: relative;
+  display: inline-block;
+  flex: none;                /* 原来是 .speed-select 上的，挪到这里 */
+  vertical-align: middle;
+}
+
+/* ---------- 原生 select：留在 DOM 里当状态与事件载体，但看不见也点不到 ---------- */
+
+.glide-select > .speed-select {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  border: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  /* 覆盖 style.css 里 .speed-select 的 appearance / 背景图 / 内边距等 */
+  background: none;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+/* ---------- 药丸按钮 ---------- */
+
+.glide-select__trigger {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: var(--gs-chip);
+  margin: 0;
+  padding: 0 9px 0 13px;
+  border: 1px solid var(--gs-border);
+  border-radius: 999px;
+  background: var(--gs-surface);
+  color: var(--gs-text);
+  font-family: inherit;
+  font-size: var(--gs-font);
+  font-weight: 500;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  outline: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  transition:
+    background-color 100ms ease,
+    border-color 100ms ease,
+    transform 160ms var(--gs-ease-out);
+}
+
+.glide-select__trigger:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .glide-select__trigger:not(:disabled):hover {
+    background: var(--gs-pill-soft);
+    border-color: var(--accent);
+  }
+}
+
+/* 展开中：底色吃一层高亮淡染，像原组件的 aria-expanded 态 */
+.glide-select__trigger[aria-expanded='true'] {
+  background: var(--gs-pill-soft);
+  border-color: var(--accent);
+}
+
+.glide-select__trigger:not(:disabled):active {
+  transform: scale(0.97);
+}
+
+.glide-select__label[data-empty] {
+  opacity: 0.6;
+}
+
+/* 换值瞬间：轻微模糊 + 半透明起步（原组件的 gs-swap） */
+.glide-select[data-swap] .glide-select__label {
+  animation: gs-swap 160ms ease;
+}
+
+@keyframes gs-swap {
+  from {
+    opacity: 0.6;
+    filter: blur(2px);
+  }
+}
+
+/* ---------- 箭头 ---------- */
+
+.glide-select__chevron {
+  display: inline-flex;
+  align-items: center;
+  color: var(--text-faint);
+  transition: transform 200ms var(--gs-ease-out);
+}
+
+.glide-select__chevron svg {
+  width: 12px;
+  height: 12px;
+  display: block;
+}
+
+.glide-select__trigger[aria-expanded='true'] .glide-select__chevron {
+  transform: rotate(180deg);
+}
+
+/* ---------- 菜单：从按钮那个角长出来 ---------- */
+
+.glide-select__menu {
+  position: absolute;
+  z-index: 30;
+  width: var(--gs-menu-w);
+  min-width: 100%;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: var(--gs-radius);
+  background: var(--gs-surface);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  transform-origin: var(--gs-origin);
+  opacity: 0;
+  transform: scale(0.95);
+  transition:
+    opacity var(--gs-pop) var(--gs-ease-out),
+    transform var(--gs-pop) var(--gs-ease-out);
+}
+
+.glide-select__menu[data-state='open'] {
+  opacity: 1;
+  transform: none;
+}
+
+/* 收起用 2/3 时长，比展开利落；pointer-events 立刻关掉，免得挡住下面 */
+.glide-select__menu[data-state='closed'] {
+  transition-duration: var(--gs-pop-out);
+  pointer-events: none;
+}
+
+.glide-select__menu[data-side='bottom'] {
+  top: calc(100% + 6px);
+}
+
+.glide-select__menu[data-side='top'] {
+  bottom: calc(100% + 6px);
+}
+
+.glide-select__menu[data-align='left'] {
+  left: 0;
+}
+
+.glide-select__menu[data-align='right'] {
+  right: 0;
+}
+
+/* ---------- 层级：展开期间把「装着按钮的这一行」抬到播放条之上 ----------
+   Day 32 二改（斌哥反馈：展开时被播放键 / A-B 复读盖住，看着像按钮重合）。
+
+   根因（实测推出来的，不是猜）：
+     .mat-head 上有入场动画 `animation: riseIn .35s ... both`，
+     riseIn 的收尾帧写的是 `translate: 0 0`。translate 只要不是 none，
+     浏览器就必须给它开一个堆叠上下文 —— 也就是说 .mat-head 自己成了一层，
+     下面所有 z-index（包括菜单的 30）都只能在这一层内部比大小，出不去。
+     偏偏 .player 在 DOM 里排在 .mat-head 后面，它也因为同一条动画成了一层
+     且 z-index 是 auto —— 同层看源序，靠后的整块压在上面。
+     于是进度条、播放键、「A-B 复读」全盖在菜单上：这不是 z-index 数值不够大，
+     是菜单根本不在它们那一层里，把 30 改成 99999 也一样会被盖。
+
+   解法：只在展开期间给行容器加 .glide-select-lift，把它本身抬到 .player 之上。
+   ⚠️ 收起就摘掉（等收起动画播完再摘，否则菜单会在半路掉回下面）。
+   ⚠️ 常态下这一行不定位、不设 z-index，页面原有图层关系一寸不动。 */
+
+.glide-select-lift {
+  position: relative;
+  z-index: 20;               /* .player 是 auto(0)，20 足够；不往上堆无意义的数 */
+}
+
+/* ---------- 列表与滑动药丸 ---------- */
+
+.glide-select__list {
+  position: relative;
+  display: grid;
+  gap: 1px;
+  touch-action: none;
+}
+
+.glide-select__pill {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  height: var(--gs-row);
+  border-radius: var(--gs-inner-radius);
+  background: var(--gs-pill);
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    transform var(--gs-glide) var(--gs-ease-out),
+    opacity 150ms ease;
+}
+
+/* ---------- 选项行 ---------- */
+
+.glide-select__option {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: var(--gs-row);
+  padding: 0 8px 0 10px;
+  border-radius: var(--gs-inner-radius);
+  color: var(--gs-text);
+  font-size: var(--gs-font);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* 选中行自带淡底；药丸出现时让位，避免两层色叠在一起发深 */
+.glide-select__option[aria-selected='true'] {
+  background: var(--gs-pill-soft);
+}
+
+.glide-select__list[data-live] .glide-select__option[aria-selected='true'] {
+  background: transparent;
+}
+
+.glide-select__name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.glide-select__check {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  color: var(--gs-accent);
+  visibility: hidden;
+}
+
+.glide-select__check[data-on] {
+  visibility: visible;
+}
+
+.glide-select__check svg {
+  width: 13px;
+  height: 13px;
+  display: block;
+}
+
+/* ---------- 减少动效偏好：位移全砍，只留淡入淡出 ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .glide-select__menu {
+    transform: none !important;
+    transition: opacity var(--gs-pop) ease;
+  }
+
+  .glide-select__menu[data-state='closed'] {
+    transition-duration: var(--gs-pop-out);
+  }
+
+  .glide-select__pill {
+    transition: opacity 150ms ease;
+  }
+
+  .glide-select__chevron {
+    transition: none;
+  }
+
+  .glide-select__trigger {
+    transition: background-color 100ms ease, border-color 100ms ease;
+  }
+
+  .glide-select__trigger:not(:disabled):active {
+    transform: none;
+  }
+
+  .glide-select[data-swap] .glide-select__label {
+    animation: none;
+  }
+}

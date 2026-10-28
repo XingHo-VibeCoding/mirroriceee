@@ -2,6 +2,56 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
+  <script>
+  /* ER_RETRY_V1 —— 资源加载兜底（P0-4：平台偶发对已存在的文件回 404）
+     ① 为什么内联、不放进独立 .js：兜底脚本自己也会被 404，独立文件等于没兜底。
+     ② 为什么串行排队：login.js 依赖 common.js 的 escapeHTML、page-loader.js 的 PageLoader，
+        并行重试会打乱执行顺序，比不兜底更糟。
+     ③ 为什么最多 2 次：再失败就是真没了，继续重试只是把抖动放大成刷请求。
+     ④ 只兜 <script> 与 <link rel=stylesheet>；图片裂了不影响功能，不重试。
+     ⑤ 位置必须在 <meta charset> 之后：本片段约 2.2KB，放前面会把字符集声明顶出前 1024 字节，
+        浏览器改用别的编码 → 中文乱码。 */
+  (function () {
+    var MAX = 2, queue = [], running = false;
+    function urlOf(el) { return el.tagName === 'LINK' ? el.href : el.src; }
+    function enqueue(el) {
+      var n = +(el.getAttribute('data-er-retry') || 0);
+      if (n >= MAX) return;
+      el.setAttribute('data-er-retry', n + 1);
+      if (queue.indexOf(el) < 0) queue.push(el);
+      drain();
+    }
+    function drain() {
+      if (running || !queue.length) return;
+      running = true;
+      var el = queue.shift();
+      var n = +el.getAttribute('data-er-retry');
+      var base = urlOf(el).split(/[?&]er_retry=/)[0].replace(/[?&]$/, '');
+      var sep = base.indexOf('?') > -1 ? '&' : '?';
+      var node;
+      if (el.tagName === 'LINK') {
+        node = document.createElement('link');
+        node.rel = 'stylesheet';
+        node.href = base + sep + 'er_retry=' + n + '_' + Date.now();
+      } else {
+        node = document.createElement('script');
+        node.src = base + sep + 'er_retry=' + n + '_' + Date.now();
+        node.async = false;
+      }
+      node.setAttribute('data-er-generated', '1');
+      node.onload = function () { running = false; drain(); };
+      node.onerror = function () { running = false; enqueue(el); drain(); };
+      (document.head || document.documentElement).appendChild(node);
+    }
+    document.addEventListener('error', function (e) {
+      var t = e.target;
+      if (!t || (t.tagName !== 'SCRIPT' && t.tagName !== 'LINK')) return;
+      if (!urlOf(t)) return;
+      if (t.hasAttribute('data-er-generated')) return;
+      enqueue(t);
+    }, true);
+  })();
+  </script>
   <!-- ⚠️ 跨页过渡的 opt-in，【必须】留在这里，不要挪进 assets/css/style.css：
        Chrome 做这项检查时不保证等外部样式表解析完，而这条规则原先在 style.css
        的 1800 行之后 —— 实测 6 次跳转只有 1~2 次生效，时好时坏。
@@ -15,8 +65,14 @@
   <!-- 外壳层（顶栏 / 左导航 / 右账号栏）。⚠️ 必须排在 style.css【之后】——
        它靠顺序压住 style.css 里 body / main / .site-header 那几条单列页面的规则。
        详见 app-shell.css 开头的说明。 -->
-  <link rel="stylesheet" href="assets/css/app-shell.css">
+  <link rel="stylesheet" href="assets/css/app-shell.css?v=20261020e">
   <link rel="stylesheet" href="assets/css/page-loader.css">
+  <!-- 弹簧列表的皮（Day 31）：给 Lesson 列表加滑块/入场/渐隐动效。
+       放这里早加载，避免行已经铺出来、样式还没到的闪烁。 -->
+  <link rel="stylesheet" href="assets/css/animated-list.css?v=20261020c">
+  <!-- 倍速下拉的皮（Day 32）：Glide Select 外观，只本页用。
+       ⚠️ 必须排在 style.css 之后：它要盖住 .speed-select 的边框/背景/内边距。 -->
+  <link rel="stylesheet" href="assets/css/glide-select.css?v=20261028b">
   <!-- 登录门禁：未登录不能进学习页（版权要求）。⚠️ login.html 不引本脚本，否则死循环 -->
   <script src="assets/js/guard.js"></script>
 </head>
@@ -100,6 +156,19 @@
           </svg>
           free talk练习
         </a>
+
+        <!-- 第四个板块（Day 32）：语音对话 —— 从 free talk 里分出来的一页。
+             为什么要分：那边是"写完对照参考回答"，这边是"开口说、听老师接"，
+             两种节奏塞一页，麦克风永远只是写作框旁边的附件 -->
+        <a class="sidenav__item" href="talk.html">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
+               stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M20.4 11.5c0 3.4-3.7 6.2-8.4 6.2-1 0-1.9-.1-2.8-.3l-4.6 2 1.4-3.5c-1.3-1.1-2-2.6-2-4.4 0-3.4 3.7-6.2 8.4-6.2s8 2.8 8 6.2Z"/>
+            <path d="M8.7 11.5h.01M12 11.5h.01M15.3 11.5h.01"/>
+          </svg>
+          AI 对话
+        </a>
+
       </nav>
 
       <!-- 等级目录（L1 / L2 / L3）—— Day 28 晚从主区搬进左栏（斌哥指示），
@@ -171,8 +240,19 @@
        顺序反了就是「xxx is not defined」。 -->
   <script src="assets/js/common.js"></script>
   <script src="assets/js/page-loader.js"></script>
-  <script src="assets/js/app-shell.js"></script>
-  <script src="assets/js/app.js"></script>
-  <script src="assets/js/player.js"></script>
+  <script src="assets/js/app-shell.js?v=20261028a"></script>
+  <!-- 倍速下拉的皮（Day 32）：必须排在 app.js 之前 ——
+       app.js 的 renderMaterialView 末尾会调 window.GlideSelect.enhanceAll(box)。
+       ⚠️ 加载不到也不影响功能：app.js 那边有 if (window.GlideSelect) 兜底，
+          原生 <select> 会原样显示、照常可用。 -->
+  <script src="assets/js/glide-select.js?v=20261028b"></script>
+  <script src="assets/js/app.js?v=20261028a"></script>
+  <script src="assets/js/player.js?v=20261028f"></script>
+
+  <!-- 弹簧列表（Day 31）：给 Lesson 列表加"滑块悬停跟随 / 滚动入场 / 边缘渐隐"。
+       数据不加 —— 行还是 app.js 铺的那些 Lesson 按钮，由 app.js 的 renderLessons
+       末尾调 AnimatedList.enhance(#lessons) 收养（见 app.js 内说明）。
+       ⚠️ 样式 link 在 head 里（早加载防首帧闪烁），这里只引脚本。 -->
+  <script src="assets/js/animated-list.js?v=20261020b"></script>
 </body>
 </html>

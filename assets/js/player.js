@@ -22,6 +22,49 @@ var Player = (function () {
   var current = null;         /* 当前载入的这一句／这一段；null = 什么都没在播 */
   var repeatOn = false;       /* 单句重复开关（R5） */
 
+  /* ---- Day 31：倍速（0.5X–1.5X，斌哥要求）----
+     选择记进 localStorage（er_play_rate），app.js 渲染下拉时读同一个键恢复选中。
+     ⚠️ 音频对象按 src 缓存（audios），换素材不会新建元素——但倍速要【对所有缓存音频】生效，
+        所以 change 时逐个套；新建音频时也套一次；'play' 事件里再兜底重套一次
+        （Safari 换源后偶发把 playbackRate 重置回 1，多套一遍不花钱）。 */
+  var RATE_KEY = 'er_play_rate';
+  var rate = 1;
+  try { rate = parseFloat(localStorage.getItem(RATE_KEY)) || 1; } catch (e) {}
+
+  /* ⚠️ Day 32 修「改完倍速，几秒后自己回到 1 倍速」——
+     两个必须一起设，少一个就会被浏览器偷回去：
+
+     规范里 playbackRate 被重置时，落点是 defaultPlaybackRate（默认就是 1）。
+     而会触发重置的时机，全是播放过程中会自然发生的事情：
+       换源 / load() / 部分移动端（iOS Safari、微信内置浏览器）在 seek 之后或暂停恢复时。
+     只设 playbackRate 的话，任何一次重置都等于「悄悄回 1 倍速」，
+     用户看到的现象就是「改的时候变快了，几秒钟后又变回去了」。
+
+     实测（Edge/Chromium，同一段音频）：
+       只设 playbackRate=1.5 → 调一次 load() → playbackRate 变回 1
+       两个都设 1.5         → 调一次 load() → playbackRate 仍是 1.5
+     所以这里把 defaultPlaybackRate 也钉到同一个值：重置的落点也归我们管。 */
+  function applyRate(a) {
+    try {
+      a.defaultPlaybackRate = rate;   /* 先钉默认值：重置的落点 */
+      a.playbackRate = rate;          /* 再钉当前值：立刻生效的那一个 */
+    } catch (e) {}
+  }
+
+  /* ---- Day 31：「上次学到」的进度记账 ----
+     只更新 t（元数据由 app.js 打开素材时立账），file 对不上就不动账本，
+     防止慢悠悠的后台播放把别的素材的位置写花 */
+  function saveStudyT(t) {
+    if (!current || !current.bar || typeof t !== 'number' || isNaN(t) || t < 0) return;
+    var matId = current.bar.getAttribute('data-mat');
+    if (!matId) return;
+    var rec = readLastStudy();
+    if (!rec || rec.file !== matId) return;
+    rec.t = t;
+    rec.ts = Date.now();
+    saveLastStudy(rec);
+  }
+
   /* ---- Day 28：A-B 复读的状态 ----
      ab.bar 记着"这套 A/B 是哪块素材上的"：换素材后旧标记自动作废（对不上号）。
      b === null 表示"设了 A、还在等 B"；a/b 都是秒数。
@@ -179,6 +222,18 @@ var Player = (function () {
     if (dt > 0 && dt <= 2) usageSeconds += dt;
   }
 
+  /* 倍速自愈：播放中任何时刻发现「当前值不是用户选的那个」，立刻按回去。
+     两道触发，覆盖两种运行状态：
+       · tick()    —— 前台每帧一次，最快 16ms 就纠回来（用户听不出来）
+       · timeupdate —— 后台标签页里 rAF 会被降频/冻结，但媒体事件照常，约每秒 4 次
+     为什么要自愈而不是只靠 applyRate：会重置倍速的时机（换源、load、seek、
+     个别移动端 webview 的省电策略）散落在播放过程里，逐个去 hook 挂不全；
+     反过来盯住「最终值对不对」，谁改的都一样纠。代价只是一次数值比较。 */
+  function ensureRate() {
+    if (!current || !current.audio) return;
+    if (Math.abs(current.audio.playbackRate - rate) > 0.001) applyRate(current.audio);
+  }
+
   /* ---------- 取音频对象 ---------- */
 
   /* 有就复用，没有才新建。绝不每次 new、绝不换 src（TECH_DESIGN 2.6） */
@@ -187,12 +242,19 @@ var Player = (function () {
       var audio = new Audio();
       audio.preload = 'auto';
       audio.src = src;
+      applyRate(audio);                 /* 新建的音频也按当前倍速来 */
 
       /* 时长一拿到，就把进度条的上限改成真实时长
          （进度条初始上限是"最后一句的终点"，比音频真实时长略短） */
       audio.addEventListener('loadedmetadata', function () {
         var bar = barsBySrc[src];
         if (bar) syncDuration(bar, audio);
+        /* Day 34：点句后是「往后连着播」，而点的那一刻时长往往还没读出来
+           （audio 对象是点下去才建的），当时只能把 end 兜底成起点。
+           元数据一到就补成真实时长，别让 current.end 留个过时的值 */
+        if (current && current.audio === audio && current.mode === 'free') {
+          current.end = audio.duration;
+        }
       });
 
       /* 播到文件末尾：开着单句重复就拨回本句起点接着转，否则收尾。
@@ -213,13 +275,23 @@ var Player = (function () {
 
       /* 播放状态一变就刷新播放/暂停图标。
          挂着听事件比自己记状态可靠：暂停可能来自别处（比如切走页面、系统打断） */
-      audio.addEventListener('play', syncPlayButtons);
-      audio.addEventListener('pause', syncPlayButtons);
+      audio.addEventListener('play', function () {
+        applyRate(audio);               /* 兜底：个别浏览器换源后会重置倍速 */
+        syncPlayButtons();
+      });
+      audio.addEventListener('pause', function () {
+        syncPlayButtons();
+        /* Day 31：暂停/切走时把播放头位置记进「上次学到」（确属当前素材才记） */
+        if (current && current.audio === audio) saveStudyT(audio.currentTime);
+      });
 
       /* 兜底：后台标签页里 rAF 会被浏览器降频甚至冻结，但媒体事件照常触发，
          所以让 timeupdate 也走一遍同一个判断 */
       audio.addEventListener('timeupdate', function () {
-        if (current && current.audio === audio) checkBoundary();
+        if (current && current.audio === audio) {
+          ensureRate();                  /* Day 32：后台也守倍速，见 ensureRate 注释 */
+          checkBoundary();
+        }
       });
 
       /* 音频文件本身读不到（404 / 断网）：必须说出来，不能让用户点了没反应。
@@ -286,6 +358,25 @@ var Player = (function () {
       if (seconds >= start && seconds < end) return segs[i];
     }
     return null;
+  }
+
+  /* 「离这一秒最近的一句」——segAtTime 的兜底版。
+     只有播放头不在任何句子区间内时才有意义（开头前奏、结尾余音、句子之间的缝）。
+     ⚠️ 为什么不用「第一句」或「最后一句」了事：那样在段落中段的缝里会突然跳到很远的一句。
+        这里按「离得最近」取，方向也对得上 —— 前奏里取后面第一句，余音里取最后一句。 */
+  function segNear(bar, seconds) {
+    var segs = bar.querySelectorAll('.seg');
+    if (!segs.length) return null;
+    var best = null, bestD = Infinity;
+    for (var i = 0; i < segs.length; i++) {
+      var s = parseFloat(segs[i].getAttribute('data-start'));
+      var e = parseFloat(segs[i].getAttribute('data-end'));
+      if (isNaN(s) || isNaN(e)) continue;
+      if (seconds >= s && seconds < e) return segs[i];
+      var d = seconds < s ? (s - seconds) : (seconds - e);
+      if (d < bestD) { bestD = d; best = segs[i]; }
+    }
+    return best;
   }
 
   /* 进度条跟着播放头走。注意：用户正按着的时候不许覆盖，否则手感会"抢方向盘" */
@@ -411,6 +502,11 @@ var Player = (function () {
   function tick() {
     if (!current) return;
 
+    /* Day 32：每帧校一次倍速 —— 见上面 ensureRate 的说明。
+       这是第二道闸：applyRate 已经把 defaultPlaybackRate 钉住了，
+       万一某个浏览器还有别的手法把 playbackRate 改回 1，这一帧就纠回来。 */
+    ensureRate();
+
     accumulateUsage();                       /* Day 28：先记时长，再判边界 */
     checkBoundary();
     if (!current) return;                    /* checkBoundary 里可能已经 stop() 掉了 */
@@ -499,15 +595,27 @@ var Player = (function () {
 
     highlight(segEl);                         /* R4：正在播的句子高亮 */
 
-    /* inWindow 先关闸，等 seek 落地、播放头真的进来之后再打开（见 checkBoundary） */
+    /* Day 34（斌哥要求）：点句子 = 从这句起【往后连着播】，不再播完这一句就停。
+       实现上就是走 'free' 模式 —— 它那条边界分支正是「高亮跟着播放头一句句走、
+       播到整段末尾才停」，不用另写一套；end 放宽到整段时长。
+       ⚠️ 开着「单句重复」时仍用 'segment'：那个开关的语义就是"只反复这一句"，
+          不能因为这次改动把它废掉（关掉它，下次点句子就恢复连续播）。
+       ⚠️ inWindow 仍先关闸，等 seek 落地再开（见 checkBoundary）*/
+    var loopOne = repeatOn;
     current = {
-      el: segEl, bar: bar, audio: audio, mode: 'segment',
-      start: start, end: end, inWindow: false
+      el: segEl, bar: bar, audio: audio,
+      mode: loopOne ? 'segment' : 'free',
+      start: start,
+      end: loopOne
+        ? end
+        : ((audio.duration && isFinite(audio.duration)) ? audio.duration : start),
+      inWindow: false
     };
 
     /* 关键：只改播放头、不换 src —— iOS Safari 上换 src 容易重新触发播放限制 */
     audio.currentTime = start;
     startAudio(audio, '没能开始播放，请再点一次这一句', bar);
+    saveStudyT(start);                        /* Day 31：点这句 = 学到这句 */
 
     syncProgress(bar, start);
     startTicking();
@@ -555,6 +663,9 @@ var Player = (function () {
       };
       highlight(el);
       audio.currentTime = target;
+      /* Day 31：不播也要让进度条停在落点上——否则「上次学到」跳回来、
+         深链带 t 进来，播放头其实在 7 秒处，进度条却看着像 0 */
+      syncProgress(bar, target);
     }
 
     setStatus('', bar);
@@ -631,6 +742,55 @@ var Player = (function () {
     syncPlayButtons();                        /* 停了，图标得变回「播放」 */
   }
 
+  /* Day 33（斌哥要求）：播放途中打开「单句重复」→ 立刻就把【当前正在播的这一句】变成循环。
+     —— 为什么需要这一步，而不是只翻开关：
+        循环只住在 checkBoundary 的「分段模式收尾」分支里（t >= current.end 时回起点）。
+        而从播放键 / 拖进度条起播是 mode 'free'，它那条分支是「播到整段末尾才停」，
+        根本没有句子收尾这回事 —— 开关翻过去也不会发生任何事，用户看到的就是「点了没反应」。
+     所以这里主动把状态从 free 切到 segment（切到播放头所在的那一句），并回拨到这句的开头。
+     返回 false 表示「此刻没有在播的东西」，调用方不用管，只留开关等下次播放。 */
+  function snapRepeatToCurrent() {
+    if (!repeatOn || !current) return false;
+
+    var audio = current.audio;
+    var bar = current.bar;
+    if (!audio || !bar) return false;
+    if (audio.paused) return false;              /* 没在响：只留开关，等它下次播 */
+
+    /* 播放头落在哪一句就重复哪一句。
+       两级兜底，都是为了不出现「点了没反应」：
+         ① 落在两句之间的静音缝里 → 退回「最近一次高亮的那一句」（current.el）
+         ② 刚起播、连高亮都还没有（current.el 为 null）→ 用 segNear 找最近的一句
+       ⚠️ ② 不是假想：真实素材的第一句从 3.06 秒才开始（前面是前奏），
+          用户按下播放键后在那三秒里点「单句重复」，①②都不管就会静默失败。 */
+    var el = segAtTime(bar, audio.currentTime) || current.el || segNear(bar, audio.currentTime);
+    if (!el) return false;
+
+    var start = parseFloat(el.getAttribute('data-start'));
+    var end = parseFloat(el.getAttribute('data-end'));
+    if (isNaN(start) || isNaN(end)) return false;
+
+    /* 已经在循环这一句了 → 不重播。否则手一抖连按两下会莫名跳回句首 */
+    if (current.mode === 'segment' && current.el === el &&
+        Math.abs(current.start - start) < 0.001 && Math.abs(current.end - end) < 0.001) {
+      return true;
+    }
+
+    /* 切到「这一句」的分段模式：起止点换成句子的起止点，
+       mode 必须改 —— 留在 'free' 里循环分支永远不会命中 */
+    current.mode = 'segment';
+    current.el = el;
+    current.start = start;
+    current.end = end;
+    current.inWindow = false;                    /* 回拨后重新等 seek 落地，与 playSegment 一致 */
+
+    highlight(el);
+    audio.currentTime = start;                   /* 直接回到这句的开头：让「重复」立刻听得见 */
+    syncProgress(bar, start);
+    startTicking();                              /* 万一之前没在跑（极少），这里补上 */
+    return true;
+  }
+
   /* 单句重复开关（R5）
      Day 28：与 A-B 复读互斥 —— 打开单句重复时清掉 A/B 标记（两个循环模式
      同时开着会互相抢播放头，谁都听不清）。 */
@@ -647,6 +807,10 @@ var Player = (function () {
       var label = btns[i].querySelector('[data-role="repeat-label"]');
       if (label) label.textContent = text;
     }
+
+    /* 打开时立刻生效（见 snapRepeatToCurrent 的说明）。关闭时不拨播放头 ——
+       让这一句自然播完，符合「关掉循环就别打断我」的预期。 */
+    if (repeatOn) snapRepeatToCurrent();
   }
 
   /* ---------- 事件代理 ---------- */
@@ -668,6 +832,13 @@ var Player = (function () {
 
   /* 松手：从落点开始播 */
   document.addEventListener('change', function (e) {
+    /* 倍速下拉（Day 31）：存 localStorage + 套到所有缓存音频上 */
+    if (e.target && e.target.closest && e.target.closest('[data-role="speed"]')) {
+      rate = parseFloat(e.target.value) || 1;
+      try { localStorage.setItem(RATE_KEY, String(rate)); } catch (err) {}
+      Object.keys(audios).forEach(function (k) { applyRate(audios[k]); });
+      return;
+    }
     if (!isProgress(e.target)) return;
     var bar = e.target.closest('.material');
     if (!bar) return;
