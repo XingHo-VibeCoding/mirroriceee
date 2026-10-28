@@ -13,7 +13,12 @@
   'use strict';
 
   var TOKEN_KEY = 'echoread_token';
-  var LOGIN_URL = 'login.html';
+
+  /* 登录页地址。默认 'login.html'（相对当前页面），站点根下的学习页直接用。
+     ⚠️ 子目录页面（games/*.html）必须先把 window.ECHOREAD_LOGIN_URL 设成 '../login.html'，
+        否则会按"同级"解析成 games/login.html —— 那个文件不存在，用户会看到 404 而不是登录页。
+        这里保留 location.replace 的相对语义：'../login.html' 从 /games/x.html 解析正好是 /login.html。 */
+  var LOGIN_URL = window.ECHOREAD_LOGIN_URL || 'login.html';
 
   /* 取登录令牌：先看 localStorage（本地/主存），再兜底看 cookie
      （线上平台反向代理会吃掉 Authorization 头，token 靠 cookie 带过去，见 app-shell.js） */

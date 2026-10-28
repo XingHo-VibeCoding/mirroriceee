@@ -17,8 +17,18 @@ const https = require('https');      /* Day 27：同源代理要用它转发到�
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
+const zlib = require('zlib');        /* 【P0-5】静态资源 gzip 压缩 */
 
 const ROOT = __dirname;                          /* 以本文件所在目录为网站根目录 */
+
+/* 【Day 32】先把 .env 读进 process.env，再加载 AI 对话后端。
+   顺序为什么不能反：lib/talk-api.js 里的密钥判断发生在【每次请求】时，
+   但"启动时就定下配置"更容易排查 —— 一开机就知道读到了几条，
+   而不是等第一个学生说话才发现 key 从没被读进来。
+   ⚠️ 真实环境变量优先于 .env（详见 lib/env.js 顶部第 ① 条），
+      线上平台注入的密钥不会被仓库里那份旧 .env 盖掉。 */
+const ENV_LOADED = require('./lib/env.js').load(ROOT);
+const talkApi = require('./lib/talk-api.js');
 
 /* Day 9：这里加了一级 process.env.PORT。
    起因：线上发布走静态托管时不给 Range，跳播坏掉（详见 server.js 的说明）。
@@ -45,6 +55,49 @@ const MIME = {
   '.jpg':  'image/jpeg',
   '.ico':  'image/x-icon',
 };
+
+/* ============================================
+   【P0-5】静态资源 gzip 压缩 + 协商缓存
+   起因（2026-10-26 线上实测）：进「词汇速记」6 次全部 >2 秒，最慢 29.3 秒。
+      · games/dicts.js 1,077,614 字节，响应头【没有 Content-Encoding】→ 明文传输
+      · Cache-Control 是 no-store → 浏览器一点不存，每点一次板块就重下一次 1MB
+      · 音频同理，每次进页面 mp3 也重下
+   做法：
+      ① 文本类（html/css/js/json/svg/txt/xml）走 gzip。实测 1MB 词库 → 约 300KB；
+      ② 除 HTML 外都发 ETag，浏览器下次带 If-None-Match，命中回 304（无正文）；
+      ③ HTML 保持 no-store —— 部署后刷新立刻看到新版，不会被旧页面骗；
+         静态资源给 5 分钟、音频给 1 天（这些内容变了会换文件名/加 ?v=）。
+   为什么音频不 gzip：mp3 本身就是压缩格式，再压更大，而且会破坏 Range 分段。
+   ============================================ */
+const COMPRESSIBLE = new Set(['.html', '.css', '.js', '.json', '.svg', '.txt', '.xml']);
+const GZIP_MIN_BYTES = 1024;         /* 太小的文件压了反而多几十字节头部，不划算 */
+const GZIP_CACHE = new Map();        /* 路径|mtime|size → 已压好的 Buffer，免得每次请求重压 */
+const GZIP_MAX_ENTRIES = 80;         /* 内存上限：按最大 2.5MB 明文算，约占几十 MB 封顶 */
+
+/* 缓存策略：HTML 不缓存（部署即生效）；音频 1 天；其余 5 分钟 */
+function cachePolicyFor(ext) {
+  if (ext === '.html') return 'no-store, must-revalidate';
+  if (ext === '.mp3' || ext === '.m4a' || ext === '.wav') return 'public, max-age=86400';
+  return 'public, max-age=300';
+}
+
+/* If-None-Match 可能带多个值、可能带 W/ 前缀，这里只做宽松比对 */
+function etagMatches(header, etag) {
+  if (!header) return false;
+  var strip = function (s) { return String(s).trim().replace(/^W\//, ''); };
+  var want = strip(etag);
+  return String(header).split(',').some(function (one) { return strip(one) === want; });
+}
+
+function gzipOnce(filePath, stat, buf) {
+  var key = filePath + '|' + stat.mtimeMs + '|' + stat.size;
+  var hit = GZIP_CACHE.get(key);
+  if (hit) return hit;
+  var gz = zlib.gzipSync(buf, { level: 6 });
+  if (GZIP_CACHE.size >= GZIP_MAX_ENTRIES) GZIP_CACHE.clear();
+  GZIP_CACHE.set(key, gz);
+  return gz;
+}
 
 /* Day 14：项目文档（.md）不对外提供。
    起因：发布是「只增不删」—— 文档一旦随发布上传，就留在沙箱里删不掉了
@@ -83,12 +136,10 @@ const BLOCKED_EXT = ['.md', '.env', '.env.example', '.env.local', '.env.producti
 
    Day 24 一并加上 `db/`：里面是 schema.sql / seed.sql，目前靠 WAF 挡着（.sql 命中规则），
      但那是"别人替我挡"；写进自家名单是零成本的纵深防御。
+
    Day 32 加上 `lib/`：AI 对话的后端（签名、prompt、流式转发）放在 lib/talk-api.js，
      与 cloudfunctions/ 同一个理由 —— 发布是整目录上传，仓库里有什么就传什么，
-     不给它一道门，/lib/talk-api.js 就能被人直接下载，prompt 和调用方式一览无余。
-   ⚠️ 为什么必须和"把 lib/ 纳入版本控制"同批完成：
-     在那之前 lib/ 是未跟踪的，从仓库恢复出来的代码里根本没有这个目录，
-     没有门也不会漏；一旦 lib/ 进了仓库，没有 lib/ 前缀就等于新开一个出口。 */
+     不给它一道门，/lib/talk-api.js 就能被人直接下载，prompt 和调用方式一览无余。 */
 const BLOCKED_PATH_PREFIX = ['.env', '.workbuddy/', '.git/', 'cloudfunctions/', 'db/', 'lib/'];
 
 /* 【Day 32 补】根目录下这几个"自己的源码"也不该对外。
@@ -96,7 +147,7 @@ const BLOCKED_PATH_PREFIX = ['.env', '.workbuddy/', '.git/', 'cloudfunctions/', 
      整个服务器的实现（Range 解析、黑名单、代理转发、cookie 补头）可被任何人下载。
      顺带发现 /server.js 与 /package.json 也是 200。
    为什么之前漏了：Day 23 想到 .env / .workbuddy / .git，Day 24 想到后端目录
-     cloudfunctions/ 与 db/ —— 两次都是"想目录"，
+     cloudfunctions/ 与 db/，Day 32 想到 lib/ —— 三次都是"想目录"，
      唯独没想到【根目录下这几个直接躺着的文件】。发布是整目录上传，它们一直在。
    为什么单独一份精确名单、不并进 BLOCKED_PATH_PREFIX：
      prefix 是按"路径开头"比的，拿它挡文件名会连带挡掉同名前缀的其它路径，
@@ -231,6 +282,15 @@ function readTokenCookie(req) {
 }
 
 const server = http.createServer((req, res) => {
+  /* ⚠️⚠️【Day 32】AI 对话的三条本地路由，必须排在下面那段 /api/** 转发【之前】。
+     原因很具体，不是风格问题：
+       /api/** 是【无条件】转发给云函数的，而云函数在免费体验版上是
+       【3 秒硬超时、改不了】；AI 批改实测常在 2–4 秒。
+       少这一行，/api/talk/analyze 会被当成业务接口转发进云函数，
+       3 秒后像石头一样没有响应 —— 页面表现为"一直转圈"，很难看出是路由顺序的锅。
+     交给 lib/talk-api.js 自己按路由表判断，认识就处理并返回 true。 */
+  if (talkApi.handle(req, res)) return;
+
   /* Day 27：/api/** 交给代理，不当作静态文件找。
      放在最前面，是因为 /api/words 这类路径在磁盘上并不存在，
      继续往下走只会撞 404。 */
@@ -256,7 +316,7 @@ const server = http.createServer((req, res) => {
   /* 【Day 32 补】黑名单比对前把路径统一转小写。
      ⚠️ 为什么非转不可（实测）：Windows 的文件系统不区分大小写，
         /DEV-SERVER.JS 与 /dev-server.js 指向同一个文件。
-        用原样路径去比，下面这两条黑名单就被一个大写字母绕过去了 ——
+        用原样路径去比，上面这两条黑名单就被一个大写字母绕过去了 ——
         实测 /DEV-SERVER.JS、/Dev-Server.js、/PACKAGE.JSON 全部返回 200。
         （顺带说明：这条在 Linux 沙箱里不会暴露，只在本地 Windows 提交时踩到；
           但黑名单的正确性不该依赖"跑在哪个文件系统上"。） */
@@ -289,21 +349,39 @@ const server = http.createServer((req, res) => {
   }
 
   const size = stat.size;
-  const type = MIME[path.extname(filePath).toLowerCase()] || 'application/octet-stream';
-  const headers = {
-    'Content-Type': type,
-    'Accept-Ranges': 'bytes',                    /* 告诉浏览器：我能分段给你 */
-    'Cache-Control': 'no-store, must-revalidate',/* 关缓存：刷新即拿最新文件 */
-    'Expires': '0',
-    'Last-Modified': stat.mtime.toUTCString(),
-  };
+  const ext = path.extname(filePath).toLowerCase();
+  const type = MIME[ext] || 'application/octet-stream';
+  const etag = 'W/"' + size.toString(16) + '-' + Math.floor(stat.mtimeMs).toString(16) + '"';
+  const lastMod = stat.mtime.toUTCString();
+  const cacheControl = cachePolicyFor(ext);
 
   const range = parseRange(req.headers.range, size);
 
+  /* 协商缓存：浏览器手里有副本时带 If-None-Match / If-Modified-Since，
+     命中就回 304 —— 只发几十字节头，正文一个字节都不传。
+     ⚠️ Range 请求（音频拖进度条）不走 304，否则浏览器拿不到那一段。 */
+  if (!range && (etagMatches(req.headers['if-none-match'], etag) ||
+      (req.headers['if-none-match'] === undefined && req.headers['if-modified-since'] &&
+       new Date(req.headers['if-modified-since']).getTime() === Math.floor(stat.mtimeMs / 1000) * 1000))) {
+    res.writeHead(304, {
+      'ETag': etag,
+      'Last-Modified': lastMod,
+      'Cache-Control': cacheControl,
+      'Vary': 'Accept-Encoding',
+    });
+    return res.end();
+  }
+
   if (range) {
-    headers['Content-Range'] = 'bytes ' + range.start + '-' + range.end + '/' + size;
-    headers['Content-Length'] = range.end - range.start + 1;
-    res.writeHead(206, headers);                 /* 206 = 只给你要的那一段 */
+    /* 音频分段：绝不压缩（会破坏字节偏移），也不发 ETag 干扰后续 Range 校验 */
+    res.writeHead(206, {
+      'Content-Type': type,
+      'Accept-Ranges': 'bytes',
+      'Content-Range': 'bytes ' + range.start + '-' + range.end + '/' + size,
+      'Content-Length': range.end - range.start + 1,
+      'Cache-Control': cacheControl,
+      'Last-Modified': lastMod,
+    });
     if (req.method === 'HEAD') return res.end();
 
     const stream = fs.createReadStream(filePath, { start: range.start, end: range.end });
@@ -312,8 +390,38 @@ const server = http.createServer((req, res) => {
     return stream.pipe(res);
   }
 
-  headers['Content-Length'] = size;
-  res.writeHead(200, headers);
+  /* 文本类走 gzip。Accept-Encoding 里没有 gzip 的老客户端照旧拿明文，功能不受影响。 */
+  const acceptsGzip = /\bgzip\b/i.test(req.headers['accept-encoding'] || '');
+  if (acceptsGzip && COMPRESSIBLE.has(ext) && size >= GZIP_MIN_BYTES) {
+    let gz;
+    try {
+      gz = gzipOnce(filePath, stat, fs.readFileSync(filePath));
+    } catch (err) {
+      gz = null;                                  /* 读失败就退回明文，别把页面弄挂 */
+    }
+    if (gz) {
+      res.writeHead(200, {
+        'Content-Type': type,
+        'Content-Encoding': 'gzip',
+        'Vary': 'Accept-Encoding',
+        'Content-Length': gz.length,
+        'Cache-Control': cacheControl,
+        'Last-Modified': lastMod,
+        'ETag': etag,
+      });
+      if (req.method === 'HEAD') return res.end();
+      return res.end(gz);
+    }
+  }
+
+  res.writeHead(200, {
+    'Content-Type': type,
+    'Accept-Ranges': 'bytes',                      /* 告诉浏览器：我能分段给你 */
+    'Content-Length': size,
+    'Cache-Control': cacheControl,
+    'Last-Modified': lastMod,
+    'ETag': etag,
+  });
   if (req.method === 'HEAD') return res.end();
   fs.createReadStream(filePath).pipe(res);
 });
@@ -327,6 +435,15 @@ server.listen(PORT, '0.0.0.0', () => {
   console.log('本地服务器已启动：http://localhost:' + PORT + '/');
   console.log('网站根目录：' + ROOT);
   console.log('已开启 Range（音频可跳播）＋ 已关闭浏览器缓存。按 Ctrl + C 停止。');
+
+  /* 【Day 32】启动就把 AI 对话这路的底细说清楚：
+     只报"配了/没配"和读完 .env 几条，不打印任何密钥内容。
+     ⚠️ 为什么不写"AI 已就绪"之类的话：没配密钥时说"就绪"等于撒谎，
+        下面的 /api/talk/health 会对同一件事给同一个答案。 */
+  const c = talkApi._internal;
+  console.log('[AI 对话] .env 读取：' + ENV_LOADED + ' 项 ｜ 语音识别：' +
+    (c.hasAsr() ? '已配密钥' : '缺 TENCENT_SECRET_ID / TENCENT_SECRET_KEY') +
+    ' ｜ AI 批改：' + (c.hasLlm() ? '已配密钥' : '缺 DEEPSEEK_API_KEY'));
 
   /* 手机真机测试要用局域网地址（G1 / G2 / G5 都要求真机） */
   const nets = os.networkInterfaces();

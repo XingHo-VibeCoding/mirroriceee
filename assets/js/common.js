@@ -148,3 +148,14 @@ function failureHTML(err, what, action) {
     return rawFetch.call(window, input, init);
   };
 })();
+
+/* ---- Day 31：「上次学到」的存取（跟读页用，app.js 与 player.js 共享）----
+   结构 { file, title, t, ts }：file=素材 id；t=进度（秒）；ts=最后交互时间戳。
+   放 common.js 不放 app.js：player.js 播放中也要更新 t，两边都得够得着 */
+function readLastStudy() {
+  try { return JSON.parse(localStorage.getItem('er_last_study') || 'null'); }
+  catch (e) { return null; }
+}
+function saveLastStudy(rec) {
+  try { localStorage.setItem('er_last_study', JSON.stringify(rec)); } catch (e) {}
+}
