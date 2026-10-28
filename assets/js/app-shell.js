@@ -229,50 +229,102 @@
            '</section>';
   }
 
+  /* 【P0-5】/api/auth/me 取数封装：带超时，且不因「非 JSON」崩掉。
+     起因（2026-10-26 线上实测）：平台网关偶尔把 /api/auth/me 回 404 纯文本
+     "Not Found"，旧代码 res.json() 直接抛错 → 进 catch → 面板显示
+     「登录状态检查失败，请稍后重试」，可 token 明明是好的，纯属吓人。
+     改成 res.text() + 手动 JSON.parse：非 JSON 时 data=null，
+     由调用方按 status 分流（401 = 真失效；其它 = 平台抖动，重试即可）。 */
+  function fetchMe(token, timeoutMs) {
+    var opt = { headers: { Authorization: 'Bearer ' + token } };
+    var timer = null;
+    if (typeof AbortController !== 'undefined') {
+      var ctrl = new AbortController();
+      opt.signal = ctrl.signal;
+      timer = setTimeout(function () { try { ctrl.abort(); } catch (e) {} }, timeoutMs || 8000);
+    }
+    function done() { if (timer) { clearTimeout(timer); timer = null; } }
+    return fetch('/api/auth/me', opt).then(function (res) {
+      return res.text().then(function (t) {
+        done();
+        var d = null;
+        try { d = JSON.parse(t); } catch (e) { d = null; }
+        return { status: res.status, data: d, raw: String(t).slice(0, 40) };
+      });
+    }, function (err) { done(); throw err; });
+  }
+
   /* 主渲染：有 token 就去问后端"我是谁"，没有就直接给未登录的卡。 */
   function renderAccount() {
     var panel = document.getElementById('panel-right');
     if (!panel) return;
+
+    /* 弹簧动效（Day 31）：右栏账号卡与左栏列表同一套收养模式。
+       每次 innerHTML 重渲染后都重新 enhance —— 组件内部先销毁旧实例再重建，
+       重复调用安全；卡片被 innerHTML 冲掉时，销毁会自动跳过还原。 */
+    function enhancePanel() {
+      if (window.AnimatedList && typeof AnimatedList.enhance === 'function') {
+        AnimatedList.enhance(panel, {
+          rowSelector: 'section.acct-card',
+          selectOnHover: false,
+          enableArrowNavigation: false,
+          gap: 0,
+          viewportPadding: 0,
+          radius: 16,
+          scrollable: false
+        });
+      }
+    }
 
     var token = getToken();
     if (!token) {
       stopUsageHeartbeat();
       panel.innerHTML = loggedOutHTML();
       paintAvatar(null);
+      enhancePanel();
       return;
     }
 
     panel.innerHTML = '<p class="empty">正在检查登录状态…</p>';
+    enhancePanel();
 
-    /* ⚠️ 不能用 loadJSON：/me 失败要按【状态码】分流（401 = token 失效，清掉重来；
-       网络挂了 = 提示重试，token 留着）。loadJSON 不分状态码，这里手动 fetch。 */
-    fetch('/api/auth/me', { headers: { Authorization: 'Bearer ' + token } })
-      .then(function (res) {
-        return res.json().then(function (d) { return { status: res.status, d: d }; });
-      })
-      .then(function (r) {
-        if (r.status === 200 && r.d && r.d.ok) {
-          panel.innerHTML = loggedInHTML(r.d.data.user);
-          paintAvatar(r.d.data.user);
+    /* 失败重试 1 次。GET 是幂等的，重试没有副作用；
+       只重试「非 401 的异常」，401 说明 token 真失效了，重试一百次也没用。 */
+    function attempt(left) {
+      fetchMe(token, 8000).then(function (r) {
+        if (r.status === 200 && r.data && r.data.ok) {
+          panel.innerHTML = loggedInHTML(r.data.data.user);
+          paintAvatar(r.data.data.user);
+          enhancePanel();
           startUsageHeartbeat();            /* Day 28：登录态确认了，开始记时长 + 拉榜单 */
-        } else {
+          return;
+        }
+        if (r.status === 401) {
           /* 401（没登录/过期/假 token）→ token 已经没用，扔掉，回到未登录的样子。
              ⚠️ 不弹"登录已过期"打扰人 —— 下次要进账号自然会重新登录。 */
           stopUsageHeartbeat();
           setToken('');
           panel.innerHTML = loggedOutHTML();
           paintAvatar(null);
+          enhancePanel();
+          return;
         }
-      })
-      .catch(function (err) {
-        /* 网络问题 ≠ 未登录：token 留着，给人话 + 重试（PRD R6）。 */
+        /* 404 / 500 / 非 JSON / 200 但 ok:false —— 都不是「未登录」，是这一次没拿到 */
+        throw new Error('auth/me 异常：' + r.status + ' ' + (r.raw || ''));
+      }).catch(function (err) {
         console.error(err);
+        if (left > 0) { setTimeout(function () { attempt(left - 1); }, 600); return; }
+        /* 重试也没成：token 留着（网络问题 ≠ 未登录），文案说清不是登录失效 */
+        stopUsageHeartbeat();
         panel.innerHTML = '<section class="acct-card item">' +
-                            '<p class="empty">登录状态检查失败，请稍后重试。</p>' +
+                            '<p class="empty">网络不稳，账号信息暂时读不到（不影响已登录状态）。</p>' +
                             '<button type="button" class="btn acct-logout" data-action="retry-account">重试</button>' +
                           '</section>';
         paintAvatar(null);
+        enhancePanel();
       });
+    }
+    attempt(1);
   }
 
   /* 退出登录：把 token 交给后端作废（删 sessions 那一行），本地清掉，面板重画。
@@ -407,12 +459,16 @@
           list.innerHTML = '<li class="usage-empty">榜单暂时读不到</li>';
           return;
         }
-        var me = r.d.data.me || { totalSeconds: 0, rank: null };
+        /* ⚠️ data 可能缺（服务端版本错位 / 网关回了个空壳 JSON）：
+           直接取 r.d.data.me 会抛 TypeError，把整个榜单打成"读不到"。
+           兜底成空对象，最差就是榜单空位，不至于报错。 */
+        var payload = r.d.data || {};
+        var me = payload.me || { totalSeconds: 0, rank: null };
         paintMyUsage(me.totalSeconds);
         var rankBox = document.querySelector('[data-role="my-rank"]');
         if (rankBox) rankBox.textContent = me.rank ? ('第 ' + me.rank + ' 名') : '榜外';
 
-        var top = r.d.data.top || [];
+        var top = payload.top || [];
         list.innerHTML = buildBoardRows(top);
       })
       .catch(function (err) {
@@ -484,6 +540,17 @@
                '<button type="button" class="theme-seg__btn" data-theme-mode="light" aria-pressed="false">浅色</button>' +
                '<button type="button" class="theme-seg__btn" data-theme-mode="dark" aria-pressed="false">深色</button>' +
                '<button type="button" class="theme-seg__btn" data-theme-mode="system" aria-pressed="false">跟随系统</button>' +
+             '</div>' +
+             /* 配色（Day 31 晚二改）：冷暖两选，浅色/暗色各有一套配方 ——
+                冷 = 冷白/石墨蓝灰，暖 = 象牙暖白/暖炭灰。深色下色卡照常显示。 */
+             '<div class="tint-row" role="group" aria-label="配色">' +
+               '<span class="tint-row__label">配色</span>' +
+               '<button type="button" class="tint-card" data-tint-mode="cool" aria-pressed="false" title="冷：冷白（浅）/ 石墨蓝灰（暗）">' +
+                 '<span class="tint-card__swatch tint-card__swatch--cool" aria-hidden="true"></span>冷' +
+               '</button>' +
+               '<button type="button" class="tint-card" data-tint-mode="warm" aria-pressed="false" title="暖：象牙暖白（浅）/ 暖炭灰（暗）">' +
+                 '<span class="tint-card__swatch tint-card__swatch--warm" aria-hidden="true"></span>暖' +
+               '</button>' +
              '</div>' +
            '</section>';
   }
