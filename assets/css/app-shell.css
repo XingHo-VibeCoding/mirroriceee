@@ -34,10 +34,10 @@ body.app {
         （顶栏/侧栏/移动端抽屉各一层 rgba），写死色值就得抄三份。
      ⚠️ 这几个色【不进 :root】，因为它们只服务外壳这几处；
         提到全局会让人以为全站都能用，那是误导。 */
-  --side-mint-rgb: 234, 246, 240;
-  --side-mint-line: rgba(15, 110, 86, .12);
-  --nav-active-bg: #c9f0dd;
-  --nav-hover-bg: rgba(15, 110, 86, .07);
+  --side-mint-rgb: 232, 240, 250;   /* 原薄荷绿 234,246,240，随强调色转淡蓝（2026-10-20） */
+  --side-mint-line: rgba(26, 44, 115, .12);
+  --nav-active-bg: #d3e0f5;   /* 原薄荷药丸 #c9f0dd，随强调色转淡蓝 */
+  --nav-hover-bg: rgba(26, 44, 115, .11);   /* 原 .07 太淡、hover 看不出底色，提到 .11（2026-10-20） */
 
   /* ---- 毛玻璃与色带（Day 31 抽出）----
      原来是直接写死 rgba(255,255,255,x) 的；暗色下"加白"是错的（越加越亮），
@@ -64,6 +64,18 @@ html[data-tint='cool'] body.app {
   --glass-soft: rgba(255, 255, 255, .38);   /* 顶栏 */
   --glass: rgba(255, 255, 255, .52);        /* 手机端右抽屉 */
   --band-right: rgba(255, 255, 255, .45);   /* 桌面右栏色带 */
+}
+
+/* Day 32：暖档（浅色）—— 左栏薄荷带/导航按钮跟着转琥珀奶油。
+   为什么必须有：基底那套 --nav-active-bg 是冷蓝 #d3e0f5，暗色有冷暖两档、
+   浅色却没有暖覆盖 → 切「暖」后当前项药丸还是冷蓝底（2026-10-20 用户反馈）。
+   色系与暗色·暖档同源（琥珀 #e0a44e 家族），只是提亮到浅底可用的深度。
+   ⚠️ 排在 cool 块之后、dark 块之前：暗色+暖时由后面的 dark/dark·warm 块接力覆盖。 */
+html[data-tint='warm'] body.app {
+  --side-mint-rgb: 248, 242, 230;            /* 侧栏带：象牙（替代冷蓝白） */
+  --side-mint-line: rgba(224, 164, 78, .14); /* 侧栏描边：琥珀 */
+  --nav-active-bg: #f3e6c8;                  /* 当前项药丸：琥珀奶油 */
+  --nav-hover-bg: rgba(224, 164, 78, .12);   /* 悬停底：琥珀 12% */
 }
 
 /* ============================================
@@ -1006,7 +1018,7 @@ body.page-auth .site-header h1 .auth-h1-en {
   /* 图标键：铺一层薄荷底 + 一圈柔和光晕 */
   .icon-btn:not([aria-pressed='true']):hover {
     background: var(--ok-bg);
-    box-shadow: 0 0 0 4px rgba(15, 110, 86, .10);
+    box-shadow: 0 0 0 4px rgba(26, 44, 115, .12);
     transform: translateY(-1px) scale(1.05);
   }
 }
@@ -1072,4 +1084,45 @@ body.page-auth .site-header h1 .auth-h1-en {
   .btn:active, .level-btn:active, .file-btn:active, .icon-btn:active {
     transform: none;
   }
+}
+
+/* ============================================================
+   侧栏滚动条隐藏（2026-10-20）：左右侧栏内部可滚（overflow-y:auto），
+   但滚动条视觉多余（用户反馈"直接删掉"）——功能保留，视觉移除。
+   scrollbar-width:none 管 Firefox/新 Edge；::-webkit-scrollbar 管旧内核。
+   ============================================================ */
+.side {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.side::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
+}
+
+/* ============================================================
+   侧栏加载期隐藏 + 列表滚动条视觉删除（2026-10-20，用户反馈）
+   ① 左栏在列表数据（词库/话题）就绪前整体不显示 —— 之前空列表带着
+      滚动条闪现，被感知为"加载乱"。页面初始化完成时移除 side-loading
+      类，350ms 淡入。
+   ② 分类/词书列表容器（.levels/.side-levels）滚动条视觉删除，
+      滚动功能保留（内容溢出时仍可滚，只是不显示那根条）。
+   ============================================================ */
+.side--left {
+  transition: opacity 0.35s ease;
+}
+.side--left.side-loading {
+  opacity: 0;
+}
+.levels,
+.side-levels {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.levels::-webkit-scrollbar,
+.side-levels::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
 }

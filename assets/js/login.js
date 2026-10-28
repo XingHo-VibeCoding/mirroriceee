@@ -20,6 +20,48 @@
     box.className = 'form-status' + (kind ? ' form-status--' + kind : '');
   }
 
+  /* ============================================
+     失败原因的「说人话」（Day 33 加）
+     ------------------------------------------------------------
+     ⚠️ 原来两个 catch 都只写「网络连不上，请检查网络」——这句话害人不浅：
+        它把三种完全不同的故障说成同一句，而且把锅指向「你的网」。实际多半是
+        ① 页面开在了没有后端的那条链路上（静态托管 / 本地文件），
+        ② 服务端回的不是 JSON（网关超时页、404 页），
+        ③ 真·网络层失败 —— 这三种处置方式完全不同。
+
+     拆法：
+       · readJson：先看 content-type。不是 JSON 就抛出**带 HTTP 状态码**的错误，
+         文案里直接亮出来（这才叫证据；原来 res.json() 一崩，状态码就丢了）。
+       · failText：把「当前域名 + 归因 + 原始错误」拼成一句话。
+         域名必须出现在文案里 —— 页面两域长得一模一样，不看域名根本分不清。 */
+
+  function readJson(res) {
+    var ct = (res.headers && res.headers.get && res.headers.get('content-type')) || '';
+    if (ct.indexOf('application/json') === -1) {
+      return res.text().then(function (body) {
+        var brief = String(body || '').replace(/\s+/g, ' ').trim().slice(0, 60);
+        throw new Error('HTTP ' + res.status + ' 返回的不是 JSON：' + brief);
+      });
+    }
+    return res.json().then(function (d) { return { status: res.status, d: d }; });
+  }
+
+  function failText(err, action) {
+    var detail = (err && err.message) ? err.message : String(err);
+    var host = location.host || '(本地文件)';
+    var hint;
+    if (location.protocol === 'file:') {
+      hint = '页面是双击本地文件打开的，接口走不通';
+    } else if (/(^|\.)tcloudbaseapp\.com$/i.test(location.hostname)) {
+      hint = '当前在 CloudBase 静态托管域，接口要走云函数；建议改用 echoread.app.workbuddy.host';
+    } else if (/Failed to fetch|NetworkError|Load failed|Network request failed/i.test(detail)) {
+      hint = '请求没到服务端（被拦截、跨域拒绝或断网）';
+    } else {
+      hint = '服务端回的不是 JSON（多半是网关超时页），再点一次通常就好';
+    }
+    return action + '没成功｜' + host + '｜' + hint + '｜' + detail.slice(0, 90);
+  }
+
   /* ---- Tab 切换：两个面板换着显示，地址栏不动 ----
      ⚠️ 切换的是【表单】（form-login / form-register），不是 tab 按钮本身。
         原函数误操作了 tab-login / tab-register 两个按钮 —— 结果是
@@ -78,16 +120,46 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username: username, password: password, inviteCode: code })
       })
-        .then(function (res) { return res.json().then(function (d) { return { status: res.status, d: d }; }); })
+        .then(readJson)
         .then(function (r) {
           if (r.status === 201 && r.d && r.d.ok) {
-            /* 注册成功 ≠ 登录成功（这是两条路）。切到登录 tab，用户名替他填好。 */
-            setStatus('注册成功，请登录。', 'ok');
+            /* 注册成功 ≠ 登录成功（这是两条路）。切到登录 tab，用户名替他填好。
+               ⚠️ 顺序有讲究：showTab 内部会 setStatus('')，所以「注册成功」这句
+                  必须放在它【之后】。原来的顺序是反的 —— 提示一设上就被清空，
+                  用户注册完看到的是空白状态栏，以为没成。
+               ⚠️ 下面的界面收尾一律包 try：账号这时【已经建好了】，
+                  万一 focus/setAttribute 之类抛错冒到外层 catch，
+                  用户会看到「注册没成功」而重复注册，最容易坑人的地方。 */
             showTab('login');
-            var f = document.getElementById('form-login');
-            if (f) f.username.value = username;
-            f.password.value = '';
-            f.password.focus();
+            setStatus('注册成功，请登录。', 'ok');
+            try {
+              var f = document.getElementById('form-login');
+              if (f) {
+                f.username.value = username;
+                f.password.value = '';
+                if (f.password.focus) f.password.focus();
+              }
+            } catch (uiErr) {
+              console.error('[register] 成功后的界面收尾出错（不影响注册结果）', uiErr);
+            }
+          } else if (r.status >= 500 || /TIME_LIMIT_EXCEEDED/i.test((r.d && r.d.code) || '')) {
+            /* ⚠️ 免费体验版云函数 3 秒硬超时（不可调）。实测复现过：
+               注册返回 `504 FUNCTIONS_TIME_LIMIT_EXCEEDED`，但**账号其实已经写进库了** ——
+               同一秒再注册一遍会得到 `409 username_taken`。
+               所以这里绝不能只说「失败」：用户会以为没成，重试撞「用户名已被注册」，
+               然后就彻底懵了（"我到底注册成功没有？"）。
+               处置：直接切到登录 tab、把用户名填好，让他去登录验证。 */
+            showTab('login');
+            setStatus('服务端 3 秒超时了，但这个账号很可能已经建好。请直接用同一个用户名登录试试，别重复注册。', 'error');
+            try {
+              var f2 = document.getElementById('form-login');
+              if (f2) {
+                f2.username.value = username;
+                if (f2.password.focus) f2.password.focus();
+              }
+            } catch (uiErr2) {
+              console.error('[register] 超时后的界面收尾出错', uiErr2);
+            }
           } else {
             setStatus((r.d && r.d.message) || '注册失败，请稍后再试。', 'error');
           }
@@ -95,7 +167,7 @@
         })
         .catch(function (err) {
           console.error(err);
-          setStatus('网络连不上，注册没提交出去，请检查网络后重试。', 'error');
+          setStatus(failText(err, '注册'), 'error');
         });
       return;
     }
@@ -109,7 +181,7 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username: form.username.value.trim(), password: form.password.value })
       })
-        .then(function (res) { return res.json().then(function (d) { return { status: res.status, d: d }; }); })
+        .then(readJson)
         .then(function (r) {
           if (r.status === 200 && r.d && r.d.ok && r.d.data.token) {
             /* ⚠️ Day 28 晚：改走 app-shell.js 暴露的 EchoToken.set ——
@@ -127,13 +199,16 @@
                没有它，登录成功后会有半秒"按了没反应"的空档。 */
             if (window.PageLoader) window.PageLoader.show();
             setTimeout(function () { window.location.href = 'index.html'; }, 400);
+          } else if (r.status >= 500 || /TIME_LIMIT_EXCEEDED/i.test((r.d && r.d.code) || '')) {
+            /* 同注册：3 秒硬超时。登录是只读操作，重试无副作用，直接让他再点一次。 */
+            setStatus('服务端 3 秒超时了，再点一次「登录」通常就好。', 'error');
           } else {
             setStatus((r.d && r.d.message) || '登录失败，请稍后再试。', 'error');
           }
         })
         .catch(function (err) {
           console.error(err);
-          setStatus('网络连不上，登录没提交出去，请检查网络后重试。', 'error');
+          setStatus(failText(err, '登录'), 'error');
         });
     }
   });

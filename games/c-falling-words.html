@@ -2,6 +2,56 @@
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
+  <script>
+  /* ER_RETRY_V1 —— 资源加载兜底（P0-4：平台偶发对已存在的文件回 404）
+     ① 为什么内联、不放进独立 .js：兜底脚本自己也会被 404，独立文件等于没兜底。
+     ② 为什么串行排队：login.js 依赖 common.js 的 escapeHTML、page-loader.js 的 PageLoader，
+        并行重试会打乱执行顺序，比不兜底更糟。
+     ③ 为什么最多 2 次：再失败就是真没了，继续重试只是把抖动放大成刷请求。
+     ④ 只兜 <script> 与 <link rel=stylesheet>；图片裂了不影响功能，不重试。
+     ⑤ 位置必须在 <meta charset> 之后：本片段约 2.2KB，放前面会把字符集声明顶出前 1024 字节，
+        浏览器改用别的编码 → 中文乱码。 */
+  (function () {
+    var MAX = 2, queue = [], running = false;
+    function urlOf(el) { return el.tagName === 'LINK' ? el.href : el.src; }
+    function enqueue(el) {
+      var n = +(el.getAttribute('data-er-retry') || 0);
+      if (n >= MAX) return;
+      el.setAttribute('data-er-retry', n + 1);
+      if (queue.indexOf(el) < 0) queue.push(el);
+      drain();
+    }
+    function drain() {
+      if (running || !queue.length) return;
+      running = true;
+      var el = queue.shift();
+      var n = +el.getAttribute('data-er-retry');
+      var base = urlOf(el).split(/[?&]er_retry=/)[0].replace(/[?&]$/, '');
+      var sep = base.indexOf('?') > -1 ? '&' : '?';
+      var node;
+      if (el.tagName === 'LINK') {
+        node = document.createElement('link');
+        node.rel = 'stylesheet';
+        node.href = base + sep + 'er_retry=' + n + '_' + Date.now();
+      } else {
+        node = document.createElement('script');
+        node.src = base + sep + 'er_retry=' + n + '_' + Date.now();
+        node.async = false;
+      }
+      node.setAttribute('data-er-generated', '1');
+      node.onload = function () { running = false; drain(); };
+      node.onerror = function () { running = false; enqueue(el); drain(); };
+      (document.head || document.documentElement).appendChild(node);
+    }
+    document.addEventListener('error', function (e) {
+      var t = e.target;
+      if (!t || (t.tagName !== 'SCRIPT' && t.tagName !== 'LINK')) return;
+      if (!urlOf(t)) return;
+      if (t.hasAttribute('data-er-generated')) return;
+      enqueue(t);
+    }, true);
+  })();
+  </script>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>C · 单词坠落</title>
 <script>
@@ -46,10 +96,10 @@
      为什么冷白是默认：冷调才配得上品牌深蓝 #1a2c73；暖白那份见下方 html[data-tint="warm"] */
   --bg:#f4f5f7;--card:#ffffff;--card2:#f4f5f7;--line:#dfe1e6;--line-strong:#cfd3da;
   --tx:#16181d;--tx2:#4c545e;--tx3:#606c77;
-  --accent:#0f6e56;--accent-strong:#0b5a46;
+  --accent:#1a2c73;--accent-strong:#14225a;
   --navy:#1a2c73;--navy-bg:#eef1fa;--navy-line:#b9c4dd;--navy-bg-hover:#e4e9f6;
   --back-bg:#eceef1;--back-line:#cfd3da;--back-tx:#1a2c73;
-  --ok-bg:#e1f5ee;--ok-line:#0f6e56;--ok-tx:#0b5a46;
+  --ok-bg:#e3ecfa;--ok-line:#1a2c73;--ok-tx:#14225a;
   --ok-soft-bg:#eaf3de;--ok-soft-line:#639922;--ok-soft-tx:#3b6d11;
   --ok-key-bg:#639922;--ok-key-tx:#ffffff;
   --bad-bg:#fbeae8;--bad-line:#d92d20;--bad-tx:#b42318;
@@ -143,6 +193,11 @@ header{display:flex;align-items:center;justify-content:space-between;margin-bott
   font-size:14px;font-family:inherit;cursor:pointer;transition:.15s}
 .btn:hover{background:var(--accent-strong)}
 </style>
+<!-- 登录门禁：未登录不能进游戏页（版权要求）。
+     ⚠️ 必须先设登录地址为上一级 —— guard.js 默认按"同级"解析，不设会跳到 games/login.html（404）。
+        login.html 本身绝不能引本脚本，否则未登录时它把自己弹回去，死循环。 -->
+<script>window.ECHOREAD_LOGIN_URL = '../login.html';</script>
+<script src="../assets/js/guard.js"></script>
 </head>
 <body>
 <div class="app">

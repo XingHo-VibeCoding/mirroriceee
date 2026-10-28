@@ -2,6 +2,56 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
+  <script>
+  /* ER_RETRY_V1 —— 资源加载兜底（P0-4：平台偶发对已存在的文件回 404）
+     ① 为什么内联、不放进独立 .js：兜底脚本自己也会被 404，独立文件等于没兜底。
+     ② 为什么串行排队：login.js 依赖 common.js 的 escapeHTML、page-loader.js 的 PageLoader，
+        并行重试会打乱执行顺序，比不兜底更糟。
+     ③ 为什么最多 2 次：再失败就是真没了，继续重试只是把抖动放大成刷请求。
+     ④ 只兜 <script> 与 <link rel=stylesheet>；图片裂了不影响功能，不重试。
+     ⑤ 位置必须在 <meta charset> 之后：本片段约 2.2KB，放前面会把字符集声明顶出前 1024 字节，
+        浏览器改用别的编码 → 中文乱码。 */
+  (function () {
+    var MAX = 2, queue = [], running = false;
+    function urlOf(el) { return el.tagName === 'LINK' ? el.href : el.src; }
+    function enqueue(el) {
+      var n = +(el.getAttribute('data-er-retry') || 0);
+      if (n >= MAX) return;
+      el.setAttribute('data-er-retry', n + 1);
+      if (queue.indexOf(el) < 0) queue.push(el);
+      drain();
+    }
+    function drain() {
+      if (running || !queue.length) return;
+      running = true;
+      var el = queue.shift();
+      var n = +el.getAttribute('data-er-retry');
+      var base = urlOf(el).split(/[?&]er_retry=/)[0].replace(/[?&]$/, '');
+      var sep = base.indexOf('?') > -1 ? '&' : '?';
+      var node;
+      if (el.tagName === 'LINK') {
+        node = document.createElement('link');
+        node.rel = 'stylesheet';
+        node.href = base + sep + 'er_retry=' + n + '_' + Date.now();
+      } else {
+        node = document.createElement('script');
+        node.src = base + sep + 'er_retry=' + n + '_' + Date.now();
+        node.async = false;
+      }
+      node.setAttribute('data-er-generated', '1');
+      node.onload = function () { running = false; drain(); };
+      node.onerror = function () { running = false; enqueue(el); drain(); };
+      (document.head || document.documentElement).appendChild(node);
+    }
+    document.addEventListener('error', function (e) {
+      var t = e.target;
+      if (!t || (t.tagName !== 'SCRIPT' && t.tagName !== 'LINK')) return;
+      if (!urlOf(t)) return;
+      if (t.hasAttribute('data-er-generated')) return;
+      enqueue(t);
+    }, true);
+  })();
+  </script>
   <!-- ⚠️ 跨页过渡的 opt-in，【必须】留在这里 —— 站内每个页面各声明一份才生效。
        为什么不能挪进 style.css：见 index.html 里的同名注释。 -->
   <style>@view-transition { navigation: auto; }</style>
@@ -10,8 +60,13 @@
     <script src="assets/js/theme.js"></script>
 <link rel="stylesheet" href="assets/css/style.css">
   <!-- 外壳层。⚠️ 必须排在 style.css 之后，详见 app-shell.css 开头 -->
-  <link rel="stylesheet" href="assets/css/app-shell.css">
+  <link rel="stylesheet" href="assets/css/app-shell.css?v=20261020e">
   <link rel="stylesheet" href="assets/css/page-loader.css">
+  <!-- 弹簧列表的皮（Day 31）：给左栏话题分类加入场/渐隐动效，与 index.html 同一套 -->
+  <link rel="stylesheet" href="assets/css/animated-list.css?v=20261020c">
+  <!-- ⚠️ Day 32：「语音对话」那块已迁到独立板块（talk.html / assets/css/talk.css）。
+       这里【不再引】freetalk-ai.css —— 页面没有对应的 DOM，引着就是一段死样式。
+       入口还在：下面的「去 AI 对话练这段」会把话题和草稿一起带过去。 -->
   <!-- 登录门禁：未登录不能进学习页（版权要求）。⚠️ login.html 不引本脚本，否则死循环 -->
   <script src="assets/js/guard.js"></script>
   <style>
@@ -86,6 +141,9 @@
     .ft-q{font-size:16px}
   }
   </style>
+  <!-- 兜底：JS 全被禁用时左栏的 side-loading 永远撤不掉，这里把它放出来，
+       不让"加载期不显示空列表"变成"永久空白"。脚本正常时这条规则不生效。 -->
+  <noscript><style>.side--left.side-loading{opacity:1}</style></noscript>
 </head>
 <body class="app page-list">
   <header class="appbar">
@@ -113,7 +171,7 @@
   </header>
 
   <div class="shell">
-    <aside class="side side--left" id="panel-left" aria-label="板块导航">
+    <aside class="side side--left side-loading" id="panel-left" aria-label="板块导航">
       <nav class="sidenav">
         <a class="sidenav__item" href="index.html">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
@@ -143,6 +201,19 @@
           </svg>
           free talk练习
         </a>
+
+        <!-- 第四个板块（Day 32）：语音对话 —— 从 free talk 里分出来的一页。
+             为什么要分：那边是"写完对照参考回答"，这边是"开口说、听老师接"，
+             两种节奏塞一页，麦克风永远只是写作框旁边的附件 -->
+        <a class="sidenav__item" href="talk.html">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
+               stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M20.4 11.5c0 3.4-3.7 6.2-8.4 6.2-1 0-1.9-.1-2.8-.3l-4.6 2 1.4-3.5c-1.3-1.1-2-2.6-2-4.4 0-3.4 3.7-6.2 8.4-6.2s8 2.8 8 6.2Z"/>
+            <path d="M8.7 11.5h.01M12 11.5h.01M15.3 11.5h.01"/>
+          </svg>
+          AI 对话
+        </a>
+
       </nav>
 
       <!-- 话题分类：由 data/freetalk.json 的 cats 渲染，复用 echoread 原生 .level-btn -->
@@ -173,9 +244,12 @@
             <span class="ft-count" id="ftCount">0 词</span>
             <span class="ft-sp"></span>
             <button type="button" class="ft-btn" id="ftDone">标记已练</button>
-            <button type="button" class="ft-btn" id="ftAI" disabled title="AI 纠错功能待开放，届时可对用户回答做语法与表达批改">AI 纠错 · 待开放</button>
+            <!-- Day 32：批改入口改成"去 AI 对话" —— 会把当前话题 + 这段草稿一起带过去。
+                 ⚠️ 原地不再跑 AI 逻辑：同一段逻辑放两处，改一处忘一处就是两条不一样的批改 -->
+            <button type="button" class="ft-btn" id="ftGoTalk" title="带着当前话题和这段文字，去「AI 对话」接着说">去 AI 对话练这段</button>
           </div>
         </section>
+
 
         <section class="ft-sec open" id="secFollow">
           <div class="ft-h" data-toggle="secFollow">
@@ -215,6 +289,17 @@
           </div>
         </section>
       </div>
+
+        <!-- ============================================
+             语音对话区 —— Day 32 已整块迁到「AI 对话」板块（talk.html）
+             ------------------------------------------------------------
+             为什么搬走（不是删功能）：
+               这一页的任务是「写完 → 对照参考回答」，是【写】的节奏；
+               开口说话、听老师怎么接，是【说】的节奏。两种节奏塞一页，
+               麦克风永远被当成写作框旁边的附件，它自己该是主角。
+             现在这里只留一个入口：把当前话题和写好的草稿一起带过去。
+             ============================================ -->
+
     </main>
 
     <aside class="side side--right" id="panel-right" aria-label="个人账号"></aside>
@@ -223,9 +308,10 @@
   <div class="scrim" id="scrim" aria-hidden="true"></div>
 
   <!-- ⚠️ 顺序不能动：common.js 提供工具函数，app-shell.js 要用 -->
+  <script src="assets/js/animated-list.js?v=20261020b"></script>
   <script src="assets/js/common.js"></script>
   <script src="assets/js/page-loader.js"></script>
-  <script src="assets/js/app-shell.js"></script>
+  <script src="assets/js/app-shell.js?v=20261028a"></script>
   <script>
   (function () {
     var URL_DATA = 'data/freetalk.json';
@@ -237,6 +323,13 @@
     var statusBox = $('ft-status'), mainBox = $('ft-main');
 
     var CATS = [], TOPICS = [], CUR_CAT = 'all', CUR = null;
+
+    /* ---------- 给「AI 对话」板块留的出口（Day 32 改写） ----------
+       Day 29 这里挂的是一座 window.FreeTalkBridge，让语音区知道"现在哪道题"。
+       语音区已经搬到 talk.html 独立成页，那座桥连同它的订阅者一起没了用 ——
+       桥留着只会让人以为"还有人在用"，所以拆干净。
+       现在只需要一件事：把「哪道题 + 写了什么」交给浏览器，跳过去。 */
+    var KEY_SEED = 'talk_seed';   /* 跟 talk.js 里的 K_SEED 是同一个键，改一处必须两处都改 */
 
     function readJSON(k, d) { try { return JSON.parse(localStorage.getItem(k)) || d; } catch (e) { return d; } }
     function writeJSON(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
@@ -278,6 +371,18 @@
         });
         box.appendChild(b);
       });
+
+      /* 弹簧动效（Day 31）：与 index.html 的 Lesson 列表同一套收养模式。
+         ⚠️ 只加"动"，.level-btn 的皮原样；切分类会重渲染本列表，
+            组件内部自己清理旧实例，这里放心每次都调。 */
+      if (window.AnimatedList && typeof AnimatedList.enhance === 'function') {
+        AnimatedList.enhance(box, { selectOnHover: false, enableArrowNavigation: false });
+      }
+
+      /* 分类列表就绪：左栏淡入（加载期整个侧栏不显示）。
+         撤类统一走 revealSide() —— 它同时被"题库读取失败 / 题库为空 / 全局未捕获错误"
+         三条兜底路径调用，别在这里另写一份。 */
+      revealSide();
     }
 
     function pool() {
@@ -345,6 +450,16 @@
       $('ftAns').value = draft[t.id] || '';
       countWords();
       syncDone();
+
+      /* 弹簧动效（Day 31）：主区 5 个板块（话题卡/作答框/追问/参考词汇/参考回答）
+         逐块弹入 —— 进页、切分类、换一个话题都走 pick()，每次都有切换动效。
+         板块自带 margin-top:14px 间距，gap 传 0 原版式不动；皮肤全保留
+         （折叠/输入框/按钮照常工作，组件只是包一层壳加入场动画） */
+      if (window.AnimatedList && typeof AnimatedList.enhance === 'function') {
+        AnimatedList.enhance(mainBox, { rowSelector: 'section', selectOnHover: false,
+          enableArrowNavigation: false, gap: 0, viewportPadding: 0, radius: 16,
+          scrollable: false });
+      }
     }
 
     function countWords() {
@@ -387,6 +502,22 @@
       syncDone(); renderCats();
     });
 
+    /* Day 32：去「AI 对话」接着说。
+       ⚠️ 只存草稿 + 跳转，【不发任何 AI 请求】——
+          这一页已经没有 AI 逻辑了，批改应该发生在"真的说了一句"之后。
+       ⚠️ 话题 id 同时走 URL（?topic=）和 localStorage：
+          URL 让这一跳可分享、可回退，localStorage 兜住"直接打开 talk.html"的情况。 */
+    $('ftGoTalk').addEventListener('click', function () {
+      if (!CUR) return;
+      var text = $('ftAns').value.trim();
+      try {
+        localStorage.setItem(KEY_SEED, JSON.stringify({
+          topicId: CUR.id, text: text, ts: Date.now()
+        }));
+      } catch (e) {}
+      window.location.href = 'talk.html?topic=' + encodeURIComponent(CUR.id);
+    });
+
     Array.prototype.forEach.call(document.querySelectorAll('.ft-h[data-toggle]'), function (h) {
       h.addEventListener('click', function () {
         $(h.getAttribute('data-toggle')).classList.toggle('open');
@@ -405,6 +536,15 @@
     });
 
     /* ---------- 载入数据 ---------- */
+    /* 左栏 side-loading 的统一撤销点。
+       原先只在 renderCats() 里撤 —— 而 renderCats() 只有"成功拿到题库"这一条路会调到，
+       请求失败 / 题库为空 / 字段残缺时左栏会永久停在 opacity:0（实测三种情况全中）。
+       所以抽出来，三条路都调；classList.remove 幂等，多调无害。 */
+    function revealSide() {
+      var sl = document.querySelector('.side--left');
+      if (sl) sl.classList.remove('side-loading');
+    }
+
     function load() {
       statusBox.innerHTML = '<div class="ft-empty">正在载入话题…</div>';
       fetch(URL_DATA, { cache: 'no-cache' })
@@ -414,6 +554,7 @@
           CATS = d.cats || [];
           if (!TOPICS.length) {
             statusBox.innerHTML = '<div class="ft-empty">题库是空的</div>';
+            revealSide();   /* 没有话题也要放左栏，否则用户面对一片空白无从下手 */
             return;
           }
           var saved = readJSON(KEY_CAT, 'all');
@@ -424,13 +565,23 @@
         .catch(function (e) {
           statusBox.innerHTML = '<div class="ft-empty">题库读取失败（' + esc(e.message) +
             '）<br><button type="button" class="ft-btn" id="ftRetry" style="margin-top:10px">重试</button></div>';
+          revealSide();   /* 失败也要放左栏：用户至少能用"重试"，而不是面对一片空白 */
           var r = $('ftRetry');
           if (r) r.addEventListener('click', load);
         });
     }
 
+    /* 兜底：初始化途中任何未捕获错误都会让上面的失败分支都跑不到（连 load() 都可能没执行），
+       左栏就永久停在 opacity:0。这里用全局 error 事件兜一次。
+       ⚠️ 不加 capture，所以只接运行时错误，不接图片/脚本加载失败那种 resource error。 */
+    window.addEventListener('error', revealSide);
+
     load();
   })();
   </script>
+
+  <!-- ⚠️ Day 32：freetalk-ai.js 已随语音区一起迁到 talk.html（assets/js/talk.js）。
+       这里再引一次就是两套录音逻辑并行 —— 本页没有对应的 DOM，它自己会静默不启动，
+       但留着一个"看起来还在跑"的文件，下次改逻辑时一定会有人改错那一份。 -->
 </body>
 </html>

@@ -37,9 +37,9 @@
         那两条补救规则已删除。 */
   --text-muted: #4c545e;    /* 次要正文（原 #56606b） */
   --text-faint: #606c77;    /* 说明、页脚（原 #64707c，为绿底达标而加深） */
-  --accent: #0f6e56;        /* 强调色：深绿 */
-  --ok-bg: #e1f5ee;         /* 「可用」标签底色 */
-  --ok-text: #0f6e56;       /* 「可用」标签文字 */
+  --accent: #1a2c73;        /* 强调色：品牌深蓝（2026-10-20 由深绿 #0f6e56 更换，原值见 Day 31 注释） */
+  --ok-bg: #e3ecfa;         /* 「可用」标签底色（原薄荷绿 #e1f5ee，随强调色转蓝） */
+  --ok-text: #1a2c73;       /* 「可用」标签文字 */
   --todo-bg: #f1ecdf;       /* 「开发中」标签底色（暖米） */
   --todo-text: #5f6b76;     /* 「开发中」标签文字 */
 
@@ -58,11 +58,11 @@
                0 22px 44px -20px rgba(16, 24, 40, .18);
 
   /* ---- 颜色（新增：层次与质感，全部由上面那套推导而来）---- */
-  --accent-strong: #0b5a46;               /* 悬停/按下时更深的绿 */
+  --accent-strong: #14225a;               /* 悬停/按下时更深的蓝（原更深的绿 #0b5a46） */
   --border-strong: #d8cfbe;               /* 悬停时的描边（暖） */
   --surface-sunken: #faf6ee;              /* 「开发中」卡片的降权底色（暖） */
   --rule: #eee8dc;                        /* 页头装饰线（暖） */
-  --focus-ring: #0f6e56;                  /* 键盘焦点环 */
+  --focus-ring: #1a2c73;                  /* 键盘焦点环 */
 
   /* ---- 明暗主题补充位（Day 31）----
      下面这几个原来是直接写死在规则里的，暗色要能用就得先收成 token：
@@ -79,8 +79,8 @@
   --blob-b: rgba(224, 122, 80, .38);
   --blob-c: rgba(238, 172, 74, .34);
   --blob-d: rgba(146, 168, 66, .30);
-  --accent-fill: #0f6e56;
-  --accent-fill-strong: #0b5a46;
+  --accent-fill: #1a2c73;
+  --accent-fill-strong: #14225a;
   --text-ghost: #a39c8f;      /* 占位符 / 极弱说明字（暖灰） */
   --surface-inset: #f1ecdf;   /* 内嵌块（比卡片再深一档，暖米） */
 
@@ -90,7 +90,7 @@
        浅暖（这里）/ 浅冷（cool 块沿用同一值，不重定义）
        暗冷（暗色块 #26303d）/ 暗暖（暗暖块 #332d24）*/
   --item-hover-bg: #f2faf6;             /* 悬停底色：淡薄荷（原写死值） */
-  --hover-ring: rgba(15, 110, 86, .12); /* 悬停外环：强调绿 */
+  --hover-ring: rgba(26, 44, 115, .12); /* 悬停外环：强调蓝（原强调绿 rgba(15,110,86,.12)） */
 
   /* ---- 尺寸（原有）---- */
   --radius-card: 16px;
@@ -174,6 +174,31 @@ html[data-tint='cool'] {
   --blob-d: rgba(22, 138, 108, .28);  /* 绿 */
   --text-ghost: #a0a8b2;
   --surface-inset: #f1f2f4;
+}
+
+/* ============================================
+   浅色·暖 —— 强调色跟随（Day 31，斌哥拍板）
+   ------------------------------------------------------------
+   根因：浅色·暖档原本没有自己的强调色，靠 :root 兜底；
+   而 :root 的 --accent 在换品牌深蓝时把暖档一起「染蓝」——
+   药丸 / 徽标 / 开始→ 切到暖档仍是冷的深蓝（斌哥三张截图指认）。
+   修法：与暗色·暖块同一根思路，给浅色·暖一套琥珀系强调色，
+   全局 token 一处改，全站吃 --accent 的元素一起跟随。
+   取值：#8f5e1c = 品牌琥珀 #edaf32 加深，象牙底上对比 ≈5.1:1 过 AA。
+
+   ⚠️ 本块特异性 (0,1,1)，与 cool 块同档但属性值不同、互不干扰；
+      暗色块在其后声明（同特异性靠文件顺序），暗色下仍由暗色块接管；
+      暗+暖另有 (0,2,1) 专属块，稳赢 —— 三种暗色组合均不受本块影响。
+   ============================================ */
+html[data-tint='warm'] {
+  --accent: #8f5e1c;                       /* 强调色：琥珀深金 */
+  --accent-strong: #7a4e14;                /* 悬停/按下更深一档 */
+  --accent-fill: #8f5e1c;                  /* 填充按钮底（白字对比 ≈5.5:1） */
+  --accent-fill-strong: #7a4e14;
+  --focus-ring: #b8791f;                   /* 焦点环：亮一档琥珀 */
+  --ok-bg: rgba(224, 164, 78, .18);        /* 标签底：琥珀半透明（同暗色·暖配方） */
+  --ok-text: #8f5e1c;
+  --hover-ring: rgba(224, 164, 78, .16);   /* 悬停外环跟着转暖 */
 }
 
 /* ============================================
@@ -754,7 +779,7 @@ main {
 }
 
 .badge-ok::before {
-  box-shadow: 0 0 0 3px rgba(15, 110, 86, .14);  /* 新增：可用态一点柔和光晕 */
+  box-shadow: 0 0 0 3px rgba(26, 44, 115, .14);  /* 新增：可用态一点柔和光晕 */
 }
 
 .badge-todo {
@@ -1052,7 +1077,7 @@ main {
 @media (hover: hover) {
   .back-link:hover {
     background: var(--ok-bg);
-    box-shadow: 0 0 0 1px var(--accent), 0 0 0 5px rgba(15, 110, 86, .14);
+    box-shadow: 0 0 0 1px var(--accent), 0 0 0 5px rgba(26, 44, 115, .14);
     transform: translateY(-1px);
   }
 }
@@ -1061,7 +1086,7 @@ main {
    额外留 outline 是因为光晕在「高对比度模式」下会被系统抹掉，outline 不会。 */
 .back-link:focus-visible {
   background: var(--ok-bg);
-  box-shadow: 0 0 0 1px var(--accent), 0 0 0 5px rgba(15, 110, 86, .14);
+  box-shadow: 0 0 0 1px var(--accent), 0 0 0 5px rgba(26, 44, 115, .14);
   outline: 2px solid var(--accent);
   outline-offset: 4px;
 }
@@ -1688,7 +1713,7 @@ main {
 .icon-btn[aria-pressed='true'] {
   background: var(--accent);
   color: var(--surface);
-  box-shadow: 0 0 0 4px rgba(15, 110, 86, .12);  /* 新增：播放中一圈光晕 */
+  box-shadow: 0 0 0 4px rgba(26, 44, 115, .12);  /* 新增：播放中一圈光晕 */
 }
 
 .icon-btn[aria-pressed='true'] .ico-play {
@@ -2120,8 +2145,8 @@ main {
 /* 「可用」标签的小绿点缓缓呼吸 —— 提醒"这里能进"。
    压到 2.6s 一个循环，几乎不打扰，只是让静态页面有一点活气。 */
 @keyframes dotPulse {
-  0%, 100% { box-shadow: 0 0 0 3px rgba(15, 110, 86, .14); }
-  50%      { box-shadow: 0 0 0 6px rgba(15, 110, 86, .05); }
+  0%, 100% { box-shadow: 0 0 0 3px rgba(26, 44, 115, .14); }
+  50%      { box-shadow: 0 0 0 6px rgba(26, 44, 115, .05); }
 }
 
 .badge-ok::before {

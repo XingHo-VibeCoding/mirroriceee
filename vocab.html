@@ -1,14 +1,66 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-CN" class="al-guard">
 <head>
   <meta charset="UTF-8">
+  <script>
+  /* ER_RETRY_V1 —— 资源加载兜底（P0-4：平台偶发对已存在的文件回 404）
+     ① 为什么内联、不放进独立 .js：兜底脚本自己也会被 404，独立文件等于没兜底。
+     ② 为什么串行排队：login.js 依赖 common.js 的 escapeHTML、page-loader.js 的 PageLoader，
+        并行重试会打乱执行顺序，比不兜底更糟。
+     ③ 为什么最多 2 次：再失败就是真没了，继续重试只是把抖动放大成刷请求。
+     ④ 只兜 <script> 与 <link rel=stylesheet>；图片裂了不影响功能，不重试。
+     ⑤ 位置必须在 <meta charset> 之后：本片段约 2.2KB，放前面会把字符集声明顶出前 1024 字节，
+        浏览器改用别的编码 → 中文乱码。 */
+  (function () {
+    var MAX = 2, queue = [], running = false;
+    function urlOf(el) { return el.tagName === 'LINK' ? el.href : el.src; }
+    function enqueue(el) {
+      var n = +(el.getAttribute('data-er-retry') || 0);
+      if (n >= MAX) return;
+      el.setAttribute('data-er-retry', n + 1);
+      if (queue.indexOf(el) < 0) queue.push(el);
+      drain();
+    }
+    function drain() {
+      if (running || !queue.length) return;
+      running = true;
+      var el = queue.shift();
+      var n = +el.getAttribute('data-er-retry');
+      var base = urlOf(el).split(/[?&]er_retry=/)[0].replace(/[?&]$/, '');
+      var sep = base.indexOf('?') > -1 ? '&' : '?';
+      var node;
+      if (el.tagName === 'LINK') {
+        node = document.createElement('link');
+        node.rel = 'stylesheet';
+        node.href = base + sep + 'er_retry=' + n + '_' + Date.now();
+      } else {
+        node = document.createElement('script');
+        node.src = base + sep + 'er_retry=' + n + '_' + Date.now();
+        node.async = false;
+      }
+      node.setAttribute('data-er-generated', '1');
+      node.onload = function () { running = false; drain(); };
+      node.onerror = function () { running = false; enqueue(el); drain(); };
+      (document.head || document.documentElement).appendChild(node);
+    }
+    document.addEventListener('error', function (e) {
+      var t = e.target;
+      if (!t || (t.tagName !== 'SCRIPT' && t.tagName !== 'LINK')) return;
+      if (!urlOf(t)) return;
+      if (t.hasAttribute('data-er-generated')) return;
+      enqueue(t);
+    }, true);
+  })();
+  </script>
   <style>@view-transition { navigation: auto; }</style>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>词汇速记 · 星禾星穗</title>
     <script src="assets/js/theme.js"></script>
 <link rel="stylesheet" href="assets/css/style.css">
-  <link rel="stylesheet" href="assets/css/app-shell.css">
+  <link rel="stylesheet" href="assets/css/app-shell.css?v=20261020e">
   <link rel="stylesheet" href="assets/css/page-loader.css">
+  <!-- 弹簧列表的皮（Day 31）：给左栏词书列表加入场/渐隐动效，与 index.html 同一套 -->
+  <link rel="stylesheet" href="assets/css/animated-list.css?v=20261020c">
   <!-- 登录门禁：未登录不能进学习页（版权要求）。⚠️ login.html 不引本脚本，否则死循环 -->
   <script src="assets/js/guard.js"></script>
   <style>
@@ -27,11 +79,11 @@
   .vg-searchbar button:hover{color:var(--accent)}
   /* 搜索记录 */
   .vg-history{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:10px;min-height:26px}
-  .vg-history .lbl{font-size:12px;color:var(--text-ghost);flex:none}
+  .vg-history .lbl{font-size:13px;font-weight:600;color:var(--text);flex:none}
   .vg-history .hit{font-size:12px;color:var(--text-muted);border:1px solid var(--border);border-radius:999px;
     padding:3px 10px;cursor:pointer;background:var(--surface);transition:border-color .15s,color .15s}
   .vg-history .hit:hover{border-color:var(--accent);color:var(--accent)}
-  .vg-history .clr{font-size:12px;color:var(--text-ghost);cursor:pointer;margin-left:2px}
+  .vg-history .clr{font-size:13px;font-weight:600;color:var(--accent);cursor:pointer;margin-left:auto}
   .vg-history .clr:hover{color:var(--danger-text)}
   /* 查词结果卡片 */
   .vg-result{margin-top:16px}
@@ -45,16 +97,35 @@
     color:var(--text);border-radius:999px;padding:5px 11px;font-size:12px;cursor:pointer;font-family:inherit}
   .vg-pbtn svg{width:14px;height:14px}
   .vg-pbtn:hover{border-color:var(--accent);color:var(--accent)}
-  .vg-pbtn.gv{border-color:transparent;background:var(--ok-bg);color:var(--accent);font-weight:500}
   .vg-pbtn:disabled{opacity:.42;cursor:not-allowed;border:1px dashed var(--border);color:var(--text-ghost)}
+  /* 手机端：第一行=单词+音标+美英按钮，翻译独占最下一排（拉长到全宽） */
+  @media (max-width:640px){
+    .vg-wcard{flex-wrap:wrap;row-gap:2px}
+    .vg-wcard .acts{margin-left:auto}
+    .vg-wcard .zh{order:3;flex:1 1 100%}
+  }
   .vg-empty{font-size:13px;color:var(--text-ghost)}
   /* 单词小游戏板块 */
   .vg-sech{font-size:15px;font-weight:600;color:var(--text);margin:36px 0 12px;display:flex;align-items:center;gap:8px}
   .vg-sech .pill{font-size:12px;font-weight:500;color:var(--accent);background:var(--ok-bg);border-radius:999px;padding:2px 10px}
   .vg-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(272px,1fr));gap:16px}
+  /* 弹簧动效（Day 31）：游戏卡片被收养后，track 从竖排改回 2×2 网格（参数与 .vg-grid 同源）；
+     并恢复卡片自己的 hover 过渡 —— 入场动效的行内 transition 会盖住它，!important 才赢得回。
+     入场动画本身不受影响（restoreTransition 落定后行内 transition 已清空，这里接管日常 hover） */
+  .animated-list__track.vg-game-track{display:grid;grid-template-columns:repeat(auto-fit,minmax(272px,1fr));gap:16px}
+  .animated-list .vg-card{transition:border-color .15s,box-shadow .22s,transform .22s !important}
+  /* 词书列表加载占位（3.6MB 词库 defer 下载期间的呼吸提示，列表填充时由脚本移除） */
+  .vg-dict-loading{display:flex;align-items:center;justify-content:center;gap:8px;height:56px;
+    font-size:13px;color:var(--text-ghost);animation:vg-breath 1.2s ease-in-out infinite}
+  @keyframes vg-breath{0%,100%{opacity:.35}50%{opacity:1}}
   .vg-card{position:relative;display:block;text-decoration:none;color:inherit;background:var(--surface);
     border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow-xs);
     padding:20px;transition:border-color .15s,box-shadow .22s,transform .22s}
+  /* 防闪（Day 31 修订）：入场前藏卡片，只由这一条规则负责，开关是 <html class="al-guard">。
+     ⚠️ 不要再改回内联 c.style.opacity='0' —— 内联一写死，动效库没加载/没接管就没东西能撤回来，
+        卡片会永久空白（实测复现：inlineStyle opacity=0、高度仍在、AnimatedList=undefined）。
+     CSS 类可被脚本整体撤销；万一脚本全挂，下面 <noscript> 还有一条兜底。 */
+  .al-guard .vg-card{opacity:0}
   .vg-card::before{content:"";position:absolute;left:0;top:16px;bottom:16px;width:3px;
     border-radius:0 3px 3px 0;background:var(--accent);opacity:0;transition:opacity .22s}
   @media (hover:hover){
@@ -77,6 +148,13 @@
   .vg-dict-row .c{font-size:12px;color:var(--text-faint);flex:none}
   .side-levels .level-btn[aria-pressed='true'] .c{color:var(--accent)}
   </style>
+  <!-- 兜底：JS 全被禁用时，<html> 上的 al-guard 和左栏的 side-loading 永远撤不掉，
+       这里把内容和侧栏放出来，不让"防闪/防空列表"变成"永久空白"。
+       脚本正常时这两条规则不生效，不影响动效。 -->
+  <noscript><style>
+    .al-guard .vg-card{opacity:1}
+    .side--left.side-loading{opacity:1}
+  </style></noscript>
 </head>
 <body class="app page-list">
   <header class="appbar">
@@ -103,7 +181,7 @@
   </header>
 
   <div class="shell">
-    <aside class="side side--left" id="panel-left" aria-label="板块导航">
+    <aside class="side side--left side-loading" id="panel-left" aria-label="板块导航">
       <nav class="sidenav">
         <a class="sidenav__item" href="index.html">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
@@ -132,10 +210,23 @@
           </svg>
           free talk练习
         </a>
+
+        <!-- 第四个板块（Day 32）：语音对话 —— 从 free talk 里分出来的一页。
+             为什么要分：那边是"写完对照参考回答"，这边是"开口说、听老师接"，
+             两种节奏塞一页，麦克风永远只是写作框旁边的附件 -->
+        <a class="sidenav__item" href="talk.html">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
+               stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M20.4 11.5c0 3.4-3.7 6.2-8.4 6.2-1 0-1.9-.1-2.8-.3l-4.6 2 1.4-3.5c-1.3-1.1-2-2.6-2-4.4 0-3.4 3.7-6.2 8.4-6.2s8 2.8 8 6.2Z"/>
+            <path d="M8.7 11.5h.01M12 11.5h.01M15.3 11.5h.01"/>
+          </svg>
+          AI 对话
+        </a>
+
       </nav>
 
       <!-- 词书列表：由 games/dict-pick.js 提供的 DICT_LIST 渲染，复用 echoread 原生 .level-btn -->
-      <nav class="levels side-levels" id="dictList" aria-label="词库筛选"></nav>
+      <nav class="levels side-levels" id="dictList" aria-label="词库筛选"><div class="vg-dict-loading">词库加载中…</div></nav>
     </aside>
 
     <main class="appmain">
@@ -177,6 +268,9 @@
           <div class="vg-go">开始 →</div>
         </a>
       </div>
+      <!-- 防闪（Day 31 修订）：原来这里有一段内联脚本无条件写 c.style.opacity='0'，
+           接管失败时没人能撤销，卡片永久空白。现改由 <html class="al-guard"> +
+           上面那条 CSS 规则统一负责，撤类由页面底部脚本一次完成。 -->
     </main>
 
     <aside class="side side--right" id="panel-right" aria-label="个人账号"></aside>
@@ -185,16 +279,21 @@
   <div class="scrim" id="scrim" aria-hidden="true"></div>
 
   <!-- 顺序不能动：common.js 供 app-shell.js 用；dicts.js 供 dict-pick.js 用 -->
+  <script src="assets/js/animated-list.js?v=20261020b"></script>
   <script src="assets/js/common.js"></script>
   <script src="assets/js/page-loader.js"></script>
-  <script src="assets/js/app-shell.js"></script>
-  <script src="games/dicts.js"></script>
-  <script src="games/dict-pick.js"></script>
-  <script src="games/search-dict.js"></script>
+  <script src="assets/js/app-shell.js?v=20261028a"></script>
+  <!-- 词库两件套：dicts.js（1MB，词书列表必需）defer 异步；
+       search-dict.js（2.4MB COCA20000，仅查词用）移出关键路径 ——
+       由底部脚本在页面就绪后动态注入，词书列表和游戏不必等它 -->
+  <script src="games/dicts.js" defer></script>
+  <script src="games/dict-pick.js" defer></script>
   <script>
-  (function () {
+  document.addEventListener('DOMContentLoaded', function () {
     /* 左栏词书列表：复用 echoread 原生 .level-btn */
     var box = document.getElementById('dictList');
+    var loading = box.querySelector('.vg-dict-loading');
+    if (loading) loading.remove();
     var list = window.DICT_LIST || [];
     list.forEach(function (d) {
       var b = document.createElement('button');
@@ -212,8 +311,43 @@
       box.appendChild(b);
     });
 
-    /* 查词：数据源 = COCA20000 + 四本 合并去重（games/search-dict.js 的 SEARCH_WORDS） */
-    var LIB = window.SEARCH_WORDS || [];
+    /* 弹簧动效（Day 31）：与 index.html 的 Lesson 列表同一套收养模式。
+       ⚠️ 只加"动"，.level-btn 的皮原样。
+       （补注：#result 查询列表最初【不套】——怕每键重渲染闪烁；后来实测
+          组件 destroy 会自动清理被 innerHTML 冲掉的旧包装，重渲染安全，
+          已在下方 search() 里套上。） */
+    if (window.AnimatedList && typeof AnimatedList.enhance === 'function') {
+      AnimatedList.enhance(box, { selectOnHover: false, enableArrowNavigation: false });
+    }
+
+    /* 词书列表就绪：左栏淡入（加载期整个侧栏不显示，避免空列表+滚动条闪现） */
+    var sideLeft = document.querySelector('.side--left');
+    if (sideLeft) sideLeft.classList.remove('side-loading');
+
+    /* 弹簧动效（Day 31）：单词小游戏 2×2 网格逐卡弹入。
+       ⚠️ gate 用默认 0（露头即播）：桌面端网格加载时基本完整可见 → 进页立即入场，
+          用户直接看到动画；移动端网格在折叠下 → 滚到露头即播。
+          （0.85 的"滚到基本完整可见才播"已撤销：它让卡片在触发前长时间空白，
+          被反馈为"加载慢且没有动画"。防闪脚本保证触发前不露内容。）
+       track 用 vg-game-track 恢复网格布局（引擎默认竖排会把网格压成单列）；
+       restoreTransition 入场落定后把 hover 过渡还给 .vg-card 自己的 CSS；
+       行是 <a> 卡片，引擎不 preventDefault，跳转照常。 */
+    if (window.AnimatedList && typeof AnimatedList.enhance === 'function') {
+      AnimatedList.enhance(document.querySelector('.vg-grid'), { rowSelector: '.vg-card',
+        selectOnHover: false, enableArrowNavigation: false, viewportPadding: 0, radius: 16,
+        trackClass: 'vg-game-track', restoreTransition: true, scrollable: false });
+    }
+
+    /* 查词：数据源 = COCA20000 + 四本 合并去重（games/search-dict.js 的 SEARCH_WORDS）。
+       ⚠️ 2.4MB 不挡首屏：这里动态注入，加载期间查词会提示"词库加载中"，
+          就绪后查询即正常（LIB 每次查询时现读，不做启动时快照）。 */
+    var searchReady = false;
+    (function () {
+      var sd = document.createElement('script');
+      sd.src = 'games/search-dict.js';
+      sd.onload = function () { searchReady = true; };
+      document.head.appendChild(sd);
+    })();
     var q = document.getElementById('q'), clear = document.getElementById('clear'),
         hist = document.getElementById('hist'), result = document.getElementById('result');
     var KEY = 'vocab_search_hist';
@@ -224,38 +358,38 @@
     function spk(){ return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6.5 8.5H3.5v7h3L11 19V5Z"/><path d="M15 9.5a3.5 3.5 0 0 1 0 5"/><path d="M17.5 7a7 7 0 0 1 0 10"/></svg>'; }
     function playUS(e){ new Audio('https://dict.youdao.com/dictvoice?audio=' + encodeURIComponent(e) + '&type=2').play(); }
     function playUK(e){ new Audio('https://dict.youdao.com/dictvoice?audio=' + encodeURIComponent(e) + '&type=1').play(); }
-    function playGV(id){ new Audio('https://dict.youdao.com/mvoice?method=getVoice&id=' + id).play(); }
-    window.playUS = playUS; window.playUK = playUK; window.playGV = playGV;
+    window.playUS = playUS; window.playUK = playUK;
 
     function renderHist(){
       var a = readHist(); hist.innerHTML = '<span class="lbl">最近搜索</span>';
+      /* 「清空」最后 append：配合 margin-left:auto 才能钉在整行最右；
+         放在历史词前面的话它会跟词缀挤在一起 */
+      a.forEach(function (w) {
+        var s = document.createElement('span'); s.className = 'hit'; s.textContent = w;
+        s.onclick = function(){ q.value = w; search(w, true); };
+        hist.appendChild(s);
+      });
       if (a.length) {
         var clr = document.createElement('span'); clr.className = 'clr'; clr.textContent = '清空';
         clr.onclick = function(){ writeHist([]); q.value=''; clear.style.display='none'; result.innerHTML=''; renderHist(); };
         hist.appendChild(clr);
       }
-      a.forEach(function (w) {
-        var s = document.createElement('span'); s.className = 'hit'; s.textContent = w;
-        s.onclick = function(){ q.value = w; search(w); };
-        hist.appendChild(s);
-      });
     }
 
     function cardHTML(w){
       var ph = w.ph ? '<span class="ph">' + w.ph + '</span>' : '';
-      var gv = w.gv
-        ? '<button class="vg-pbtn gv" onclick="playGV(\'' + w.gv + '\')">' + spk() + '全球发音</button>'
-        : '<button class="vg-pbtn" disabled>' + spk() + '全球发音·无</button>';
       return '<div class="vg-wcard"><span><span class="w">' + w.en + '</span>' + ph + '</span>' +
         '<span class="zh">' + w.zh + '</span><span class="acts">' +
         '<button class="vg-pbtn" onclick="playUS(\'' + w.en + '\')">' + spk() + '美</button>' +
-        '<button class="vg-pbtn" onclick="playUK(\'' + w.en + '\')">' + spk() + '英</button>' + gv +
+        '<button class="vg-pbtn" onclick="playUK(\'' + w.en + '\')">' + spk() + '英</button>' +
         '</span></div>';
     }
 
-    function search(val){
+    function search(val, record){
+      var LIB = window.SEARCH_WORDS || [];
       var t = (val || '').trim().toLowerCase();
       if (!t) { result.innerHTML = ''; renderHist(); return; }
+      if (!LIB.length) { result.innerHTML = '<div class="vg-empty">词库加载中，稍候再试…</div>'; renderHist(); return; }
       var m = LIB.filter(function (w){ return w.en && w.en.toLowerCase().indexOf(t) === 0; });
       // 前缀匹配：只出「以输入开头」的词；精确匹配排最前，其余按字母序
       m.sort(function (a, b){
@@ -268,15 +402,52 @@
       result.innerHTML = m.length
         ? m.map(cardHTML).join('')
         : '<div class="vg-empty">没查到「' + t + '」</div>';
+      /* 弹簧动效（Day 31）：查询结果卡片逐张弹入。每敲一键整块重渲染也没关系，
+         组件内部自己清理旧实例（旧包装被 innerHTML 冲掉时，销毁会自动跳过还原）；
+         空结果没有 .vg-wcard 行，enhance 收不到行会自动不包裹。
+         卡片自带 margin-bottom:10px，gap 传 0 保持原间距；viewportPadding 0 防版心被挤窄 */
+      if (m.length && window.AnimatedList && typeof AnimatedList.enhance === 'function') {
+        AnimatedList.enhance(result, { rowSelector: '.vg-wcard', selectOnHover: false,
+          enableArrowNavigation: false, gap: 0, viewportPadding: 0, radius: 14,
+          scrollable: false });
+      }
+      /* 历史只记「确认过」的查询：实时联想不记录（不然每敲一个字母就写一条，
+         历史里会全是 ab/aba/aban 这种前缀碎片）；按回车才算确认 */
+      if (!record) { renderHist(); return; }
       var a = readHist(); a = a.filter(function (x){ return x !== t; }); a.unshift(t); a = a.slice(0, 8);
       writeHist(a); renderHist();
     }
 
-    q.addEventListener('input', function(){ clear.style.display = q.value ? 'inline-block' : 'none'; });
-    q.addEventListener('keydown', function(e){ if (e.key === 'Enter') search(q.value); });
+    /* 实时搜索：输入即出结果（120ms 防抖，词库在内存里，过滤本身是毫秒级） */
+    var liveTimer = null;
+    q.addEventListener('input', function(){
+      clear.style.display = q.value ? 'inline-block' : 'none';
+      clearTimeout(liveTimer);
+      liveTimer = setTimeout(function(){ search(q.value, false); }, 120);
+    });
+    q.addEventListener('keydown', function(e){ if (e.key === 'Enter'){ clearTimeout(liveTimer); search(q.value, true); } });
     clear.addEventListener('click', function(){ q.value=''; clear.style.display='none'; result.innerHTML=''; renderHist(); q.focus(); });
     renderHist();
-  })();
+  });
+
+  /* 防闪撤销（Day 31 修订）—— 全页唯一一处撤掉 <html class="al-guard">。
+     ⚠️ 这个监听必须【在主 DOMContentLoaded handler 之后注册】（即写在这里、页面末尾），
+        这样它一定在 enhance 之后执行：
+        · 接管成功 → enhance 里的 sync() 已同步给每张卡写好内联 opacity:0，
+          撤类无缝接力，看不到闪烁；
+        · 动效库没加载 / enhance 返回 null / 上面 handler 中途抛错 → 撤类后卡片照常显示，
+          不会再出现"永久空白且没有任何提示"。
+     反面教材：把撤类塞到上面 handler 里 —— 它前面的 run 一旦抛错，撤类就永远执行不到。 */
+  document.addEventListener('DOMContentLoaded', function () {
+    document.documentElement.classList.remove('al-guard');
+    /* 同一个道理，左栏的 side-loading 也在这里补撤一次。
+       正常路径上面 handler 已经撤过（classList.remove 幂等，不会有额外效果）；
+       handler 里 dictList 相关代码一旦抛错，至少左栏不会永久隐形。
+       ⚠️ 本页初始化是同步的（词库经 defer 已在 DOMContentLoaded 前就绪），
+          所以这里撤不会露出空列表 —— 跟 writing.html 必须等 fetch 的时机不同。 */
+    var sl = document.querySelector('.side--left');
+    if (sl) sl.classList.remove('side-loading');
+  });
   </script>
 </body>
 </html>
