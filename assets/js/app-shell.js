@@ -53,6 +53,47 @@
   }
 
   /* ============================================
+     「上次确认过的我是谁」本地缓存（Day 32 补）
+     ------------------------------------------------------------
+     为什么要有：右栏账号卡原本必须等 /api/auth/me 回来才画 ——
+       左栏列表在 DOMContentLoaded 就入场了，右栏却要等一次网络往返
+       （线上实测 0.2~2 秒），于是右边永远"晚半拍才出现"。
+     做法：把上一次校验通过的 user 连 token 一起存下来。
+       · 页面一加载就能立刻画出右栏 → 与左栏同一时刻入场；
+       · 真正的校验挪到后台照做，用户名变了再重画（见 renderAccount）。
+     ⚠️ 读的时候必须比对 token —— 换号登录后若只认 user 不认 token，
+        就会拿旧用户名冒充新账号，那是比"晚半拍"严重得多的事故。
+     ⚠️ 这不是登录态的一部分：登录是否有效永远由后端说了算，
+        这份缓存只管"先画什么"，401 一到整份作废。
+     ============================================ */
+  var USER_CACHE_KEY = 'echoread_user_cache';
+
+  function readUserCache(token) {
+    if (!token) return null;
+    try {
+      var raw = localStorage.getItem(USER_CACHE_KEY);
+      if (!raw) return null;
+      var o = JSON.parse(raw);
+      if (!o || o.token !== token || !o.user || !o.user.username) return null;
+      return o.user;
+    } catch (e) {
+      return null;          /* 存的内容坏了就当没有，别让整块面板跟着挂 */
+    }
+  }
+
+  function writeUserCache(token, user) {
+    try {
+      if (token && user && user.username) {
+        localStorage.setItem(USER_CACHE_KEY, JSON.stringify({ token: token, user: user }));
+      } else {
+        localStorage.removeItem(USER_CACHE_KEY);
+      }
+    } catch (e) {
+      /* 隐私模式 / 存满写不进去：不影响功能，顶多退回到"等接口" */
+    }
+  }
+
+  /* ============================================
      一、侧栏开合
      ============================================ */
 
@@ -279,23 +320,43 @@
     var token = getToken();
     if (!token) {
       stopUsageHeartbeat();
+      writeUserCache('', null);
       panel.innerHTML = loggedOutHTML();
       paintAvatar(null);
       enhancePanel();
       return;
     }
 
-    panel.innerHTML = '<p class="empty">正在检查登录状态…</p>';
-    enhancePanel();
+    /* 有 token：先看本地有没有"上次确认过的我"。
+       有 → 立刻画出来，右栏和左栏同一时刻入场，后台再核对（见下方 attempt）；
+       没有（刚登录完第一次进页面）→ 才退回"正在检查登录状态…"占位。
+       ⚠️ 这里不启动心跳：心跳代表"正在上报时长"，必须等后端确认登录有效才敢开。
+          （缓存只负责长得快，不负责替后端说话。） */
+    var cached = readUserCache(token);
+    if (cached) {
+      panel.innerHTML = loggedInHTML(cached);
+      paintAvatar(cached);
+      enhancePanel();
+    } else {
+      panel.innerHTML = '<p class="empty">正在检查登录状态…</p>';
+      enhancePanel();
+    }
 
     /* 失败重试 1 次。GET 是幂等的，重试没有副作用；
        只重试「非 401 的异常」，401 说明 token 真失效了，重试一百次也没用。 */
     function attempt(left) {
       fetchMe(token, 8000).then(function (r) {
         if (r.status === 200 && r.data && r.data.ok) {
-          panel.innerHTML = loggedInHTML(r.data.data.user);
-          paintAvatar(r.data.data.user);
-          enhancePanel();
+          var user = r.data.data.user;
+          writeUserCache(token, user);
+          /* 缓存命中且用户名没变 → 面板开局就画好了，这里别再冲一遍 innerHTML：
+             重画 = 右栏二次入场，看起来正是"晚了半拍才出现"。
+             只有「没缓存」或「账号换了」（另一台设备改过名）才重画一次。 */
+          if (!cached || cached.username !== user.username) {
+            panel.innerHTML = loggedInHTML(user);
+            enhancePanel();
+          }
+          paintAvatar(user);
           startUsageHeartbeat();            /* Day 28：登录态确认了，开始记时长 + 拉榜单 */
           return;
         }
@@ -304,6 +365,7 @@
              ⚠️ 不弹"登录已过期"打扰人 —— 下次要进账号自然会重新登录。 */
           stopUsageHeartbeat();
           setToken('');
+          writeUserCache('', null);        /* token 都作废了，缓存里的 user 更不能留 */
           panel.innerHTML = loggedOutHTML();
           paintAvatar(null);
           enhancePanel();
@@ -314,6 +376,9 @@
       }).catch(function (err) {
         console.error(err);
         if (left > 0) { setTimeout(function () { attempt(left - 1); }, 600); return; }
+        /* 有缓存兜着：人已经看到账号卡了，就别把它换成一张错误卡 ——
+           网络抖一下不该让界面往回退。真相留在控制台，重试留给下一次进页面。 */
+        if (cached) return;
         /* 重试也没成：token 留着（网络问题 ≠ 未登录），文案说清不是登录失效 */
         stopUsageHeartbeat();
         panel.innerHTML = '<section class="acct-card item">' +
@@ -337,6 +402,7 @@
     flushUsage(false);
     stopUsageHeartbeat();
     setToken('');
+    writeUserCache('', null);           /* 退出登录：缓存里的用户名也一起清掉 */
     renderAccount();
     if (!token) return;
     fetch('/api/auth/logout', {
