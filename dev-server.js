@@ -82,8 +82,14 @@ const BLOCKED_EXT = ['.md', '.env', '.env.example', '.env.local', '.env.producti
        沙箱里那些旧文件即使还在，也访问不到了。
 
    Day 24 一并加上 `db/`：里面是 schema.sql / seed.sql，目前靠 WAF 挡着（.sql 命中规则），
-     但那是"别人替我挡"；写进自家名单是零成本的纵深防御。 */
-const BLOCKED_PATH_PREFIX = ['.env', '.workbuddy/', '.git/', 'cloudfunctions/', 'db/'];
+     但那是"别人替我挡"；写进自家名单是零成本的纵深防御。
+   Day 32 加上 `lib/`：AI 对话的后端（签名、prompt、流式转发）放在 lib/talk-api.js，
+     与 cloudfunctions/ 同一个理由 —— 发布是整目录上传，仓库里有什么就传什么，
+     不给它一道门，/lib/talk-api.js 就能被人直接下载，prompt 和调用方式一览无余。
+   ⚠️ 为什么必须和"把 lib/ 纳入版本控制"同批完成：
+     在那之前 lib/ 是未跟踪的，从仓库恢复出来的代码里根本没有这个目录，
+     没有门也不会漏；一旦 lib/ 进了仓库，没有 lib/ 前缀就等于新开一个出口。 */
+const BLOCKED_PATH_PREFIX = ['.env', '.workbuddy/', '.git/', 'cloudfunctions/', 'db/', 'lib/'];
 
 /* 【Day 32 补】根目录下这几个"自己的源码"也不该对外。
    起因（线上实测 2026-10-28）：/dev-server.js 返回 200、22675 字节，
